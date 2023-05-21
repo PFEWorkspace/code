@@ -5,7 +5,6 @@ RELEASE_NOTES*
 ns3
 LICENSE
 CONTRIBUTING.md
-CMakeLists.txt
 CHANGES.md
 AUTHORS
 .lock-ns3_linux_build
