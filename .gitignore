@@ -12,7 +12,7 @@ AUTHORS
 .clang-tidy
 .clang-format
 /utils
-/examples
+
 /doc 
 /contrib 
 /cmake-cache
