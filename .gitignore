@@ -22,9 +22,7 @@ AUTHORS
 /.vscode
 /scratch/ss
 /src/buildings
-/src/test
 
 example*
-test*
 doc*
 scratch/.gitattributes
