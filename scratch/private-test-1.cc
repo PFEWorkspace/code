@@ -26,6 +26,8 @@
  #include "ns3/point-to-point-module.h"
  #include "ns3/applications-module.h"
  #include "ns3/point-to-point-layout-module.h"
+ #include "blockchain.h"
+ #include "iot-flat-topology-helper.h"
  #define N_VALIDATORS 6
  #define N_IOTDEVICE 9
  // #include "ns3/mpi-interface.h"

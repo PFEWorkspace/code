@@ -9,12 +9,12 @@
 #include "ns3/mobility-module.h"
 #include "ns3/bridge-module.h"
 #include "ns3/csma-module.h"
-#include "ns3/mpi-interface.h"
-#define MPI_TEST
+//#include "ns3/mpi-interface.h"
+//#define MPI_TEST
 
-#ifdef NS3_MPI
-#include <mpi.h>
-#endif
+//#ifdef NS3_MPI
+//#include <mpi.h>
+//#endif
 
 using namespace ns3;
 
@@ -80,16 +80,16 @@ int main(int argc, char *argv[])
   term_24.Create (6);
 
   /* Build link. */
-  YansWifiPhyHelper wifiPhy_ap_0 = YansWifiPhyHelper::Default ();
+  YansWifiPhyHelper wifiPhy_ap_0 ;
   YansWifiChannelHelper wifiChannel_ap_0 = YansWifiChannelHelper::Default ();
   wifiPhy_ap_0.SetChannel (wifiChannel_ap_0.Create ());
-  YansWifiPhyHelper wifiPhy_ap_1 = YansWifiPhyHelper::Default ();
+  YansWifiPhyHelper wifiPhy_ap_1 ;
   YansWifiChannelHelper wifiChannel_ap_1 = YansWifiChannelHelper::Default ();
   wifiPhy_ap_1.SetChannel (wifiChannel_ap_1.Create ());
-  YansWifiPhyHelper wifiPhy_ap_2 = YansWifiPhyHelper::Default ();
+  YansWifiPhyHelper wifiPhy_ap_2 ;
   YansWifiChannelHelper wifiChannel_ap_2 = YansWifiChannelHelper::Default ();
   wifiPhy_ap_2.SetChannel (wifiChannel_ap_2.Create ());
-  YansWifiPhyHelper wifiPhy_ap_3 = YansWifiPhyHelper::Default ();
+  YansWifiPhyHelper wifiPhy_ap_3 ;
   YansWifiChannelHelper wifiChannel_ap_3 = YansWifiChannelHelper::Default ();
   wifiPhy_ap_3.SetChannel (wifiChannel_ap_3.Create ());
   CsmaHelper csma_hub_12;
@@ -100,8 +100,8 @@ int main(int argc, char *argv[])
   NodeContainer all_ap_0;
   NetDeviceContainer ndc_ap_0;
   Ssid ssid_ap_0 = Ssid ("wifi-default-0");
-  WifiHelper wifi_ap_0 = WifiHelper::Default ();
-  NqosWifiMacHelper wifiMac_ap_0 = NqosWifiMacHelper::Default ();
+  WifiHelper wifi_ap_0 ;
+  NqosWifiMacHelper wifiMac_ap_0 ;
   wifi_ap_0.SetRemoteStationManager ("ns3::ArfWifiManager");
   wifiMac_ap_0.SetType ("ns3::ApWifiMac",
      "Ssid", SsidValue (ssid_ap_0),
@@ -119,7 +119,7 @@ int main(int argc, char *argv[])
   NodeContainer all_ap_1;
   NetDeviceContainer ndc_ap_1;
   Ssid ssid_ap_1 = Ssid ("wifi-default-1");
-  WifiHelper wifi_ap_1 = WifiHelper::Default ();
+  WifiHelper wifi_ap_1 ;
   NqosWifiMacHelper wifiMac_ap_1 = NqosWifiMacHelper::Default ();
   wifi_ap_1.SetRemoteStationManager ("ns3::ArfWifiManager");
   wifiMac_ap_1.SetType ("ns3::ApWifiMac",
