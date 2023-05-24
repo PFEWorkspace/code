@@ -28,7 +28,7 @@
  #include "ns3/point-to-point-layout-module.h"
  #include "blockchain.h"
  #include "blockchain-validator-helper.h"
- #include "iot-layer-topology-helper.h"
+ #include "ns3/iot-layer-topology-helper.h"
  #define N_VALIDATORS 2
  // #include "ns3/mpi-interface.h"
  // #define MPI_TEST

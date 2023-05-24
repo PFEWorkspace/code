@@ -241,36 +241,38 @@ StaWifiMac::GetCurrentChannel(uint8_t linkId) const
 }
 
 void
-StaWifiMac::SendProbeRequest()
+StaWifiMac::SendProbeRequest(uint8_t linkId)
 {
-    NS_LOG_FUNCTION(this);
+    NS_LOG_FUNCTION(this << linkId);
     WifiMacHeader hdr;
     hdr.SetType(WIFI_MAC_MGT_PROBE_REQUEST);
     hdr.SetAddr1(Mac48Address::GetBroadcast());
-    hdr.SetAddr2(GetAddress());
+    hdr.SetAddr2(GetFrameExchangeManager(linkId)->GetAddress());
     hdr.SetAddr3(Mac48Address::GetBroadcast());
     hdr.SetDsNotFrom();
     hdr.SetDsNotTo();
     Ptr<Packet> packet = Create<Packet>();
     MgtProbeRequestHeader probe;
-    probe.SetSsid(GetSsid());
-    probe.SetSupportedRates(GetSupportedRates(SINGLE_LINK_OP_ID));
+    probe.Get<Ssid>() = GetSsid();
+    auto supportedRates = GetSupportedRates(linkId);
+    probe.Get<SupportedRates>() = supportedRates.rates;
+    probe.Get<ExtendedSupportedRatesIE>() = supportedRates.extendedRates;
     if (GetHtSupported())
     {
-        probe.SetExtendedCapabilities(GetExtendedCapabilities());
-        probe.SetHtCapabilities(GetHtCapabilities(SINGLE_LINK_OP_ID));
+        probe.Get<ExtendedCapabilities>() = GetExtendedCapabilities();
+        probe.Get<HtCapabilities>() = GetHtCapabilities(linkId);
     }
-    if (GetVhtSupported(SINGLE_LINK_OP_ID))
+    if (GetVhtSupported(linkId))
     {
-        probe.SetVhtCapabilities(GetVhtCapabilities(SINGLE_LINK_OP_ID));
+        probe.Get<VhtCapabilities>() = GetVhtCapabilities(linkId);
     }
     if (GetHeSupported())
     {
-        probe.SetHeCapabilities(GetHeCapabilities(SINGLE_LINK_OP_ID));
+        probe.Get<HeCapabilities>() = GetHeCapabilities(linkId);
     }
     if (GetEhtSupported())
     {
-        probe.SetEhtCapabilities(GetEhtCapabilities(SINGLE_LINK_OP_ID));
+        probe.Get<EhtCapabilities>() = GetEhtCapabilities(linkId);
     }
     packet->AddHeader(probe);
 
@@ -311,26 +313,28 @@ StaWifiMac::GetAssociationRequest(bool isReassoc, uint8_t linkId) const
 
     // lambda to set the fields of the (Re)Association Request
     auto fill = [&](auto&& frame) {
-        frame.SetSsid(GetSsid());
-        frame.SetSupportedRates(GetSupportedRates(linkId));
-        frame.SetCapabilities(GetCapabilities(linkId));
+        frame.template Get<Ssid>() = GetSsid();
+        auto supportedRates = GetSupportedRates(linkId);
+        frame.template Get<SupportedRates>() = supportedRates.rates;
+        frame.template Get<ExtendedSupportedRatesIE>() = supportedRates.extendedRates;
+        frame.Capabilities() = GetCapabilities(linkId);
         frame.SetListenInterval(0);
         if (GetHtSupported())
         {
-            frame.SetExtendedCapabilities(GetExtendedCapabilities());
-            frame.SetHtCapabilities(GetHtCapabilities(linkId));
+            frame.template Get<ExtendedCapabilities>() = GetExtendedCapabilities();
+            frame.template Get<HtCapabilities>() = GetHtCapabilities(linkId);
         }
         if (GetVhtSupported(linkId))
         {
-            frame.SetVhtCapabilities(GetVhtCapabilities(linkId));
+            frame.template Get<VhtCapabilities>() = GetVhtCapabilities(linkId);
         }
         if (GetHeSupported())
         {
-            frame.SetHeCapabilities(GetHeCapabilities(linkId));
+            frame.template Get<HeCapabilities>() = GetHeCapabilities(linkId);
         }
         if (GetEhtSupported())
         {
-            frame.SetEhtCapabilities(GetEhtCapabilities(linkId));
+            frame.template Get<EhtCapabilities>() = GetEhtCapabilities(linkId);
         }
     };
 
@@ -343,9 +347,7 @@ StaWifiMac::GetMultiLinkElement(bool isReassoc, uint8_t linkId) const
 {
     NS_LOG_FUNCTION(this << isReassoc << +linkId);
 
-    MultiLinkElement multiLinkElement(MultiLinkElement::BASIC_VARIANT,
-                                      isReassoc ? WIFI_MAC_MGT_REASSOCIATION_REQUEST
-                                                : WIFI_MAC_MGT_ASSOCIATION_REQUEST);
+    MultiLinkElement multiLinkElement(MultiLinkElement::BASIC_VARIANT);
     // The Common info field of the Basic Multi-Link element carried in the (Re)Association
     // Request frame shall include the MLD MAC address, the MLD Capabilities and Operations,
     // and the EML Capabilities subfields, and shall not include the Link ID Info, the BSS
@@ -421,7 +423,7 @@ StaWifiMac::SendAssociationRequest(bool isReassoc)
         GetWifiRemoteStationManager(linkId)->GetMldAddress(*link.bssid).has_value())
     {
         auto addMle = [&](auto&& frame) {
-            frame.SetMultiLinkElement(GetMultiLinkElement(isReassoc, linkId));
+            frame.template Get<MultiLinkElement>() = GetMultiLinkElement(isReassoc, linkId);
         };
         std::visit(addMle, frame);
     }
@@ -521,13 +523,13 @@ StaWifiMac::StartScanning()
     }
     if (m_activeProbing)
     {
-        scanParams.type = WifiScanParams::ACTIVE;
+        scanParams.type = WifiScanType::ACTIVE;
         scanParams.probeDelay = MicroSeconds(m_probeDelay->GetValue());
         scanParams.minChannelTime = scanParams.maxChannelTime = m_probeRequestTimeout;
     }
     else
     {
-        scanParams.type = WifiScanParams::PASSIVE;
+        scanParams.type = WifiScanType::PASSIVE;
         scanParams.maxChannelTime = m_waitBeaconTimeout;
     }
 
@@ -670,6 +672,8 @@ StaWifiMac::Disassociated(uint8_t linkId)
 
     NS_LOG_DEBUG("Set state to UNASSOCIATED and start scanning");
     SetState(UNASSOCIATED);
+    // cancel the association request timer (see issue #862)
+    m_assocRequestEvent.Cancel();
     auto mldAddress = GetWifiRemoteStationManager(linkId)->GetMldAddress(GetBssid(linkId));
     if (GetNLinks() > 1 && mldAddress.has_value())
     {
@@ -939,7 +943,7 @@ StaWifiMac::ReceiveBeacon(Ptr<const WifiMpdu> mpdu, uint8_t linkId)
     NS_LOG_DEBUG("Beacon received");
     MgtBeaconHeader beacon;
     mpdu->GetPacket()->PeekHeader(beacon);
-    const CapabilityInformation& capabilities = beacon.GetCapabilities();
+    const auto& capabilities = beacon.Capabilities();
     NS_ASSERT(capabilities.IsEss());
     bool goodBeacon;
     if (IsWaitAssocResp() || IsAssociated())
@@ -1041,7 +1045,7 @@ StaWifiMac::ReceiveAssocResp(Ptr<const WifiMpdu> mpdu, uint8_t linkId)
         UpdateApInfo(assocResp, hdr.GetAddr2(), hdr.GetAddr3(), linkId);
         NS_ASSERT(GetLink(linkId).bssid.has_value() && *GetLink(linkId).bssid == hdr.GetAddr3());
         SetBssid(hdr.GetAddr3(), linkId);
-        if ((GetNLinks() > 1) && assocResp.GetMultiLinkElement().has_value())
+        if ((GetNLinks() > 1) && assocResp.Get<MultiLinkElement>().has_value())
         {
             // this is an ML setup, trace the MLD address (only once)
             m_assocLogger(*GetWifiRemoteStationManager(linkId)->GetMldAddress(hdr.GetAddr3()));
@@ -1072,7 +1076,7 @@ StaWifiMac::ReceiveAssocResp(Ptr<const WifiMpdu> mpdu, uint8_t linkId)
         }
 
         // if a Multi-Link Element is present, check its content
-        if (const auto& mle = assocResp.GetMultiLinkElement(); mle.has_value())
+        if (const auto& mle = assocResp.Get<MultiLinkElement>())
         {
             NS_ABORT_MSG_IF(!GetLink(linkId).apLinkId.has_value(),
                             "The link on which the Association Response was received "
@@ -1169,7 +1173,9 @@ StaWifiMac::CheckSupportedRates(std::variant<MgtBeaconHeader, MgtProbeResponseHe
     // lambda to invoke on the current frame variant
     auto check = [&](auto&& mgtFrame) -> bool {
         // check supported rates
-        const SupportedRates& rates = mgtFrame.GetSupportedRates();
+        NS_ASSERT(mgtFrame.template Get<SupportedRates>());
+        const auto rates = AllSupportedRates{*mgtFrame.template Get<SupportedRates>(),
+                                             mgtFrame.template Get<ExtendedSupportedRatesIE>()};
         for (const auto& selector : GetWifiPhy(linkId)->GetBssMembershipSelectorList())
         {
             if (!rates.IsBssMembershipSelectorRate(selector))
@@ -1193,10 +1199,24 @@ StaWifiMac::UpdateApInfo(const MgtFrameType& frame,
 {
     NS_LOG_FUNCTION(this << frame.index() << apAddr << bssid << +linkId);
 
+    // ERP Information is not present in Association Response frames
+    const std::optional<ErpInformation>* erpInformation = nullptr;
+
+    if (const auto* beacon = std::get_if<MgtBeaconHeader>(&frame))
+    {
+        erpInformation = &beacon->Get<ErpInformation>();
+    }
+    else if (const auto* probe = std::get_if<MgtProbeResponseHeader>(&frame))
+    {
+        erpInformation = &probe->Get<ErpInformation>();
+    }
+
     // lambda processing Information Elements included in all frame types
     auto commonOps = [&](auto&& frame) {
-        const CapabilityInformation& capabilities = frame.GetCapabilities();
-        const SupportedRates& rates = frame.GetSupportedRates();
+        const auto& capabilities = frame.Capabilities();
+        NS_ASSERT(frame.template Get<SupportedRates>());
+        const auto rates = AllSupportedRates{*frame.template Get<SupportedRates>(),
+                                             frame.template Get<ExtendedSupportedRatesIE>()};
         for (const auto& mode : GetWifiPhy(linkId)->GetModeList())
         {
             if (rates.IsSupportedRate(mode.GetDataRate(GetWifiPhy(linkId)->GetChannelWidth())))
@@ -1210,11 +1230,10 @@ StaWifiMac::UpdateApInfo(const MgtFrameType& frame,
         }
 
         bool isShortPreambleEnabled = capabilities.IsShortPreamble();
-        if (const auto& erpInformation = frame.GetErpInformation();
-            erpInformation.has_value() && GetErpSupported(linkId))
+        if (erpInformation && erpInformation->has_value() && GetErpSupported(linkId))
         {
-            isShortPreambleEnabled &= !erpInformation->GetBarkerPreambleMode();
-            if (erpInformation->GetUseProtection() != 0)
+            isShortPreambleEnabled &= !(*erpInformation)->GetBarkerPreambleMode();
+            if ((*erpInformation)->GetUseProtection() != 0)
             {
                 GetWifiRemoteStationManager(linkId)->SetUseNonErpProtection(true);
             }
@@ -1243,7 +1262,7 @@ StaWifiMac::UpdateApInfo(const MgtFrameType& frame,
         }
         /* QoS station */
         bool qosSupported = false;
-        const auto& edcaParameters = frame.GetEdcaParameterSet();
+        const auto& edcaParameters = frame.template Get<EdcaParameterSet>();
         if (edcaParameters.has_value())
         {
             qosSupported = true;
@@ -1277,7 +1296,8 @@ StaWifiMac::UpdateApInfo(const MgtFrameType& frame,
             return;
         }
         /* HT station */
-        if (const auto& htCapabilities = frame.GetHtCapabilities(); htCapabilities.has_value())
+        if (const auto& htCapabilities = frame.template Get<HtCapabilities>();
+            htCapabilities.has_value())
         {
             if (!htCapabilities->IsSupportedMcs(0))
             {
@@ -1296,7 +1316,7 @@ StaWifiMac::UpdateApInfo(const MgtFrameType& frame,
         // the 2.4 GHz band do not support VHT
         if (GetVhtSupported(linkId))
         {
-            const auto& vhtCapabilities = frame.GetVhtCapabilities();
+            const auto& vhtCapabilities = frame.template Get<VhtCapabilities>();
             // we will always fill in RxHighestSupportedLgiDataRate field at TX, so this can be used
             // to check whether it supports VHT
             if (vhtCapabilities.has_value() &&
@@ -1320,7 +1340,7 @@ StaWifiMac::UpdateApInfo(const MgtFrameType& frame,
             return;
         }
         /* HE station */
-        const auto& heCapabilities = frame.GetHeCapabilities();
+        const auto& heCapabilities = frame.template Get<HeCapabilities>();
         if (heCapabilities.has_value() && heCapabilities->GetSupportedMcsAndNss() != 0)
         {
             GetWifiRemoteStationManager(linkId)->AddStationHeCapabilities(apAddr, *heCapabilities);
@@ -1331,14 +1351,15 @@ StaWifiMac::UpdateApInfo(const MgtFrameType& frame,
                     GetWifiRemoteStationManager(linkId)->AddSupportedMcs(apAddr, mcs);
                 }
             }
-            if (const auto& heOperation = frame.GetHeOperation(); heOperation.has_value())
+            if (const auto& heOperation = frame.template Get<HeOperation>();
+                heOperation.has_value())
             {
                 GetHeConfiguration()->SetAttribute("BssColor",
                                                    UintegerValue(heOperation->GetBssColor()));
             }
         }
 
-        const auto& muEdcaParameters = frame.GetMuEdcaParameterSet();
+        const auto& muEdcaParameters = frame.template Get<MuEdcaParameterSet>();
         if (muEdcaParameters.has_value())
         {
             SetMuEdcaParameters(AC_BE,
@@ -1368,7 +1389,7 @@ StaWifiMac::UpdateApInfo(const MgtFrameType& frame,
             return;
         }
         /* EHT station */
-        const auto& ehtCapabilities = frame.GetEhtCapabilities();
+        const auto& ehtCapabilities = frame.template Get<EhtCapabilities>();
         // TODO: once we support non constant rate managers, we should add checks here whether EHT
         // is supported by the peer
         GetWifiRemoteStationManager(linkId)->AddStationEhtCapabilities(apAddr, *ehtCapabilities);
@@ -1378,10 +1399,10 @@ StaWifiMac::UpdateApInfo(const MgtFrameType& frame,
     std::visit(commonOps, frame);
 }
 
-SupportedRates
+AllSupportedRates
 StaWifiMac::GetSupportedRates(uint8_t linkId) const
 {
-    SupportedRates rates;
+    AllSupportedRates rates;
     for (const auto& mode : GetWifiPhy(linkId)->GetModeList())
     {
         uint64_t modeDataRate = mode.GetDataRate(GetWifiPhy(linkId)->GetChannelWidth());

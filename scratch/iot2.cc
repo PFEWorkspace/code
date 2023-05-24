@@ -138,8 +138,8 @@ int main(int argc, char *argv[])
   NodeContainer all_ap_2;
   NetDeviceContainer ndc_ap_2;
   Ssid ssid_ap_2 = Ssid ("wifi-default-2");
-  WifiHelper wifi_ap_2 = WifiHelper::Default ();
-  NqosWifiMacHelper wifiMac_ap_2 = NqosWifiMacHelper::Default ();
+  WifiHelper wifi_ap_2 ;
+  NqosWifiMacHelper wifiMac_ap_2 ;
   wifi_ap_2.SetRemoteStationManager ("ns3::ArfWifiManager");
   wifiMac_ap_2.SetType ("ns3::ApWifiMac",
      "Ssid", SsidValue (ssid_ap_2),
@@ -157,8 +157,8 @@ int main(int argc, char *argv[])
   NodeContainer all_ap_3;
   NetDeviceContainer ndc_ap_3;
   Ssid ssid_ap_3 = Ssid ("wifi-default-3");
-  WifiHelper wifi_ap_3 = WifiHelper::Default ();
-  NqosWifiMacHelper wifiMac_ap_3 = NqosWifiMacHelper::Default ();
+  WifiHelper wifi_ap_3 ;
+  NqosWifiMacHelper wifiMac_ap_3 ;
   wifi_ap_3.SetRemoteStationManager ("ns3::ArfWifiManager");
   wifiMac_ap_3.SetType ("ns3::ApWifiMac",
      "Ssid", SsidValue (ssid_ap_3),

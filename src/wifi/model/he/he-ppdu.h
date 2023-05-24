@@ -33,6 +33,9 @@
 namespace ns3
 {
 
+/// HE SIG-B Content Channels
+constexpr size_t WIFI_MAX_NUM_HE_SIGB_CONTENT_CHANNELS = 2;
+
 class WifiPsdu;
 
 /**
@@ -47,29 +50,30 @@ class HePpdu : public OfdmPpdu
     /**
      * HE-SIG PHY header (HE-SIG-A1/A2/B)
      */
-    class HeSigHeader : public Header
+    class HeSigHeader
     {
       public:
         HeSigHeader();
-
         /**
-         * \brief Get the type ID.
-         * \return the object TypeId
-         */
-        static TypeId GetTypeId();
-
-        TypeId GetInstanceTypeId() const override;
-        void Print(std::ostream& os) const override;
-        uint32_t GetSerializedSize() const override;
-        void Serialize(Buffer::Iterator start) const override;
-        uint32_t Deserialize(Buffer::Iterator start) override;
-
-        /**
-         * Set the Multi-User (MU) flag.
+         * Constructor.
          *
-         * \param mu the MU flag
+         * \param heSigBPresent the flag indicating whether HE-SIG-B fields should be present or not
          */
-        void SetMuFlag(bool mu);
+        HeSigHeader(bool heSigBPresent);
+
+        /**
+         * Set whether HE-SIG-B fields are present or not.
+         *
+         * \param heSigBPresent the flag indicating whether HE-SIG-B fields should be present or not
+         */
+        void SetHeSigBPresent(bool heSigBPresent);
+
+        /**
+         * Fill the FORMAT field of HE-SIG-A1 for HE SU, HE ER SU and HE TB PPDUs.
+         *
+         * \param preamble the preamble from which the FORMAT field is deduced
+         */
+        void SetFormat(WifiPreamble preamble);
 
         /**
          * Fill the MCS field of HE-SIG-A1.
@@ -133,20 +137,84 @@ class HePpdu : public OfdmPpdu
          */
         uint8_t GetNStreams() const;
 
-      private:
-        // HE-SIG-A1 fields
-        uint8_t m_format;       ///< Format bit
-        uint8_t m_bssColor;     ///< BSS color field
-        uint8_t m_ul_dl;        ///< UL/DL bit
-        uint8_t m_mcs;          ///< MCS field
-        uint8_t m_spatialReuse; ///< Spatial Reuse field
-        uint8_t m_bandwidth;    ///< Bandwidth field
-        uint8_t m_gi_ltf_size;  ///< GI+LTF Size field
-        uint8_t m_nsts;         ///< NSTS
+        /**
+         * Fill the HE-SIG-B MCS field of HE-SIG-A1.
+         *
+         * \param mcs the HE-SIG-B MCS field of HE-SIG-A1
+         */
+        void SetSigBMcs(uint8_t mcs);
+        /**
+         * Return the HE-SIG-B MCS field of HE-SIG-A1.
+         *
+         * \return the HE-SIG-B MCS field of HE-SIG-A1
+         */
+        uint8_t GetSigBMcs() const;
 
-        /// This is used to decide whether MU SIG-B should be added or not
-        bool m_mu;
-    }; // class HeSigHeader
+        /**
+         * Set RU Allocation of SIG-B common field
+         * \param ruAlloc 8 bit RU_ALLOCATION per 20 MHz
+         */
+        void SetRuAllocation(const RuAllocation& ruAlloc);
+
+        /**
+         * Get RU Allocation of SIG-B
+         * \return 8 bit RU_ALLOCATION per 20 MHz
+         */
+        const RuAllocation& GetRuAllocation() const;
+
+        /**
+         * Set the HE SIG-B content channels
+         * IEEE 802.11ax-2021 27.3.11.8.2 HE-SIG-B content channels
+         * \param contentChannels HE-SIG-B content channels
+         */
+        void SetHeSigBContentChannels(const HeSigBContentChannels& contentChannels);
+
+        /**
+         * Get the HE SIG-B content channels
+         * IEEE 802.11ax-2021 27.3.11.8.2 HE-SIG-B content channels
+         * \return HE-SIG-B content channels
+         */
+        const HeSigBContentChannels& GetHeSigBContentChannels() const;
+
+        /**
+         * Set the HE-SIG-B CENTER_26_TONE_RU field
+         * \param center26ToneRuIndication the CENTER_26_TONE_RU field
+         */
+        void SetCenter26ToneRuIndication(
+            std::optional<Center26ToneRuIndication> center26ToneRuIndication);
+
+        /**
+         * Get the HE-SIG-B CENTER_26_TONE_RU field
+         * \return the CENTER_26_TONE_RU field
+         */
+        std::optional<Center26ToneRuIndication> GetCenter26ToneRuIndication() const;
+
+      private:
+        /**
+         * Return the size of HE-SIG-B in bytes
+         *
+         * \return the size of HE-SIG-B in bytes
+         */
+        uint32_t GetSigBSize() const;
+
+        // HE-SIG-A1 fields
+        uint8_t m_format;      ///< Format bit
+        uint8_t m_bssColor;    ///< BSS color field
+        uint8_t m_mcs;         ///< MCS field
+        uint8_t m_bandwidth;   ///< Bandwidth field
+        uint8_t m_gi_ltf_size; ///< GI+LTF Size field
+        uint8_t m_nsts;        ///< NSTS
+        uint8_t m_sigBMcs;     ///< HE-SIG-B MCS
+
+        bool
+            m_heSigBPresent; //!< flag used to decide whether HE-SIG-B fields should be added or not
+
+        RuAllocation m_ruAllocation; //!< RU allocations that are going to be carried in SIG-B
+                                     //!< common subfields
+        HeSigBContentChannels m_contentChannels; //!< HE SIG-B Content Channels
+        std::optional<Center26ToneRuIndication>
+            m_center26ToneRuIndication; //!< center 26 tone RU indication in SIG-B common subfields
+    };                                  // class HeSigHeader
 
     /**
      * The transmit power spectral density flag, namely used
@@ -163,16 +231,14 @@ class HePpdu : public OfdmPpdu
      *
      * \param psdu the PHY payload (PSDU)
      * \param txVector the TXVECTOR that was used for this PPDU
-     * \param txCenterFreq the center frequency (MHz) that was used for this PPDU
+     * \param channel the operating channel of the PHY used to transmit this PPDU
      * \param ppduDuration the transmission duration of this PPDU
-     * \param band the WifiPhyBand used for the transmission of this PPDU
      * \param uid the unique ID of this PPDU
      */
     HePpdu(Ptr<const WifiPsdu> psdu,
            const WifiTxVector& txVector,
-           uint16_t txCenterFreq,
+           const WifiPhyOperatingChannel& channel,
            Time ppduDuration,
-           WifiPhyBand band,
            uint64_t uid);
     /**
      * Create an MU HE PPDU, storing a map of PSDUs.
@@ -181,17 +247,15 @@ class HePpdu : public OfdmPpdu
      *
      * \param psdus the PHY payloads (PSDUs)
      * \param txVector the TXVECTOR that was used for this PPDU
-     * \param txCenterFreq the center frequency (MHz) that was used for this PPDU
+     * \param channel the operating channel of the PHY used to transmit this PPDU
      * \param ppduDuration the transmission duration of this PPDU
-     * \param band the WifiPhyBand used for the transmission of this PPDU
      * \param uid the unique ID of this PPDU or of the triggering PPDU if this is an HE TB PPDU
      * \param flag the flag indicating the type of Tx PSD to build
      */
     HePpdu(const WifiConstPsduMap& psdus,
            const WifiTxVector& txVector,
-           uint16_t txCenterFreq,
+           const WifiPhyOperatingChannel& channel,
            Time ppduDuration,
-           WifiPhyBand band,
            uint64_t uid,
            TxPsdFlag flag);
 
@@ -234,19 +298,27 @@ class HePpdu : public OfdmPpdu
     void UpdateTxVectorForUlMu(const std::optional<WifiTxVector>& trigVector) const;
 
     /**
-     * Check if STA ID is in HE SIG-B Content Channel ID
-     * \param staId STA ID
-     * \param channelId Content Channel ID
-     * \return true if STA ID in content channel ID, false otherwise
+     * Get the number of RUs per HE-SIG-B content channel.
+     * This is applicable only for MU. MU-MIMO (i.e. multiple stations
+     * per RU) is not supported yet.
+     * See section 27.3.10.8.3 of IEEE 802.11ax draft 4.0.
+     *
+     * \param channelWidth the channel width occupied by the PPDU (in MHz)
+     * \param ruAllocation 8 bit RU_ALLOCATION per 20 MHz
+     * \return a pair containing the number of RUs in each HE-SIG-B content channel (resp. 1 and 2)
      */
-    bool IsStaInContentChannel(uint16_t staId, size_t channelId) const;
+    static std::pair<std::size_t, std::size_t> GetNumRusPerHeSigBContentChannel(
+        uint16_t channelWidth,
+        const std::vector<uint8_t>& ruAllocation);
 
     /**
-     * Check if STA ID is allocated
-     * \param staId STA ID
-     * \return true if allocated, false otherwise
+     * Get variable length HE SIG-B field size
+     * \param channelWidth the channel width occupied by the PPDU (in MHz)
+     * \param ruAllocation 8 bit RU_ALLOCATION per 20 MHz
+     * \return field size in bytes
      */
-    bool IsAllocated(uint16_t staId) const;
+    static uint32_t GetSigBFieldSize(uint16_t channelWidth,
+                                     const std::vector<uint8_t>& ruAllocation);
 
   protected:
     /**
@@ -260,18 +332,16 @@ class HePpdu : public OfdmPpdu
                                            const LSigHeader& lSig,
                                            const HeSigHeader& heSig) const;
 
-#ifndef NS3_BUILD_PROFILE_DEBUG
-    HeSigHeader m_heSig; //!< the HE-SIG PHY header
-#endif
-    mutable TxPsdFlag m_txPsdFlag; //!< the transmit power spectral density flag
+    /**
+     * Reconstruct HeMuUserInfoMap from HE-SIG-B header.
+     *
+     * \param txVector the TXVECTOR to set its HeMuUserInfoMap
+     * \param heSig the HE-SIG-B to use to reconstruct HeMuUserInfoMap
+     */
+    void SetHeMuUserInfos(WifiTxVector& txVector, const HeSigHeader& heSig) const;
 
-    WifiTxVector::HeMuUserInfoMap m_muUserInfos; //!< HE MU specific per-user information (to be
-                                                 //!< removed once HE-SIG-B headers are implemented)
-    ContentChannelAllocation
-        m_contentChannelAlloc; //!< HE SIG-B Content Channel allocation (to be removed once HE-SIG-B
-                               //!< headers are implemented)
-    RuAllocation m_ruAllocation; //!< RU_ALLOCATION in SIG-B common field (to be removed once
-                                 //!< HE-SIG-B headers are implemented)
+    HeSigHeader m_heSig;           //!< the HE-SIG PHY header
+    mutable TxPsdFlag m_txPsdFlag; //!< the transmit power spectral density flag
 
   private:
     std::string PrintPayload() const override;

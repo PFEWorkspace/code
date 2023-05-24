@@ -24,6 +24,7 @@
 #include "he-phy.h"
 
 #include "ns3/log.h"
+#include "ns3/wifi-phy-operating-channel.h"
 #include "ns3/wifi-phy.h"
 #include "ns3/wifi-psdu.h"
 #include "ns3/wifi-utils.h"
@@ -50,83 +51,57 @@ operator<<(std::ostream& os, const HePpdu::TxPsdFlag& flag)
 
 HePpdu::HePpdu(const WifiConstPsduMap& psdus,
                const WifiTxVector& txVector,
-               uint16_t txCenterFreq,
+               const WifiPhyOperatingChannel& channel,
                Time ppduDuration,
-               WifiPhyBand band,
                uint64_t uid,
                TxPsdFlag flag)
     : OfdmPpdu(psdus.begin()->second,
                txVector,
-               txCenterFreq,
-               band,
+               channel,
                uid,
-               false) // don't instantiate LSigHeader of OfdmPpdu
+               false), // don't instantiate LSigHeader of OfdmPpdu
+      m_txPsdFlag(flag)
 {
-    NS_LOG_FUNCTION(this << psdus << txVector << txCenterFreq << ppduDuration << band << uid
-                         << flag);
+    NS_LOG_FUNCTION(this << psdus << txVector << channel << ppduDuration << uid << flag);
 
     // overwrite with map (since only first element used by OfdmPpdu)
     m_psdus.begin()->second = nullptr;
     m_psdus.clear();
     m_psdus = psdus;
-    if (txVector.IsMu())
-    {
-        for (const auto& heMuUserInfo : txVector.GetHeMuUserInfoMap())
-        {
-            auto [it, ret] = m_muUserInfos.emplace(heMuUserInfo);
-            NS_ABORT_MSG_IF(!ret, "STA-ID " << heMuUserInfo.first << " already present");
-        }
-        m_contentChannelAlloc = txVector.GetContentChannelAllocation();
-        m_ruAllocation = txVector.GetRuAllocation();
-    }
     SetPhyHeaders(txVector, ppduDuration);
-    SetTxPsdFlag(flag);
 }
 
 HePpdu::HePpdu(Ptr<const WifiPsdu> psdu,
                const WifiTxVector& txVector,
-               uint16_t txCenterFreq,
+               const WifiPhyOperatingChannel& channel,
                Time ppduDuration,
-               WifiPhyBand band,
                uint64_t uid)
     : OfdmPpdu(psdu,
                txVector,
-               txCenterFreq,
-               band,
+               channel,
                uid,
-               false) // don't instantiate LSigHeader of OfdmPpdu
+               false), // don't instantiate LSigHeader of OfdmPpdu
+      m_txPsdFlag(PSD_NON_HE_PORTION)
 {
-    NS_LOG_FUNCTION(this << psdu << txVector << txCenterFreq << ppduDuration << band << uid);
+    NS_LOG_FUNCTION(this << psdu << txVector << channel << ppduDuration << uid);
     NS_ASSERT(!IsMu());
     SetPhyHeaders(txVector, ppduDuration);
-    SetTxPsdFlag(PSD_NON_HE_PORTION);
 }
 
 void
 HePpdu::SetPhyHeaders(const WifiTxVector& txVector, Time ppduDuration)
 {
     NS_LOG_FUNCTION(this << txVector << ppduDuration);
-
-#ifdef NS3_BUILD_PROFILE_DEBUG
-    LSigHeader lSig;
-    SetLSigHeader(lSig, ppduDuration);
-
-    HeSigHeader heSig;
-    SetHeSigHeader(heSig, txVector);
-
-    m_phyHeaders->AddHeader(heSig);
-    m_phyHeaders->AddHeader(lSig);
-#else
     SetLSigHeader(m_lSig, ppduDuration);
     SetHeSigHeader(m_heSig, txVector);
-#endif
 }
 
 void
 HePpdu::SetLSigHeader(LSigHeader& lSig, Time ppduDuration) const
 {
     uint8_t sigExtension = 0;
-    if (m_band == WIFI_PHY_BAND_2_4GHZ)
+    NS_ASSERT(m_operatingChannel.IsSet());
+    if (m_operatingChannel.GetPhyBand() == WIFI_PHY_BAND_2_4GHZ)
     {
         sigExtension = 6;
     }
@@ -143,18 +118,36 @@ HePpdu::SetLSigHeader(LSigHeader& lSig, Time ppduDuration) const
 void
 HePpdu::SetHeSigHeader(HeSigHeader& heSig, const WifiTxVector& txVector) const
 {
-    if (ns3::IsDlMu(m_preamble))
+    heSig.SetFormat(m_preamble);
+    heSig.SetChannelWidth(txVector.GetChannelWidth());
+    // TODO: EHT PHY headers not implemented yet, hence we do not fill in HE-SIG-B for EHT SU
+    /* See section 36.3.12.8.2 of IEEE 802.11be D3.0 (EHT-SIG content channels):
+     * In non-OFDMA transmission, the Common field of the EHT-SIG content channel does not contain
+     * the RU Allocation subfield. For non-OFDMA transmission except for EHT sounding NDP, the
+     * Common field of the EHT-SIG content channel is encoded together with the first User field and
+     * this encoding block contains a CRC and Tail, referred to as a common encoding block. */
+    if (txVector.IsDlMu())
     {
-        heSig.SetMuFlag(true);
-        heSig.SetMcs(txVector.GetSigBMode().GetMcsValue());
+        const auto p20Index = m_operatingChannel.GetPrimaryChannelIndex(20);
+        heSig.SetHeSigBPresent(true);
+        heSig.SetSigBMcs(txVector.GetSigBMode().GetMcsValue());
+        heSig.SetRuAllocation(txVector.GetRuAllocation(p20Index));
+        heSig.SetHeSigBContentChannels(txVector.GetContentChannels(p20Index));
+        if (txVector.GetChannelWidth() >= 80)
+        {
+            heSig.SetCenter26ToneRuIndication(txVector.GetCenter26ToneRuIndication());
+        }
     }
-    else if (!ns3::IsUlMu(m_preamble))
+    else
     {
-        heSig.SetMcs(txVector.GetMode().GetMcsValue());
-        heSig.SetNStreams(txVector.GetNss());
+        heSig.SetHeSigBPresent(false);
+        if (!ns3::IsUlMu(m_preamble))
+        {
+            heSig.SetMcs(txVector.GetMode().GetMcsValue());
+            heSig.SetNStreams(txVector.GetNss());
+        }
     }
     heSig.SetBssColor(txVector.GetBssColor());
-    heSig.SetChannelWidth(txVector.GetChannelWidth());
     if (!txVector.IsUlMu())
     {
         heSig.SetGuardIntervalAndLtfSize(txVector.GetGuardInterval(), 2 /*NLTF currently unused*/);
@@ -166,27 +159,7 @@ HePpdu::DoGetTxVector() const
 {
     WifiTxVector txVector;
     txVector.SetPreambleType(m_preamble);
-
-#ifdef NS3_BUILD_PROFILE_DEBUG
-    auto phyHeaders = m_phyHeaders->Copy();
-
-    LSigHeader lSig;
-    if (phyHeaders->RemoveHeader(lSig) == 0)
-    {
-        NS_FATAL_ERROR("Missing L-SIG header in HE PPDU");
-    }
-
-    HeSigHeader heSig;
-    if (phyHeaders->PeekHeader(heSig) == 0)
-    {
-        NS_FATAL_ERROR("Missing HE-SIG header in HE PPDU");
-    }
-
-    SetTxVectorFromPhyHeaders(txVector, lSig, heSig);
-#else
     SetTxVectorFromPhyHeaders(txVector, m_lSig, m_heSig);
-#endif
-
     return txVector;
 }
 
@@ -210,15 +183,82 @@ HePpdu::SetTxVectorFromPhyHeaders(WifiTxVector& txVector,
     }
     if (IsDlMu())
     {
-        for (const auto& muUserInfo : m_muUserInfos)
-        {
-            txVector.SetHeMuUserInfo(muUserInfo.first, muUserInfo.second);
-        }
+        SetHeMuUserInfos(txVector, heSig);
     }
     if (txVector.IsDlMu())
     {
-        txVector.SetSigBMode(HePhy::GetVhtMcs(heSig.GetMcs()));
-        txVector.SetRuAllocation(m_ruAllocation);
+        txVector.SetSigBMode(HePhy::GetVhtMcs(heSig.GetSigBMcs()));
+        const auto p20Index = m_operatingChannel.GetPrimaryChannelIndex(20);
+        txVector.SetRuAllocation(heSig.GetRuAllocation(), p20Index);
+        auto center26ToneRuIndication = heSig.GetCenter26ToneRuIndication();
+        if (center26ToneRuIndication.has_value())
+        {
+            txVector.SetCenter26ToneRuIndication(center26ToneRuIndication.value());
+        }
+    }
+}
+
+void
+HePpdu::SetHeMuUserInfos(WifiTxVector& txVector, const HeSigHeader& heSig) const
+{
+    WifiTxVector::HeMuUserInfoMap userInfos{};
+    const auto& ruAllocation = heSig.GetRuAllocation();
+    auto contentChannelIndex = 0;
+    for (const auto& contentChannel : heSig.GetHeSigBContentChannels())
+    {
+        auto numRusLeft = 0;
+        auto ruAllocIndex = contentChannelIndex;
+        for (const auto& userInfo : contentChannel)
+        {
+            auto ruSpecs = HeRu::GetRuSpecs(ruAllocation.at(ruAllocIndex));
+            if (ruSpecs.empty())
+            {
+                continue;
+            }
+            if (numRusLeft == 0)
+            {
+                numRusLeft = ruSpecs.size();
+            }
+            auto ruIndex = (ruSpecs.size() - numRusLeft);
+            auto ruSpec = ruSpecs.at(ruIndex);
+            auto ruType = ruSpec.GetRuType();
+            if ((ruAllocation.size() == 8) && (ruType == HeRu::RU_996_TONE) &&
+                (std::all_of(
+                    contentChannel.cbegin(),
+                    contentChannel.cend(),
+                    [&userInfo](const auto& item) { return userInfo.staId == item.staId; })))
+            {
+                NS_ASSERT(txVector.GetChannelWidth() == 160);
+                ruType = HeRu::RU_2x996_TONE;
+            }
+            const auto ruBw = HeRu::GetBandwidth(ruType);
+            auto primary80 = ruAllocIndex < 4;
+            auto num20MhzSubchannelsInRu = (ruBw < 20) ? 1 : (ruBw / 20);
+            auto numRuAllocsInContentChannel = std::max(1, num20MhzSubchannelsInRu / 2);
+            auto ruIndexOffset = (ruBw < 20) ? (ruSpecs.size() * ruAllocIndex)
+                                             : (ruAllocIndex / num20MhzSubchannelsInRu);
+            if (!primary80)
+            {
+                ruIndexOffset -= HeRu::GetRusOfType(80, ruType).size();
+            }
+            if (!txVector.IsAllocated(userInfo.staId))
+            {
+                txVector.SetHeMuUserInfo(userInfo.staId,
+                                         {{ruType, ruSpec.GetIndex() + ruIndexOffset, primary80},
+                                          userInfo.mcs,
+                                          userInfo.nss});
+            }
+            if (ruType == HeRu::RU_2x996_TONE)
+            {
+                return;
+            }
+            numRusLeft--;
+            if (numRusLeft == 0)
+            {
+                ruAllocIndex += (2 * numRuAllocsInContentChannel);
+            }
+        }
+        contentChannelIndex++;
     }
 }
 
@@ -227,34 +267,21 @@ HePpdu::GetTxDuration() const
 {
     Time ppduDuration = Seconds(0);
     const WifiTxVector& txVector = GetTxVector();
-
-    uint16_t length = 0;
-#ifdef NS3_BUILD_PROFILE_DEBUG
-    LSigHeader lSig;
-    m_phyHeaders->PeekHeader(lSig);
-    length = lSig.GetLength();
-#else
-    length = m_lSig.GetLength();
-#endif
-
-    Time tSymbol = NanoSeconds(12800 + txVector.GetGuardInterval());
-    Time preambleDuration = WifiPhy::CalculatePhyPreambleAndHeaderDuration(txVector);
-    uint8_t sigExtension = 0;
-    if (m_band == WIFI_PHY_BAND_2_4GHZ)
-    {
-        sigExtension = 6;
-    }
+    const auto length = m_lSig.GetLength();
+    const auto tSymbol = NanoSeconds(12800 + txVector.GetGuardInterval());
+    const auto preambleDuration = WifiPhy::CalculatePhyPreambleAndHeaderDuration(txVector);
+    NS_ASSERT(m_operatingChannel.IsSet());
+    uint8_t sigExtension = (m_operatingChannel.GetPhyBand() == WIFI_PHY_BAND_2_4GHZ) ? 6 : 0;
     uint8_t m = IsDlMu() ? 1 : 2;
     // Equation 27-11 of IEEE P802.11ax/D4.0
-    Time calculatedDuration =
+    const auto calculatedDuration =
         MicroSeconds(((ceil(static_cast<double>(length + 3 + m) / 3)) * 4) + 20 + sigExtension);
     NS_ASSERT(calculatedDuration > preambleDuration);
     uint32_t nSymbols =
         floor(static_cast<double>((calculatedDuration - preambleDuration).GetNanoSeconds() -
                                   (sigExtension * 1000)) /
               tSymbol.GetNanoSeconds());
-    ppduDuration = preambleDuration + (nSymbols * tSymbol) + MicroSeconds(sigExtension);
-    return ppduDuration;
+    return (preambleDuration + (nSymbols * tSymbol) + MicroSeconds(sigExtension));
 }
 
 Ptr<WifiPpdu>
@@ -304,18 +331,7 @@ HePpdu::GetPsdu(uint8_t bssColor, uint16_t staId /* = SU_STA_ID */) const
         return m_psdus.at(SU_STA_ID);
     }
 
-    uint8_t ppduBssColor = 0;
-#ifdef NS3_BUILD_PROFILE_DEBUG
-    auto phyHeaders = m_phyHeaders->Copy();
-    LSigHeader lSig;
-    phyHeaders->RemoveHeader(lSig);
-    HeSigHeader heSig;
-    phyHeaders->RemoveHeader(heSig);
-    ppduBssColor = heSig.GetBssColor();
-#else
-    ppduBssColor = m_heSig.GetBssColor();
-#endif
-
+    const auto ppduBssColor = m_heSig.GetBssColor();
     if (IsUlMu())
     {
         NS_ASSERT(m_psdus.size() == 1);
@@ -413,19 +429,85 @@ HePpdu::UpdateTxVectorForUlMu(const std::optional<WifiTxVector>& trigVector) con
     }
 }
 
-bool
-HePpdu::IsAllocated(uint16_t staId) const
+std::pair<std::size_t, std::size_t>
+HePpdu::GetNumRusPerHeSigBContentChannel(uint16_t channelWidth,
+                                         const std::vector<uint8_t>& ruAllocation)
 {
-    return (m_muUserInfos.find(staId) != m_muUserInfos.cend());
+    // MU-MIMO is not handled for now, i.e. one station per RU
+    NS_ASSERT_MSG(!ruAllocation.empty(), "RU allocation is not set");
+    NS_ASSERT_MSG(ruAllocation.size() == channelWidth / 20,
+                  "RU allocation is not consistent with packet bandwidth");
+
+    std::pair<std::size_t /* number of RUs in content channel 1 */,
+              std::size_t /* number of RUs in content channel 2 */>
+        chSize{0, 0};
+
+    switch (channelWidth)
+    {
+    case 40:
+        chSize.second += HeRu::GetRuSpecs(ruAllocation[1]).size();
+        [[fallthrough]];
+    case 20:
+        chSize.first += HeRu::GetRuSpecs(ruAllocation[0]).size();
+        break;
+    default:
+        for (auto n = 0; n < channelWidth / 20;)
+        {
+            chSize.first += HeRu::GetRuSpecs(ruAllocation[n]).size();
+            if (ruAllocation[n] >= 208)
+            {
+                // 996 tone RU occupies 80 MHz
+                n += 4;
+                continue;
+            }
+            n += 2;
+        }
+        for (auto n = 0; n < channelWidth / 20;)
+        {
+            chSize.second += HeRu::GetRuSpecs(ruAllocation[n + 1]).size();
+            if (ruAllocation[n + 1] >= 208)
+            {
+                // 996 tone RU occupies 80 MHz
+                n += 4;
+                continue;
+            }
+            n += 2;
+        }
+        break;
+    }
+    return chSize;
 }
 
-bool
-HePpdu::IsStaInContentChannel(uint16_t staId, std::size_t channelId) const
+uint32_t
+HePpdu::GetSigBFieldSize(uint16_t channelWidth, const RuAllocation& ruAllocation)
 {
-    NS_ASSERT_MSG(channelId < m_contentChannelAlloc.size(),
-                  "Invalid content channel ID " << channelId);
-    const auto& channelAlloc = m_contentChannelAlloc.at(channelId);
-    return (std::find(channelAlloc.cbegin(), channelAlloc.cend(), staId) != channelAlloc.cend());
+    // Compute the number of bits used by common field.
+    // Assume that compression bit in HE-SIG-A is not set (i.e. not
+    // full band MU-MIMO); the field is present.
+    auto commonFieldSize = 4 /* CRC */ + 6 /* tail */;
+    if (channelWidth <= 40)
+    {
+        commonFieldSize += 8; // only one allocation subfield
+    }
+    else
+    {
+        commonFieldSize +=
+            8 * (channelWidth / 40) /* one allocation field per 40 MHz */ + 1 /* center RU */;
+    }
+
+    auto numStaPerContentChannel = GetNumRusPerHeSigBContentChannel(channelWidth, ruAllocation);
+    auto maxNumStaPerContentChannel =
+        std::max(numStaPerContentChannel.first, numStaPerContentChannel.second);
+    auto maxNumUserBlockFields = maxNumStaPerContentChannel /
+                                 2; // handle last user block with single user, if any, further down
+    std::size_t userSpecificFieldSize =
+        maxNumUserBlockFields * (2 * 21 /* user fields (2 users) */ + 4 /* tail */ + 6 /* CRC */);
+    if (maxNumStaPerContentChannel % 2 != 0)
+    {
+        userSpecificFieldSize += 21 /* last user field */ + 4 /* CRC */ + 6 /* tail */;
+    }
+
+    return commonFieldSize + userSpecificFieldSize;
 }
 
 std::string
@@ -445,58 +527,38 @@ HePpdu::PrintPayload() const
 }
 
 HePpdu::HeSigHeader::HeSigHeader()
-    : m_format(1),
+    : HeSigHeader(false)
+{
+}
+
+HePpdu::HeSigHeader::HeSigHeader(bool heSigBPresent)
+    : m_format(0),
       m_bssColor(0),
-      m_ul_dl(0),
       m_mcs(0),
-      m_spatialReuse(0),
       m_bandwidth(0),
       m_gi_ltf_size(0),
       m_nsts(0),
-      m_mu(false)
+      m_sigBMcs(0),
+      m_heSigBPresent(heSigBPresent)
 {
-}
-
-TypeId
-HePpdu::HeSigHeader::GetTypeId()
-{
-    static TypeId tid = TypeId("ns3::HeSigHeader")
-                            .SetParent<Header>()
-                            .SetGroupName("Wifi")
-                            .AddConstructor<HeSigHeader>();
-    return tid;
-}
-
-TypeId
-HePpdu::HeSigHeader::GetInstanceTypeId() const
-{
-    return GetTypeId();
 }
 
 void
-HePpdu::HeSigHeader::Print(std::ostream& os) const
+HePpdu::HeSigHeader::SetHeSigBPresent(bool heSigBPresent)
 {
-    os << "MCS=" << +m_mcs << " CHANNEL_WIDTH=" << GetChannelWidth() << " GI=" << GetGuardInterval()
-       << " NSTS=" << +m_nsts << " BSSColor=" << +m_bssColor << " MU=" << +m_mu;
+    m_heSigBPresent = heSigBPresent;
 }
 
 uint32_t
-HePpdu::HeSigHeader::GetSerializedSize() const
+HePpdu::HeSigHeader::GetSigBSize() const
 {
-    uint32_t size = 0;
-    size += 4; // HE-SIG-A1
-    size += 4; // HE-SIG-A2
-    if (m_mu)
-    {
-        size += 1; // HE-SIG-B
-    }
-    return size;
+    return HePpdu::GetSigBFieldSize(GetChannelWidth(), m_ruAllocation);
 }
 
 void
-HePpdu::HeSigHeader::SetMuFlag(bool mu)
+HePpdu::HeSigHeader::SetFormat(WifiPreamble preamble)
 {
-    m_mu = mu;
+    m_format = preamble == WIFI_PREAMBLE_HE_TB ? 0 : 1;
 }
 
 void
@@ -620,63 +682,57 @@ HePpdu::HeSigHeader::GetNStreams() const
 }
 
 void
-HePpdu::HeSigHeader::Serialize(Buffer::Iterator start) const
+HePpdu::HeSigHeader::SetSigBMcs(uint8_t mcs)
 {
-    // HE-SIG-A1
-    uint8_t byte = m_format & 0x01;
-    byte |= ((m_ul_dl & 0x01) << 2);
-    byte |= ((m_mcs & 0x0f) << 3);
-    start.WriteU8(byte);
-    uint16_t bytes = (m_bssColor & 0x3f);
-    bytes |= (0x01 << 6); // Reserved set to 1
-    bytes |= ((m_spatialReuse & 0x0f) << 7);
-    bytes |= ((m_bandwidth & 0x03) << 11);
-    bytes |= ((m_gi_ltf_size & 0x03) << 13);
-    bytes |= ((m_nsts & 0x01) << 15);
-    start.WriteU16(bytes);
-    start.WriteU8((m_nsts >> 1) & 0x03);
-
-    // HE-SIG-A2
-    uint32_t sigA2 = 0;
-    sigA2 |= (0x01 << 14); // Set Reserved bit #14 to 1
-    start.WriteU32(sigA2);
-
-    if (m_mu)
-    {
-        // HE-SIG-B
-        start.WriteU8(0);
-    }
+    NS_ASSERT(mcs <= 5);
+    NS_ASSERT(m_heSigBPresent);
+    m_sigBMcs = mcs;
 }
 
-uint32_t
-HePpdu::HeSigHeader::Deserialize(Buffer::Iterator start)
+uint8_t
+HePpdu::HeSigHeader::GetSigBMcs() const
 {
-    Buffer::Iterator i = start;
+    return m_sigBMcs;
+}
 
-    // HE-SIG-A1
-    uint8_t byte = i.ReadU8();
-    m_format = (byte & 0x01);
-    m_ul_dl = ((byte >> 2) & 0x01);
-    m_mcs = ((byte >> 3) & 0x0f);
-    uint16_t bytes = i.ReadU16();
-    m_bssColor = (bytes & 0x3f);
-    m_spatialReuse = ((bytes >> 7) & 0x0f);
-    m_bandwidth = ((bytes >> 11) & 0x03);
-    m_gi_ltf_size = ((bytes >> 13) & 0x03);
-    m_nsts = ((bytes >> 15) & 0x01);
-    byte = i.ReadU8();
-    m_nsts |= (byte & 0x03) << 1;
+void
+HePpdu::HeSigHeader::SetRuAllocation(const RuAllocation& ruAlloc)
+{
+    NS_ASSERT(m_heSigBPresent);
+    m_ruAllocation = ruAlloc;
+}
 
-    // HE-SIG-A2
-    i.ReadU32();
+const RuAllocation&
+HePpdu::HeSigHeader::GetRuAllocation() const
+{
+    return m_ruAllocation;
+}
 
-    if (m_mu)
-    {
-        // HE-SIG-B
-        i.ReadU8();
-    }
+void
+HePpdu::HeSigHeader::SetHeSigBContentChannels(const HeSigBContentChannels& contentChannels)
+{
+    NS_ASSERT(m_heSigBPresent);
+    m_contentChannels = contentChannels;
+}
 
-    return i.GetDistanceFrom(start);
+const HeSigBContentChannels&
+HePpdu::HeSigHeader::GetHeSigBContentChannels() const
+{
+    return m_contentChannels;
+}
+
+void
+HePpdu::HeSigHeader::SetCenter26ToneRuIndication(
+    std::optional<Center26ToneRuIndication> center26ToneRuIndication)
+{
+    NS_ASSERT(m_heSigBPresent);
+    m_center26ToneRuIndication = center26ToneRuIndication;
+}
+
+std::optional<Center26ToneRuIndication>
+HePpdu::HeSigHeader::GetCenter26ToneRuIndication() const
+{
+    return m_center26ToneRuIndication;
 }
 
 } // namespace ns3

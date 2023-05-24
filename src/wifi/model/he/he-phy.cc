@@ -216,14 +216,25 @@ HePhy::GetSigADuration(WifiPreamble preamble) const
                : MicroSeconds(8); // HE-SIG-A (first and second symbol)
 }
 
+uint32_t
+HePhy::GetSigBSize(const WifiTxVector& txVector) const
+{
+    if (ns3::IsDlMu(txVector.GetPreambleType()))
+    {
+        NS_ASSERT(txVector.GetModulationClass() >= WIFI_MOD_CLASS_HE);
+        return HePpdu::GetSigBFieldSize(
+            txVector.GetChannelWidth(),
+            txVector.GetRuAllocation(
+                m_wifiPhy ? m_wifiPhy->GetOperatingChannel().GetPrimaryChannelIndex(20) : 0));
+    }
+    return 0;
+}
+
 Time
 HePhy::GetSigBDuration(const WifiTxVector& txVector) const
 {
-    if (ns3::IsDlMu(txVector.GetPreambleType())) // See section 27.3.11.8 of IEEE 802.11ax-2021
+    if (auto sigBSize = GetSigBSize(txVector); sigBSize > 0)
     {
-        NS_ASSERT(txVector.GetModulationClass() >= WIFI_MOD_CLASS_HE);
-
-        auto sigBSize = GetSigBFieldSize(txVector);
         auto symbolDuration = MicroSeconds(4);
         // Number of data bits per symbol
         auto ndbps =
@@ -339,10 +350,8 @@ HePhy::BuildPpdu(const WifiConstPsduMap& psdus, const WifiTxVector& txVector, Ti
     NS_LOG_FUNCTION(this << psdus << txVector << ppduDuration);
     return Create<HePpdu>(psdus,
                           txVector,
-                          m_wifiPhy->GetOperatingChannel().GetPrimaryChannelCenterFrequency(
-                              txVector.GetChannelWidth()),
+                          m_wifiPhy->GetOperatingChannel(),
                           ppduDuration,
-                          m_wifiPhy->GetPhyBand(),
                           ObtainNextUid(txVector),
                           HePpdu::PSD_NON_HE_PORTION);
 }
@@ -369,8 +378,7 @@ HePhy::StartReceivePreamble(Ptr<const WifiPpdu> ppdu,
                         << (ofdmaStarted ? "Y" : "N") << ") "
                         << "and schedule OFDMA payload reception in "
                         << GetDuration(WIFI_PPDU_FIELD_TRAINING, txVector).As(Time::NS));
-            Ptr<Event> event =
-                CreateInterferenceEvent(ppdu, txVector, rxDuration, rxPowersW, !ofdmaStarted);
+            auto event = CreateInterferenceEvent(ppdu, rxDuration, rxPowersW, !ofdmaStarted);
             uint16_t staId = GetStaId(ppdu);
             NS_ASSERT(m_beginOfdmaPayloadRxEvents.find(staId) == m_beginOfdmaPayloadRxEvents.end());
             m_beginOfdmaPayloadRxEvents[staId] =
@@ -384,7 +392,7 @@ HePhy::StartReceivePreamble(Ptr<const WifiPpdu> ppdu,
             // PHY receives the OFDMA payload while having dropped the preamble
             NS_LOG_INFO("Consider OFDMA part of the PPDU as interference since device dropped the "
                         "preamble");
-            CreateInterferenceEvent(ppdu, txVector, rxDuration, rxPowersW);
+            CreateInterferenceEvent(ppdu, rxDuration, rxPowersW);
             // the OFDMA part of the PPDU will be noise _after_ the completion of the current event
             ErasePreambleEvent(ppdu, rxDuration);
         }
@@ -451,24 +459,19 @@ HePhy::DoGetEvent(Ptr<const WifiPpdu> ppdu, RxPowerWattPerChannelBand& rxPowersW
     // detection window. If a preamble is received after the preamble detection window, it is stored
     // anyway because this is needed for HE TB PPDUs in order to properly update the received power
     // in InterferenceHelper. The map is cleaned anyway at the end of the current reception.
-    auto uidPreamblePair = std::make_pair(ppdu->GetUid(), ppdu->GetPreamble());
+    const auto uidPreamblePair = std::make_pair(ppdu->GetUid(), ppdu->GetPreamble());
     const auto& currentPreambleEvents = GetCurrentPreambleEvents();
-    auto it = currentPreambleEvents.find(uidPreamblePair);
-    bool isResponseToTrigger = (m_previouslyTxPpduUid == ppdu->GetUid());
+    const auto it = currentPreambleEvents.find(uidPreamblePair);
+    const auto isResponseToTrigger = (m_previouslyTxPpduUid == ppdu->GetUid());
     if (ppdu->GetType() == WIFI_PPDU_TYPE_UL_MU || isResponseToTrigger)
     {
         const auto& txVector = ppdu->GetTxVector();
-        Time rxDuration;
-        if (ppdu->GetType() == WIFI_PPDU_TYPE_UL_MU)
-        {
-            rxDuration = CalculateNonOfdmaDurationForHeTb(
-                txVector); // the OFDMA part of the transmission will be added later on
-        }
-        else
-        {
-            rxDuration = ppdu->GetTxDuration();
-        }
-        if (it != currentPreambleEvents.end())
+        const auto rxDuration =
+            (ppdu->GetType() == WIFI_PPDU_TYPE_UL_MU)
+                ? CalculateNonOfdmaDurationForHeTb(
+                      txVector) // the OFDMA part of the transmission will be added later on
+                : ppdu->GetTxDuration();
+        if (it != currentPreambleEvents.cend())
         {
             if (ppdu->GetType() == WIFI_PPDU_TYPE_UL_MU)
             {
@@ -482,27 +485,13 @@ HePhy::DoGetEvent(Ptr<const WifiPpdu> ppdu, RxPowerWattPerChannelBand& rxPowersW
             }
             event = it->second;
 
-            auto heConfiguration = m_wifiPhy->GetDevice()->GetHeConfiguration();
-            NS_ASSERT(heConfiguration);
-            // DoStartReceivePayload(), which is called when we start receiving the Data field,
-            // computes the max offset among TB PPDUs based on the begin OFDMA payload RX events,
-            // which are scheduled by StartReceivePreamble() when starting the reception of the
-            // OFDMA portion. Therefore, the maximum delay cannot exceed the duration of the
-            // training fields that are between the start of the OFDMA portion and the start
-            // of the Data field.
-            Time maxDelay = GetDuration(WIFI_PPDU_FIELD_TRAINING, txVector);
-            if (heConfiguration->GetMaxTbPpduDelay().IsStrictlyPositive())
-            {
-                maxDelay = Min(maxDelay, heConfiguration->GetMaxTbPpduDelay());
-            }
-
-            if (Simulator::Now() - event->GetStartTime() > maxDelay)
+            if (Simulator::Now() - event->GetStartTime() > GetMaxDelayPpduSameUid(txVector))
             {
                 // This HE TB PPDU arrived too late to be decoded properly. The HE TB PPDU
                 // is dropped and added as interference
-                event = CreateInterferenceEvent(ppdu, txVector, rxDuration, rxPowersW);
+                event = CreateInterferenceEvent(ppdu, rxDuration, rxPowersW);
                 NS_LOG_DEBUG("Drop HE TB PPDU that arrived too late");
-                m_wifiPhy->NotifyRxDrop(GetAddressedPsduInPpdu(ppdu), HE_TB_PPDU_TOO_LATE);
+                m_wifiPhy->NotifyRxDrop(GetAddressedPsduInPpdu(ppdu), PPDU_TOO_LATE);
             }
             else
             {
@@ -537,7 +526,7 @@ HePhy::DoGetEvent(Ptr<const WifiPpdu> ppdu, RxPowerWattPerChannelBand& rxPowersW
             {
                 NS_LOG_DEBUG("Received response to a trigger frame for UID " << ppdu->GetUid());
             }
-            event = CreateInterferenceEvent(ppdu, txVector, rxDuration, rxPowersW);
+            event = CreateInterferenceEvent(ppdu, rxDuration, rxPowersW);
             AddPreambleEvent(event);
         }
     }
@@ -546,24 +535,12 @@ HePhy::DoGetEvent(Ptr<const WifiPpdu> ppdu, RxPowerWattPerChannelBand& rxPowersW
         const auto& txVector = ppdu->GetTxVector();
         Time rxDuration = CalculateNonOfdmaDurationForHeMu(
             txVector); // the OFDMA part of the transmission will be added later on
-        event = CreateInterferenceEvent(ppdu, ppdu->GetTxVector(), rxDuration, rxPowersW);
+        event = CreateInterferenceEvent(ppdu, rxDuration, rxPowersW);
         AddPreambleEvent(event);
     }
     else
     {
-        if (it == currentPreambleEvents.end())
-        {
-            event = PhyEntity::DoGetEvent(ppdu, rxPowersW);
-        }
-        else
-        {
-            NS_LOG_DEBUG(
-                "Update received power of the event associated to these UL transmissions with UID "
-                << ppdu->GetUid());
-            event = it->second;
-            UpdateInterferenceEvent(event, rxPowersW);
-            return nullptr;
-        }
+        event = PhyEntity::DoGetEvent(ppdu, rxPowersW);
     }
     return event;
 }
@@ -1317,6 +1294,25 @@ HePhy::ObtainNextUid(const WifiTxVector& txVector)
     return uid;
 }
 
+Time
+HePhy::GetMaxDelayPpduSameUid(const WifiTxVector& txVector)
+{
+    auto heConfiguration = m_wifiPhy->GetDevice()->GetHeConfiguration();
+    NS_ASSERT(heConfiguration);
+    // DoStartReceivePayload(), which is called when we start receiving the Data field,
+    // computes the max offset among TB PPDUs based on the begin OFDMA payload RX events,
+    // which are scheduled by StartReceivePreamble() when starting the reception of the
+    // OFDMA portion. Therefore, the maximum delay cannot exceed the duration of the
+    // training fields that are between the start of the OFDMA portion and the start
+    // of the Data field.
+    auto maxDelay = GetDuration(WIFI_PPDU_FIELD_TRAINING, txVector);
+    if (heConfiguration->GetMaxTbPpduDelay().IsStrictlyPositive())
+    {
+        maxDelay = Min(maxDelay, heConfiguration->GetMaxTbPpduDelay());
+    }
+    return maxDelay;
+}
+
 Ptr<SpectrumValue>
 HePhy::GetTxPowerSpectralDensity(double txPowerW, Ptr<const WifiPpdu> ppdu) const
 {
@@ -1779,41 +1775,6 @@ uint32_t
 HePhy::GetMaxPsduSize() const
 {
     return 6500631;
-}
-
-uint32_t
-HePhy::GetSigBFieldSize(const WifiTxVector& txVector)
-{
-    NS_ASSERT(txVector.GetModulationClass() >= WIFI_MOD_CLASS_HE);
-    NS_ASSERT(ns3::IsDlMu(txVector.GetPreambleType()));
-
-    // Compute the number of bits used by common field.
-    // Assume that compression bit in HE-SIG-A is not set (i.e. not
-    // full band MU-MIMO); the field is present.
-    auto bw = txVector.GetChannelWidth();
-    auto commonFieldSize = 4 /* CRC */ + 6 /* tail */;
-    if (bw <= 40)
-    {
-        commonFieldSize += 8; // only one allocation subfield
-    }
-    else
-    {
-        commonFieldSize += 8 * (bw / 40) /* one allocation field per 40 MHz */ + 1 /* center RU */;
-    }
-
-    auto numStaPerContentChannel = txVector.GetNumRusPerHeSigBContentChannel();
-    auto maxNumStaPerContentChannel =
-        std::max(numStaPerContentChannel.first, numStaPerContentChannel.second);
-    auto maxNumUserBlockFields = maxNumStaPerContentChannel /
-                                 2; // handle last user block with single user, if any, further down
-    std::size_t userSpecificFieldSize =
-        maxNumUserBlockFields * (2 * 21 /* user fields (2 users) */ + 4 /* tail */ + 6 /* CRC */);
-    if (maxNumStaPerContentChannel % 2 != 0)
-    {
-        userSpecificFieldSize += 21 /* last user field */ + 4 /* CRC */ + 6 /* tail */;
-    }
-
-    return commonFieldSize + userSpecificFieldSize;
 }
 
 bool

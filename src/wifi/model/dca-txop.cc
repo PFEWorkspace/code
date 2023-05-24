@@ -28,7 +28,7 @@
 #include "dca-txop.h"
 #include "dcf-manager.h"
 #include "mac-low.h"
-#include "wifi-mac-queue.h"
+#include "wifi-mac-queue-copy.h"
 #include "mac-tx-middle.h"
 #include "wifi-mac-trailer.h"
 #include "wifi-mac.h"
@@ -436,9 +436,9 @@ DcaTxop::NotifyAccessGranted (void)
         }
       m_currentPacket = m_queue->Dequeue (&m_currentHdr);
       NS_ASSERT (m_currentPacket != 0);
-      uint16_t sequence = m_txMiddle->GetNextSequenceNumberfor (&m_currentHdr);
+      uint16_t sequence = m_txMiddle->GetNextSequenceNumberFor (&m_currentHdr);
       m_currentHdr.SetSequenceNumber (sequence);
-      m_stationManager->UpdateFragmentationThreshold ();
+      m_stationManager->SetFragmentationThreshold (m_stationManager->GetFragmentationThreshold());
       m_currentHdr.SetFragmentNumber (0);
       m_currentHdr.SetNoMoreFragments ();
       m_currentHdr.SetNoRetry ();

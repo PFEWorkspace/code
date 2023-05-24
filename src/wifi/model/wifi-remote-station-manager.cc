@@ -1022,6 +1022,8 @@ WifiRemoteStationManager::ReportFinalDataFailed(Ptr<const WifiMpdu> mpdu)
     DoReportFinalDataFailed(station);
 }
 
+
+
 void
 WifiRemoteStationManager::ReportRxOk(Mac48Address address,
                                      RxSignalInfo rxSignalInfo,

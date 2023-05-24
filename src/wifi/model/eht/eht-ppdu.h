@@ -47,22 +47,46 @@ class EhtPpdu : public HePpdu
      *
      * \param psdus the PHY payloads (PSDUs)
      * \param txVector the TXVECTOR that was used for this PPDU
-     * \param txCenterFreq the center frequency (MHz) that was used for this PPDU
+     * \param channel the operating channel of the PHY used to transmit this PPDU
      * \param ppduDuration the transmission duration of this PPDU
-     * \param band the WifiPhyBand used for the transmission of this PPDU
      * \param uid the unique ID of this PPDU or of the triggering PPDU if this is an EHT TB PPDU
      * \param flag the flag indicating the type of Tx PSD to build
      */
     EhtPpdu(const WifiConstPsduMap& psdus,
             const WifiTxVector& txVector,
-            uint16_t txCenterFreq,
+            const WifiPhyOperatingChannel& channel,
             Time ppduDuration,
-            WifiPhyBand band,
             uint64_t uid,
             TxPsdFlag flag);
 
     WifiPpduType GetType() const override;
     Ptr<WifiPpdu> Copy() const override;
+
+    /**
+     * Get the number of RUs per EHT-SIG-B content channel.
+     * This function will be used once EHT PHY headers are implemented.
+     *
+     * \param channelWidth the channel width occupied by the PPDU (in MHz)
+     * \param ehtPpduType the EHT_PPDU_TYPE used by the PPDU
+     * \param ruAllocation 8 bit RU_ALLOCATION per 20 MHz
+
+     * \return a pair containing the number of RUs in each EHT-SIG-B content channel (resp. 1 and 2)
+     */
+    static std::pair<std::size_t, std::size_t> GetNumRusPerEhtSigBContentChannel(
+        uint16_t channelWidth,
+        uint8_t ehtPpduType,
+        const std::vector<uint8_t>& ruAllocation);
+
+    /**
+     * Get variable length EHT-SIG field size
+     * \param channelWidth the channel width occupied by the PPDU (in MHz)
+     * \param ruAllocation 8 bit RU_ALLOCATION per 20 MHz
+     * \param ehtPpduType the EHT_PPDU_TYPE used by the PPDU
+     * \return field size in bytes
+     */
+    static uint32_t GetEhtSigFieldSize(uint16_t channelWidth,
+                                       const std::vector<uint8_t>& ruAllocation,
+                                       uint8_t ehtPpduType);
 
   private:
     bool IsDlMu() const override;
@@ -73,6 +97,8 @@ class EhtPpdu : public HePpdu
 
     uint8_t m_ehtSuMcs{0};      //!< EHT-MCS for EHT SU transmissions
     uint8_t m_ehtSuNStreams{1}; //!< Number of streams for EHT SU transmissions
+    uint8_t m_ehtPpduType{1};   /**< EHT_PPDU_TYPE per Table 36-1 IEEE 802.11be D2.3.
+                                     To be removed once EHT PHY headers are supported. */
 };                              // class EhtPpdu
 
 } // namespace ns3

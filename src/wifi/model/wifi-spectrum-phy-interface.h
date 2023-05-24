@@ -20,6 +20,8 @@
 #ifndef WIFI_SPECTRUM_PHY_INTERFACE_H
 #define WIFI_SPECTRUM_PHY_INTERFACE_H
 
+#include "spectrum-wifi-phy.h"
+
 #include "ns3/spectrum-phy.h"
 
 namespace ns3
@@ -46,7 +48,12 @@ class WifiSpectrumPhyInterface : public SpectrumPhy
      * \return the object TypeId
      */
     static TypeId GetTypeId();
-    WifiSpectrumPhyInterface();
+    /**
+     * Constructor
+     *
+     * \param range the frequency range covered by the interface
+     */
+    WifiSpectrumPhyInterface(FrequencyRange range);
     /**
      * Connect SpectrumWifiPhy object
      * \param phy SpectrumWifiPhy object to be connected to this object
@@ -62,12 +69,66 @@ class WifiSpectrumPhyInterface : public SpectrumPhy
     Ptr<Object> GetAntenna() const override;
     void StartRx(Ptr<SpectrumSignalParameters> params) override;
 
+    /**
+     * Get the spectrum channel this interface is attached to
+     *
+     * \return the spectrum channel this interface is attached to
+     */
+    Ptr<SpectrumChannel> GetChannel() const;
+
+    /**
+     * Get the frequency range covered by the spectrum channel this interface is attached to
+     *
+     * \return the frequency range covered by the spectrum channel this interface is attached to
+     */
+    const FrequencyRange& GetFrequencyRange() const;
+
+    /**
+     * Get the center frequency in MHz of the the spectrum channel this interface is attached to
+     *
+     * \return the center frequency in MHz of the the spectrum channel this interface is attached to
+     * to
+     */
+    uint16_t GetCenterFrequency() const;
+
+    /**
+     * Get the channel width in MHz covered by the spectrum channel this interface is attached to
+     *
+     * \return the channel width in MHz covered by the spectrum channel this interface is attached
+     * to to
+     */
+    uint16_t GetChannelWidth() const;
+
+    /**
+     * Start transmission over the spectrum channel
+     *
+     * \param params the parameters of the signal to transmit
+     */
+    void StartTx(Ptr<SpectrumSignalParameters> params);
+
+    /**
+     * Set the RX spectrum model
+     *
+     * \param centerFrequency the center frequency in MHz
+     * \param channelWidth the channel width in MHz
+     * \param bandBandwidth the width of each band in Hz
+     * \param guardBandwidth the width of the guard band in MHz
+     */
+    void SetRxSpectrumModel(uint32_t centerFrequency,
+                            uint16_t channelWidth,
+                            uint32_t bandBandwidth,
+                            uint16_t guardBandwidth);
+
   private:
     void DoDispose() override;
 
-    Ptr<SpectrumWifiPhy> m_spectrumWifiPhy; ///< spectrum PHY
-    Ptr<NetDevice> m_netDevice;             ///< the device
-    Ptr<SpectrumChannel> m_channel;         ///< spectrum channel
+    FrequencyRange m_range;                     ///< frequency range
+    Ptr<SpectrumWifiPhy> m_spectrumWifiPhy;     ///< spectrum PHY
+    Ptr<NetDevice> m_netDevice;                 ///< the device
+    Ptr<SpectrumChannel> m_channel;             ///< spectrum channel
+    uint16_t m_centerFrequency;                 ///< center frequency in MHz
+    uint16_t m_channelWidth;                    ///< channel width in MHz
+    Ptr<const SpectrumModel> m_rxSpectrumModel; ///< receive spectrum model
 };
 
 } // namespace ns3

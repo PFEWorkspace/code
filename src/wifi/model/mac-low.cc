@@ -35,7 +35,7 @@
 #include "snr-tag.h"
 #include "yans-wifi-phy.h"
 #include "ampdu-tag.h"
-#include "wifi-mac-queue.h"
+#include "wifi-mac-queue-copy.h"
 
 #undef NS_LOG_APPEND_CONTEXT
 #define NS_LOG_APPEND_CONTEXT std::clog << "[mac=" << m_self << "] "

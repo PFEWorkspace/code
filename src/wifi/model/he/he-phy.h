@@ -424,11 +424,14 @@ class HePhy : public VhtPhy
     static bool IsAllowed(const WifiTxVector& txVector);
 
     /**
-     * Get variable length HE SIG-B field size based on TX Vector
-     * \param txVector WiFi TX Vector
-     * \return field size in bytes
+     * Create and return the HE MCS corresponding to
+     * the provided index.
+     * This method binds all the callbacks used by WifiMode.
+     *
+     * \param index the index of the MCS
+     * \return an HE MCS
      */
-    static uint32_t GetSigBFieldSize(const WifiTxVector& txVector);
+    static WifiMode CreateHeMcs(uint8_t index);
 
   protected:
     PhyFieldRxStatus ProcessSig(Ptr<Event> event,
@@ -451,6 +454,7 @@ class HePhy : public VhtPhy
     void DoResetReceive(Ptr<Event> event) override;
     void DoAbortCurrentReception(WifiPhyRxfailureReason reason) override;
     uint64_t ObtainNextUid(const WifiTxVector& txVector) override;
+    Time GetMaxDelayPpduSameUid(const WifiTxVector& txVector) override;
     Ptr<SpectrumValue> GetTxPowerSpectralDensity(double txPowerW,
                                                  Ptr<const WifiPpdu> ppdu) const override;
     uint32_t GetMaxPsduSize() const override;
@@ -478,6 +482,12 @@ class HePhy : public VhtPhy
      * \return the updated status of the reception of the SIG-B
      */
     virtual PhyFieldRxStatus ProcessSigB(Ptr<Event> event, PhyFieldRxStatus status);
+
+    /**
+     * \param txVector the transmission parameters
+     * \return the number of bits of the HE-SIG-B
+     */
+    virtual uint32_t GetSigBSize(const WifiTxVector& txVector) const;
 
     /**
      * Start receiving the PSDU (i.e. the first symbol of the PSDU has arrived) of an OFDMA
@@ -581,16 +591,6 @@ class HePhy : public VhtPhy
      * \return the per-20 MHz CCA durations vector
      */
     std::vector<Time> GetPer20MHzDurations(const Ptr<const WifiPpdu> ppdu);
-
-    /**
-     * Create and return the HE MCS corresponding to
-     * the provided index.
-     * This method binds all the callbacks used by WifiMode.
-     *
-     * \param index the index of the MCS
-     * \return an HE MCS
-     */
-    static WifiMode CreateHeMcs(uint8_t index);
 
     /**
      * Given a PPDU duration value, the TXVECTOR used to transmit the PPDU and

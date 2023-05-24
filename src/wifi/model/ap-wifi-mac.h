@@ -31,7 +31,7 @@
 namespace ns3
 {
 
-class SupportedRates;
+struct AllSupportedRates;
 class CapabilityInformation;
 class DsssParameterSet;
 class ErpInformation;
@@ -329,18 +329,6 @@ class ApWifiMac : public WifiMac
                                          const Mac48Address& to,
                                          uint8_t linkId);
     /**
-     * Configure the queue scheduler so that frames stored in the container queues associated
-     * with the station which we are sending an Association Response frame to are only transmitted
-     * on the setup links.
-     *
-     * \param linkIdStaAddrMap a map of (link ID, remote STA address) of the links to setup
-     * \param to the Receiver Address (RA) of the Association Response frame
-     * \param linkId the ID of the link on which the Association Response frame is being sent
-     */
-    void ConfigQueueScheduler(const LinkIdStaAddrMap& linkIdStaAddrMap,
-                              const Mac48Address& to,
-                              uint8_t linkId);
-    /**
      * Forward an association or a reassociation response packet to the DCF/EDCA.
      *
      * \param to the address of the STA we are sending an association response to
@@ -438,7 +426,7 @@ class ApWifiMac : public WifiMac
      * \param linkId the ID of the given link
      * \return all rates that we support
      */
-    SupportedRates GetSupportedRates(uint8_t linkId) const;
+    AllSupportedRates GetSupportedRates(uint8_t linkId) const;
     /**
      * Return the DSSS Parameter Set that we support on the given link
      *

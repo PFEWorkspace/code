@@ -548,6 +548,15 @@ class PhyEntity : public SimpleRefCount<PhyEntity>
      */
     virtual uint64_t ObtainNextUid(const WifiTxVector& txVector);
 
+    /**
+     * Obtain the maximum time between two PPDUs with the same UID to consider they are identical
+     * and their power can be added construtively.
+     *
+     * \param txVector the TXVECTOR used for the transmission of the PPDUs
+     * \return the maximum time between two PPDUs with the same UID to decode them
+     */
+    virtual Time GetMaxDelayPpduSameUid(const WifiTxVector& txVector);
+
   protected:
     /**
      * A map of PPDU field elements per preamble type.
@@ -827,10 +836,14 @@ class PhyEntity : public SimpleRefCount<PhyEntity>
      * Create an event using WifiPhy's InterferenceHelper class.
      * Wrapper used by child classes.
      *
-     * \copydoc InterferenceHelper::Add
+     * \param ppdu the PPDU
+     * \param duration the PPDU duration
+     * \param rxPower received power per band (W)
+     * \param isStartOfdmaRxing flag whether the event corresponds to the start of the OFDMA payload
+     * reception (only used for UL-OFDMA)
+     * \return the created event
      */
     Ptr<Event> CreateInterferenceEvent(Ptr<const WifiPpdu> ppdu,
-                                       const WifiTxVector& txVector,
                                        Time duration,
                                        RxPowerWattPerChannelBand& rxPower,
                                        bool isStartOfdmaRxing = false);
@@ -838,7 +851,8 @@ class PhyEntity : public SimpleRefCount<PhyEntity>
      * Update an event in WifiPhy's InterferenceHelper class.
      * Wrapper used by child classes.
      *
-     * \copydoc InterferenceHelper::UpdateEvent
+     * \param event the event to be updated
+     * \param rxPower the received power (W) per band to be added to the current event
      */
     void UpdateInterferenceEvent(Ptr<Event> event, const RxPowerWattPerChannelBand& rxPower);
     /**

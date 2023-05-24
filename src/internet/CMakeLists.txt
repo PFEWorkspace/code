@@ -12,6 +12,7 @@ set(source_files
     helper/ipv6-list-routing-helper.cc
     helper/ipv6-routing-helper.cc
     helper/ipv6-static-routing-helper.cc
+    helper/ipv6-address-helper-custom.h
     helper/neighbor-cache-helper.cc
     helper/rip-helper.cc
     helper/ripng-helper.cc
@@ -143,6 +144,7 @@ set(header_files
     helper/ipv6-list-routing-helper.h
     helper/ipv6-routing-helper.h
     helper/ipv6-static-routing-helper.h
+    helper/ipv6-address-helper-custom.h
     helper/neighbor-cache-helper.h
     helper/rip-helper.h
     helper/ripng-helper.h

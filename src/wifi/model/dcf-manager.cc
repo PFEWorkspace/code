@@ -26,6 +26,7 @@
 #include "wifi-phy.h"
 #include "wifi-mac.h"
 #include "mac-low.h"
+#include "wifi-phy-listener.h"
 
 #define MY_DEBUG(x) \
   NS_LOG_DEBUG (Simulator::Now () << " " << this << " " << x)
@@ -345,7 +346,7 @@ DcfManager::SetupPhyListener (Ptr<WifiPhy> phy)
     {
       delete m_phyListener;
     }
-  m_phyListener = new PhyListener (this);
+  m_phyListener = new PhyListener ();
   phy->RegisterListener (m_phyListener);
 }
 

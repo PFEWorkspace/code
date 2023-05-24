@@ -870,6 +870,14 @@ class WifiRemoteStationManager : public Object
      *
      * \param mpdu the MPDU which was discarded
      */
+    void ReportFinalRtsFailed (Mac48Address address, const WifiMacHeader *header);
+  /**
+   * Should be invoked after calling ReportDataFailed if
+   * NeedDataRetransmission returns false
+   *
+   * \param address the address of the receiver
+   * \param header MAC header of the DATA packet
+   */
     void ReportFinalDataFailed(Ptr<const WifiMpdu> mpdu);
     /**
      * Typically called per A-MPDU, either when a Block ACK was successfully
@@ -883,6 +891,19 @@ class WifiRemoteStationManager : public Object
      * \param dataSnr data SNR reported by remote station
      * \param dataTxVector the TXVECTOR of the MPDUs we sent
      */
+     void ReportFinalDataFailed (Mac48Address address, const WifiMacHeader *header);
+  /**
+   * Typically called per A-MPDU, either when a Block ACK was successfully 
+   * received or when a BlockAckTimeout has elapsed.
+   *
+   * \param address the address of the receiver
+   * \param tid TID of the DATA packet
+   * \param nSuccessfulMpdus number of successfully transmitted MPDUs.
+   * A value of 0 means that the Block ACK was missed.
+   * \param nFailedMpdus number of unsuccessfully transmitted MPDUs.
+   * \param rxSnr received SNR of the block ack frame itself
+   * \param dataSnr data SNR reported by remote station
+   */
     void ReportAmpduTxStatus(Mac48Address address,
                              uint16_t nSuccessfulMpdus,
                              uint16_t nFailedMpdus,

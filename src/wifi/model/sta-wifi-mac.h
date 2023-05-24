@@ -44,6 +44,17 @@ class WifiAssocManager;
 /**
  * \ingroup wifi
  *
+ * Scan type (active or passive)
+ */
+enum class WifiScanType : uint8_t
+{
+    ACTIVE = 0,
+    PASSIVE
+};
+
+/**
+ * \ingroup wifi
+ *
  * Structure holding scan parameters
  */
 struct WifiScanParams
@@ -63,12 +74,7 @@ struct WifiScanParams
     /// typedef for a list of channels
     using ChannelList = std::list<Channel>;
 
-    enum : uint8_t
-    {
-        ACTIVE = 0,
-        PASSIVE
-    } type; ///< indicates either active or passive scanning
-
+    WifiScanType type;                    ///< indicates either active or passive scanning
     Ssid ssid;                            ///< desired SSID or wildcard SSID
     std::vector<ChannelList> channelList; ///< list of channels to scan, for each link
     Time probeDelay;                      ///< delay prior to transmitting a Probe Request
@@ -149,7 +155,7 @@ class StaWifiMac : public WifiMac
         WifiScanParams::Channel m_channel; ///< The channel the management frame was received on
         uint8_t m_linkId;                  ///< ID of the link used to communicate with the AP
         /// list of (local link ID, AP link ID) pairs identifying the links to setup between MLDs
-        std::list<std::pair<std::uint8_t, uint8_t>> m_setupLinks;
+        std::list<std::pair<uint8_t, uint8_t>> m_setupLinks;
     };
 
     /**
@@ -185,10 +191,11 @@ class StaWifiMac : public WifiMac
     void SetAssocManager(Ptr<WifiAssocManager> assocManager);
 
     /**
-     * Forward a probe request packet to the DCF. The standard is not clear on the correct
-     * queue for management frames if QoS is supported. We always use the DCF.
+     * Enqueue a probe request packet for transmission on the given link.
+     *
+     * \param linkId the ID of the given link
      */
-    void SendProbeRequest();
+    void SendProbeRequest(uint8_t linkId);
 
     /**
      * This method is called after wait beacon timeout or wait probe request timeout has
@@ -413,7 +420,7 @@ class StaWifiMac : public WifiMac
      * \param linkId the ID of the link for which the request is made
      * \return SupportedRates all rates that we support
      */
-    SupportedRates GetSupportedRates(uint8_t linkId) const;
+    AllSupportedRates GetSupportedRates(uint8_t linkId) const;
     /**
      * Return the Multi-Link Element to include in the management frames transmitted
      * on the given link

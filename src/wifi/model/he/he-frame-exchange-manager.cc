@@ -509,8 +509,9 @@ HeFrameExchangeManager::SendPsduMap()
                 uint8_t tid = *tids.begin();
 
                 NS_ASSERT(m_edca);
-                m_edca->GetBaManager()->ScheduleBar(
-                    m_mac->GetQosTxop(tid)->PrepareBlockAckRequest(psdu.second->GetAddr1(), tid));
+                auto [reqHdr, hdr] =
+                    m_mac->GetQosTxop(tid)->PrepareBlockAckRequest(psdu.second->GetAddr1(), tid);
+                m_edca->GetBaManager()->ScheduleBar(reqHdr, hdr);
             }
         }
 
@@ -1565,6 +1566,12 @@ HeFrameExchangeManager::SendCtsAfterMuRts(const WifiMacHeader& muRtsHdr,
 {
     NS_LOG_FUNCTION(this << muRtsHdr << trigger << muRtsSnr);
 
+    if (!UlMuCsMediumIdle(trigger))
+    {
+        NS_LOG_DEBUG("UL MU CS indicated medium busy, cannot send CTS");
+        return;
+    }
+
     NS_ASSERT(m_staMac != nullptr && m_staMac->IsAssociated());
     WifiTxVector ctsTxVector = GetCtsTxVectorAfterMuRts(trigger, m_staMac->GetAssociationId());
     ctsTxVector.SetTriggerResponding(true);
@@ -1942,13 +1949,9 @@ HeFrameExchangeManager::IsIntraBssPpdu(Ptr<const WifiPsdu> psdu, const WifiTxVec
     // is disabled (see 26.17.3.3), then the RXVECTOR parameter BSS_COLOR of a PPDU shall not be
     // used to classify the PPDU")
     const auto bssColor = m_mac->GetHeConfiguration()->GetBssColor();
-    if (bssColor != 0 && bssColor == txVector.GetBssColor())
-    {
-        return true;
-    }
 
     // the other two conditions using the RXVECTOR parameter PARTIAL_AID are not implemented
-    return false;
+    return bssColor != 0 && bssColor == txVector.GetBssColor();
 }
 
 void
@@ -1981,6 +1984,17 @@ HeFrameExchangeManager::UpdateNav(Ptr<const WifiPsdu> psdu, const WifiTxVector& 
     NS_LOG_DEBUG("PPDU classified as intra-BSS, update the intra-BSS NAV");
     Time duration = psdu->GetDuration();
     NS_LOG_DEBUG("Duration/ID=" << duration);
+
+    if (psdu->GetHeader(0).IsCfEnd())
+    {
+        // An HE STA that maintains two NAVs (see 26.2.4) and receives a CF-End frame should reset
+        // the basic NAV if the received CF-End frame is carried in an inter-BSS PPDU and reset the
+        // intra-BSS NAV if the received CF-End frame is carried in an intra-BSS PPDU. (Sec. 26.2.5
+        // of 802.11ax-2021)
+        NS_LOG_DEBUG("Received CF-End, resetting the intra-BSS NAV");
+        IntraBssNavResetTimeout();
+        return;
+    }
 
     // For all other received frames the STA shall update its NAV when the received
     // Duration is greater than the STA’s current NAV value (IEEE 802.11-2020 sec. 10.3.2.4)
@@ -2524,20 +2538,13 @@ HeFrameExchangeManager::ReceiveMpdu(Ptr<const WifiMpdu> mpdu,
                 //   the non-AP STA (this is guaranteed if we get here)
                 // - The UL MU CS condition indicates that the medium is idle
                 // (Sec. 26.2.6.3 of 802.11ax-2021)
-                if (UlMuCsMediumIdle(trigger))
-                {
-                    NS_LOG_DEBUG("Schedule CTS");
-                    Simulator::Schedule(m_phy->GetSifs(),
-                                        &HeFrameExchangeManager::SendCtsAfterMuRts,
-                                        this,
-                                        hdr,
-                                        trigger,
-                                        rxSignalInfo.snr);
-                }
-                else
-                {
-                    NS_LOG_DEBUG("Cannot schedule CTS");
-                }
+                NS_LOG_DEBUG("Schedule CTS");
+                Simulator::Schedule(m_phy->GetSifs(),
+                                    &HeFrameExchangeManager::SendCtsAfterMuRts,
+                                    this,
+                                    hdr,
+                                    trigger,
+                                    rxSignalInfo.snr);
             }
             else if (trigger.IsMuBar())
             {

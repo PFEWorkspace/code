@@ -154,20 +154,16 @@ WifiDefaultAckManager::IsResponseNeeded(Ptr<const WifiMpdu> mpdu,
     //   a case, a Block Ack is not going to be requested anytime soon)
     // * this is the initial frame of a transmission opportunity and it is not
     //   protected by RTS/CTS (see Annex G.3 of IEEE 802.11-2016)
-    if (m_baThreshold > 0 &&
+    return !(
+        m_baThreshold > 0 &&
         GetMaxDistFromStartingSeq(mpdu, txParams) <
             m_baThreshold * edca->GetBaBufferSize(receiver, tid) &&
-        (edca->GetWifiMacQueue()->GetNPackets({WIFI_QOSDATA_UNICAST_QUEUE, receiver, tid}) -
+        (edca->GetWifiMacQueue()->GetNPackets({WIFI_QOSDATA_QUEUE, WIFI_UNICAST, receiver, tid}) -
              edca->GetBaManager()->GetNBufferedPackets(receiver, tid) >
          1) &&
         !(edca->GetTxopLimit(m_linkId).IsStrictlyPositive() &&
           edca->GetRemainingTxop(m_linkId) == edca->GetTxopLimit(m_linkId) &&
-          !(txParams.m_protection && txParams.m_protection->method == WifiProtection::RTS_CTS)))
-    {
-        return false;
-    }
-
-    return true;
+          !(txParams.m_protection && txParams.m_protection->method == WifiProtection::RTS_CTS)));
 }
 
 bool
