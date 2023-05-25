@@ -1,6 +1,0 @@
-define SP800_108 20160128
-
-<requires>
-mac
-hmac
-</requires>

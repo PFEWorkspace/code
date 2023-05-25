@@ -171,11 +171,7 @@ DsrOptions::ReverseRoutes(std::vector<Ipv4Address>& vec)
         vec.push_back(*ri);
     }
 
-    if ((vec.size() == vec2.size()) && (vec.front() == vec2.back()))
-    {
-        return true;
-    }
-    return false;
+    return (vec.size() == vec2.size()) && (vec.front() == vec2.back());
 }
 
 Ipv4Address
@@ -1634,12 +1630,12 @@ DsrOptionRerr::Process(Ptr<Packet> packet,
         /*
          * Remove the route error header from the packet, and get the error type
          */
-        DsrOptionRerrUnsupportHeader rerrUnsupport;
-        p->RemoveHeader(rerrUnsupport);
+        DsrOptionRerrUnsupportedHeader rerrUnsupported;
+        p->RemoveHeader(rerrUnsupported);
 
         /// \todo This is for the other two error options, not supporting for now
-        // uint32_t rerrSize = rerrUnsupport.GetSerializedSize();
-        // uint32_t serialized = DoSendError (p, rerrUnsupport, rerrSize, ipv4Address, protocol);
+        // uint32_t rerrSize = rerrUnsupported.GetSerializedSize();
+        // uint32_t serialized = DoSendError (p, rerrUnsupported, rerrSize, ipv4Address, protocol);
         uint32_t serialized = 0;
         return serialized;
     }

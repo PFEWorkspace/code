@@ -1,8 +1,0 @@
-define RSA 20160730
-
-<requires>
-keypair
-numbertheory
-emsa_pssr
-sha2_32
-</requires>

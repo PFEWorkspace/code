@@ -1,2 +1,0 @@
-define CERTSTOR_SQL 20160818
-

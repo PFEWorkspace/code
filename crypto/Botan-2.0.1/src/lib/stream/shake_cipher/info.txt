@@ -1,1 +1,0 @@
-define SHAKE_CIPHER 20161018

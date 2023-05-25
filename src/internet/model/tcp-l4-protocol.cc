@@ -21,10 +21,12 @@
 
 #include "ipv4-end-point-demux.h"
 #include "ipv4-end-point.h"
-#include "ipv4-l3-protocol.h"
+#include "ipv4-route.h"
+#include "ipv4-routing-protocol.h"
 #include "ipv6-end-point-demux.h"
 #include "ipv6-end-point.h"
 #include "ipv6-l3-protocol.h"
+#include "ipv6-route.h"
 #include "ipv6-routing-protocol.h"
 #include "rtt-estimator.h"
 #include "tcp-congestion-ops.h"
@@ -37,8 +39,6 @@
 
 #include "ns3/assert.h"
 #include "ns3/boolean.h"
-#include "ns3/ipv4-route.h"
-#include "ns3/ipv6-route.h"
 #include "ns3/log.h"
 #include "ns3/node.h"
 #include "ns3/nstime.h"
@@ -380,7 +380,7 @@ TcpL4Protocol::ReceiveIcmp(Ipv6Address icmpSource,
     }
 }
 
-enum IpL4Protocol::RxStatus
+IpL4Protocol::RxStatus
 TcpL4Protocol::PacketReceived(Ptr<Packet> packet,
                               TcpHeader& incomingTcpHeader,
                               const Address& source,
@@ -448,7 +448,7 @@ TcpL4Protocol::NoEndPointsFound(const TcpHeader& incomingHeader,
     }
 }
 
-enum IpL4Protocol::RxStatus
+IpL4Protocol::RxStatus
 TcpL4Protocol::Receive(Ptr<Packet> packet,
                        const Ipv4Header& incomingIpHeader,
                        Ptr<Ipv4Interface> incomingInterface)
@@ -519,7 +519,7 @@ TcpL4Protocol::Receive(Ptr<Packet> packet,
     return IpL4Protocol::RX_OK;
 }
 
-enum IpL4Protocol::RxStatus
+IpL4Protocol::RxStatus
 TcpL4Protocol::Receive(Ptr<Packet> packet,
                        const Ipv6Header& incomingIpHeader,
                        Ptr<Ipv6Interface> interface)

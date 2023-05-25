@@ -622,8 +622,7 @@ IsVal(const std::string& str, T& ret)
     }
     else if (IsNumber(str))
     {
-        std::string s2 = str;
-        std::istringstream s(s2);
+        std::istringstream s(str);
         s >> ret;
         return true;
     }
@@ -651,15 +650,8 @@ HasNodeIdNumber(std::string str)
 
     nodeId = str.substr(startNodeId + 1, endNodeId - (startNodeId + 1)); // set node id
 
-    //   is number              is integer                                       is not negative
-    if (IsNumber(nodeId) && (nodeId.find_first_of('.') == std::string::npos) && (nodeId[0] != '-'))
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
+    //     is number           is integer                                        is not negative
+    return IsNumber(nodeId) && nodeId.find_first_of('.') == std::string::npos && nodeId[0] != '-';
 }
 
 std::string

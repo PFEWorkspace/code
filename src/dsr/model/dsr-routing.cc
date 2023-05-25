@@ -579,8 +579,6 @@ DsrRouting::DoDispose()
                 Ptr<AdhocWifiMac> adhoc = mac->GetObject<AdhocWifiMac>();
                 if (adhoc)
                 {
-                    adhoc->TraceDisconnectWithoutContext("TxErrHeader",
-                                                         m_routeCache->GetTxErrorCallback());
                     m_routeCache->DelArpCache(m_ipv4->GetInterface(i)->GetArpCache());
                 }
             }
@@ -3535,7 +3533,7 @@ DsrRouting::SendAck(uint16_t ackId,
     }
 }
 
-enum IpL4Protocol::RxStatus
+IpL4Protocol::RxStatus
 DsrRouting::Receive(Ptr<Packet> p, const Ipv4Header& ip, Ptr<Ipv4Interface> incomingInterface)
 {
     NS_LOG_FUNCTION(this << p << ip << incomingInterface);
@@ -3679,8 +3677,7 @@ DsrRouting::Receive(Ptr<Packet> p, const Ipv4Header& ip, Ptr<Ipv4Interface> inco
                     // we need to make a copy in the unlikely event we hit the
                     // RX_ENDPOINT_UNREACH code path
                     // Here we can use the packet that has been get off whole DSR header
-                    enum IpL4Protocol::RxStatus status =
-                        nextProto->Receive(copy, ip, incomingInterface);
+                    IpL4Protocol::RxStatus status = nextProto->Receive(copy, ip, incomingInterface);
                     NS_LOG_DEBUG("The receive status " << status);
                     switch (status)
                     {
@@ -3691,8 +3688,7 @@ DsrRouting::Receive(Ptr<Packet> p, const Ipv4Header& ip, Ptr<Ipv4Interface> inco
                     case IpL4Protocol::RX_CSUM_FAILED:
                         break;
                     case IpL4Protocol::RX_ENDPOINT_UNREACH:
-                        if (ip.GetDestination().IsBroadcast() == true ||
-                            ip.GetDestination().IsMulticast() == true)
+                        if (ip.GetDestination().IsBroadcast() || ip.GetDestination().IsMulticast())
                         {
                             break; // Do not reply to broadcast or multicast
                         }
@@ -3720,26 +3716,26 @@ DsrRouting::Receive(Ptr<Packet> p, const Ipv4Header& ip, Ptr<Ipv4Interface> inco
          */
         uint8_t salvage = 0;
 
-        DsrOptionRerrUnsupportHeader rerrUnsupportHeader;
-        rerrUnsupportHeader.SetErrorType(3); // The error type 3 means Option not supported
-        rerrUnsupportHeader.SetErrorSrc(
+        DsrOptionRerrUnsupportedHeader rerrUnsupportedHeader;
+        rerrUnsupportedHeader.SetErrorType(3); // The error type 3 means Option not supported
+        rerrUnsupportedHeader.SetErrorSrc(
             m_mainAddress); // The error source address is our own address
-        rerrUnsupportHeader.SetUnsupported(optionType); // The unsupported option type number
-        rerrUnsupportHeader.SetErrorDst(
+        rerrUnsupportedHeader.SetUnsupported(optionType); // The unsupported option type number
+        rerrUnsupportedHeader.SetErrorDst(
             src); // Error destination address is the destination of the data packet
-        rerrUnsupportHeader.SetSalvage(
+        rerrUnsupportedHeader.SetSalvage(
             salvage); // Set the value about whether to salvage a packet or not
 
         /*
          * The unknown option error is not supported currently in this implementation, and it's also
          * not likely to happen in simulations
          */
-        //            SendError (rerrUnsupportHeader, 0, protocol); // Send the error packet
+        //            SendError (rerrUnsupportedHeader, 0, protocol); // Send the error packet
     }
     return IpL4Protocol::RX_OK;
 }
 
-enum IpL4Protocol::RxStatus
+IpL4Protocol::RxStatus
 DsrRouting::Receive(Ptr<Packet> p, const Ipv6Header& ip, Ptr<Ipv6Interface> incomingInterface)
 {
     NS_LOG_FUNCTION(this << p << ip.GetSource() << ip.GetDestination() << incomingInterface);

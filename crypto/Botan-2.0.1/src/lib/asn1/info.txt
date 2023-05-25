@@ -1,5 +1,0 @@
-define ASN1 20161102
-
-<requires>
-bigint
-</requires>

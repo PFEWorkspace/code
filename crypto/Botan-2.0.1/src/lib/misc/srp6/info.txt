@@ -1,6 +1,0 @@
-define SRP6 20161017
-
-<requires>
-bigint
-dl_group
-</requires>

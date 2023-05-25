@@ -306,7 +306,7 @@ LteFfrDistributedAlgorithm::DoIsUlRbgAvailableForUe(int rbId, uint16_t rnti)
 
 void
 LteFfrDistributedAlgorithm::DoReportDlCqiInfo(
-    const struct FfMacSchedSapProvider::SchedDlCqiInfoReqParameters& params)
+    const FfMacSchedSapProvider::SchedDlCqiInfoReqParameters& params)
 {
     NS_LOG_FUNCTION(this);
     NS_LOG_WARN("Method should not be called, because it is empty");
@@ -314,7 +314,7 @@ LteFfrDistributedAlgorithm::DoReportDlCqiInfo(
 
 void
 LteFfrDistributedAlgorithm::DoReportUlCqiInfo(
-    const struct FfMacSchedSapProvider::SchedUlCqiInfoReqParameters& params)
+    const FfMacSchedSapProvider::SchedUlCqiInfoReqParameters& params)
 {
     NS_LOG_FUNCTION(this);
     NS_LOG_WARN("Method should not be called, because it is empty");
@@ -465,7 +465,7 @@ LteFfrDistributedAlgorithm::DoReportUeMeas(uint16_t rnti, LteRrcSap::MeasResults
                         found = true;
                     }
                 }
-                if (found == false)
+                if (!found)
                 {
                     m_neighborCell.push_back(it->physCellId);
                 }

@@ -12,7 +12,6 @@ set(source_files
     helper/wifi-mac-helper.cc
     helper/wifi-radio-energy-model-helper.cc
     helper/yans-wifi-helper.cc
-    helper/nqos-wifi-mac-helper.cc
     model/adhoc-wifi-mac.cc
     model/ampdu-subframe-header.cc
     model/ampdu-tag.cc
@@ -152,14 +151,6 @@ set(source_files
     model/yans-error-rate-model.cc
     model/yans-wifi-channel.cc
     model/yans-wifi-phy.cc
-    model/dca-txop.cc
-    model/dcf.cc
-    model/dcf-manager.cc
-    model/mac-low.cc
-    model/block-ack-cache.cc
-    model/random-stream.cc
-    model/wifi-mac-queue-copy.cc
-    model/wifi-remote-station-manager-copy.cc
 )
 
 set(header_files
@@ -169,7 +160,6 @@ set(header_files
     helper/wifi-mac-helper.h
     helper/wifi-radio-energy-model-helper.h
     helper/yans-wifi-helper.h
-    helper/nqos-wifi-mac-helper.h
     model/adhoc-wifi-mac.h
     model/ampdu-subframe-header.h
     model/ampdu-tag.h
@@ -317,15 +307,6 @@ set(header_files
     model/yans-error-rate-model.h
     model/yans-wifi-channel.h
     model/yans-wifi-phy.h
-    model/dca-txop.h
-    model/dcf.h 
-    model/dcf-manager.h
-    model/mac-low.h
-    model/wifi-preamble.h
-    model/block-ack-cache.h
-    model/random-stream.h
-    model/wifi-mac-queue-copy.h
-    model/wifi-remote-station-manager-copy.h
 )
 
 build_lib(

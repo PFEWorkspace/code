@@ -76,6 +76,21 @@ struct RoutingTableEntry
 
 class RoutingProtocol;
 
+/**
+ * \ingroup olsr
+ *
+ * Willingness for forwarding packets from other nodes
+ * See \RFC{3626} section 18.8
+ */
+enum Willingness
+{
+    NEVER = 0,
+    LOW = 1,
+    DEFAULT = 3, // medium
+    HIGH = 6,
+    ALWAYS = 7,
+};
+
 ///
 /// \ingroup olsr
 ///
@@ -350,10 +365,10 @@ class RoutingProtocol : public Ipv4RoutingProtocol
     bool RouteInput(Ptr<const Packet> p,
                     const Ipv4Header& header,
                     Ptr<const NetDevice> idev,
-                    UnicastForwardCallback ucb,
-                    MulticastForwardCallback mcb,
-                    LocalDeliverCallback lcb,
-                    ErrorCallback ecb) override;
+                    const UnicastForwardCallback& ucb,
+                    const MulticastForwardCallback& mcb,
+                    const LocalDeliverCallback& lcb,
+                    const ErrorCallback& ecb) override;
     void SetIpv4(Ptr<Ipv4> ipv4) override;
 
     void PrintRoutingTable(Ptr<OutputStreamWrapper> stream,

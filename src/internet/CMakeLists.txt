@@ -12,7 +12,6 @@ set(source_files
     helper/ipv6-list-routing-helper.cc
     helper/ipv6-routing-helper.cc
     helper/ipv6-static-routing-helper.cc
-    helper/ipv6-address-helper-custom.h
     helper/neighbor-cache-helper.cc
     helper/rip-helper.cc
     helper/ripng-helper.cc
@@ -144,7 +143,6 @@ set(header_files
     helper/ipv6-list-routing-helper.h
     helper/ipv6-routing-helper.h
     helper/ipv6-static-routing-helper.h
-    helper/ipv6-address-helper-custom.h
     helper/neighbor-cache-helper.h
     helper/rip-helper.h
     helper/ripng-helper.h
@@ -252,8 +250,6 @@ set(header_files
     model/udp-socket-factory.h
     model/udp-socket.h
     model/windowed-filter.h
-    model/sim_errno.h 
-    model/sim_interface.h
 )
 
 set(private_header_files)
@@ -266,6 +262,7 @@ endif()
 set(test_sources
     test/global-route-manager-impl-test-suite.cc
     test/icmp-test.cc
+    test/internet-stack-helper-test-suite.cc
     test/ipv4-address-generator-test-suite.cc
     test/ipv4-address-helper-test-suite.cc
     test/ipv4-deduplication-test.cc

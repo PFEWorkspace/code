@@ -1,7 +1,0 @@
-define LZMA 20160412
-
-load_on vendor
-
-<libs>
-all -> lzma
-</libs>
