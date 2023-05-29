@@ -200,7 +200,7 @@ namespace ns3 {
                 //Todo[] Add a meaningful delay
                 auto energy = FLEnergy();
                 energy.SetDeviceType("400");
-                energy.SetLearningModel("CIFAR-10");
+                energy.SetLearningModel("MNIST");
                 energy.SetEpochs(5.0);
                 Simulator::Schedule(Seconds(energy.CalcComputationTime()), &ClientApplication::StartWriting, this);
 
