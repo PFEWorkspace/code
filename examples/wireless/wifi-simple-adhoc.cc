@@ -174,7 +174,7 @@ main(int argc, char* argv[])
     positionAlloc->Add(Vector(5.0, 0.0, 0.0));
     mobility.SetPositionAllocator(positionAlloc);
     mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
-    mobility.Install(c);
+    mobility.Install(c); 
 
     InternetStackHelper internet;
     internet.Install(c);

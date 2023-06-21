@@ -121,8 +121,8 @@ main(int argc, char* argv[])
     apps.Start(Seconds(2.0));
     apps.Stop(Seconds(10.0));
 
+
 #if 0
-//
 // Users may find it convenient to initialize echo packets with actual data;
 // the below lines suggest how to do this
 //
