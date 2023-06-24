@@ -1,0 +1,42 @@
+{
+    "nodes": {
+        "total": 100,
+        "participants_per_round": 20,
+        "agregators_per_round":10,
+        "label_distribution": "uniform",
+        "do_test": true,
+        "test_partition": 0.2,
+        "selection": "score"
+    },
+    "data": {
+        "loading": "static",
+        "partition": {
+            "size": 600,
+            "range": [
+                50,
+                200
+            ]
+        }
+    },
+    "federated_learning": {
+        "rounds": 10,
+        "target_accuracy": 0.90,
+        "epochs": 5,
+        "batch_size": 10,
+        "budget":2000
+    },
+    "model": {
+        "name": "MNIST"
+    },
+    "paths": {
+        "data": "./data",
+        "model": "./models",
+        "reports": "reports.pkl",
+        "plot": "./plots"
+    },
+    "link_speed": {
+        "min": 5000,
+        "max": 5000,
+        "std": 0
+    }
+}
