@@ -3,7 +3,7 @@
         "total": 100,
         "participants_per_round": 20,
         "agregators_per_round":10,
-        "label_distribution": "uniform",
+        "label_distribution": "normal",
         "do_test": true,
         "test_partition": 0.2,
         "selection": "score"
@@ -11,7 +11,7 @@
     "data": {
         "loading": "static",
         "partition": {
-            "size": 600,
+            "size": 100,
             "range": [
                 50,
                 200

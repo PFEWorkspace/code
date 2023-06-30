@@ -25,9 +25,9 @@ main(int argc, char* argv[])
     int numFlNodes= 100;
     const uint16_t Port = 8833;
     double xPosMin = 0;
-    double xPosMax = 300;
+    double xPosMax = 30;
     double yPosMin = 0;
-    double yPosMax = 300;
+    double yPosMax = 30;
     double zPosMin = 0;
     double zPosMax = 0;
     std::string animFile = "FL-animation.xml";
@@ -43,7 +43,7 @@ main(int argc, char* argv[])
     // we'll replace this one node acting as a server with the BC nodes
     NodeContainer initiator;
     initiator.Create(1);
-
+    nodes.Add(initiator);
     NS_LOG_INFO("Installing WiFi and Internet stack.");
     WifiHelper wifi;
     WifiMacHelper wifiMac;
@@ -52,17 +52,17 @@ main(int argc, char* argv[])
     YansWifiChannelHelper wifiChannel = YansWifiChannelHelper::Default();
     wifiPhy.SetChannel(wifiChannel.Create());
     NetDeviceContainer nodeDevices = wifi.Install(wifiPhy, wifiMac, nodes);
-    NetDeviceContainer initiatorDevice = wifi.Install(wifiPhy, wifiMac, initiator);
+    // NetDeviceContainer initiatorDevice = wifi.Install(wifiPhy, wifiMac, initiator);
     
     InternetStackHelper internet;
     internet.Install(nodes);
-    internet.Install(initiator);
+    // internet.Install(initiator);
     Ipv4AddressHelper ipAddrs;
     ipAddrs.SetBase("192.168.0.0", "255.255.0.0");
     Ipv4InterfaceContainer nodesIpIfaces = ipAddrs.Assign(nodeDevices);
-    ipAddrs.NewAddress();
-    Ipv4InterfaceContainer initiatorIpIfaces = ipAddrs.Assign(initiatorDevice);
-    Ipv4Address initiatorAddr = initiatorIpIfaces.GetAddress(0);
+    // ipAddrs.NewAddress();
+    // Ipv4InterfaceContainer initiatorIpIfaces = ipAddrs.Assign(initiatorDevice);
+    // Ipv4Address initiatorAddr = initiatorIpIfaces.GetAddress(0);
 
   
     //--------------------------------------------
@@ -87,25 +87,38 @@ main(int argc, char* argv[])
     mobility.SetPositionAllocator (positionAlloc);
     mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
     mobility.Install (nodes);
-    mobility.Install (initiator);
+    // mobility.Install (initiator);
 
+    
      //--------------------------------------------
     //-- Create a custom traffic source and sink
     //--------------------------------------------
     NS_LOG_INFO("installing apps.");
-    Ptr<Node> appSource = initiator.Get(0);
-    Ptr<Initiator> flInitTask = CreateObject<Initiator>();
-    appSource->AddApplication(flInitTask);
     
-
+    Ptr<Node> receiveNode;
+    Ptr<Receiver> receive ;
+    for (uint32_t i = 1; i < nodes.GetN()-1 ; ++i) {
+      receiveNode = nodes.Get(i);
+      receive = CreateObject<Receiver>();
+      receiveNode->AddApplication(receive);
+      receive->SetStartTime(Seconds(0));
+      receive->SetStopTime(Seconds(20));
+    }
+      
+     
     // Ptr<Node> appSink = NodeList::GetNode(1);
     // Ptr<Receiver> receiver = CreateObject<Receiver>();
     // appSink->AddApplication(receiver);
-    // receiver->SetStartTime(Seconds(0));
+     
 
-    // Config::Set("/NodeList/*/ApplicationList/*/$Sender/Destination",
-    //             Ipv4AddressValue("192.168.0.2"));
-
+    Ptr<Node> appSource = nodes.Get(0);
+    Ptr<Initiator> flInitTask = CreateObject<Initiator>();
+    appSource->AddApplication(flInitTask);
+    flInitTask->SetStartTime(Seconds(1));
+    
+    Config::Set("/NodeList/*/ApplicationList/*/$Initiator/Destination",
+                Ipv4AddressValue("192.168.255.255"));
+                
      // Create the animation object and configure for specified output
     AnimationInterface anim(animFile);
 
