@@ -33,6 +33,7 @@ build_lib(
     model/bitcoin-selfish-miner.cc
     model/bitcoin-simple-attacker.cc
     model/bitcoin.cc
+    model/FL-task-initiator.cc
   HEADER_FILES
     helper/bulk-send-helper.h
     helper/on-off-helper.h
@@ -66,6 +67,7 @@ build_lib(
     model/bitcoin-selfish-miner.h
     model/bitcoin-simple-attacker.h
     model/bitcoin.h
+    model/FL-task-initiator.h
   LIBRARIES_TO_LINK ${libinternet}
                     ${libstats}
   TEST_SOURCES
