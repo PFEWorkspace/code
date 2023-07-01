@@ -17,7 +17,11 @@
 
 namespace ns3{
 
-
+enum Task{
+  TRAIN,
+  AGREGATE,
+  EVALUATE
+};
 
 class FLNode : public Application
 {
@@ -31,6 +35,27 @@ class FLNode : public Application
     FLNode();
     ~FLNode() override;
 
+    
+  void SetPort(uint32_t port);
+  uint32_t GetPort() const;
+
+  void SetDatasetSize(uint32_t size);
+  uint32_t GetDatasetSize() const;
+
+  void SetBeta(double beta);
+  double GetBeta() const;
+
+  void SetFrequency(double frequency);
+  double GetFrequency() const;
+
+  void SetTransmissionRate(double rate);
+  double GetTransmissionRate() const;
+
+  void SetAvailability(bool available);
+  bool IsAvailable() const;
+
+  void SetHonesty(double honesty);
+  double GetHonesty() const;
 
   protected:
     void DoDispose() override;
@@ -45,8 +70,14 @@ class FLNode : public Application
     void SendModel();
 
 
-    Ptr<Socket> m_socket; //!< Receiving socket
-    uint32_t m_port{8833};   //!< Listening port
+    Ptr<Socket> m_socket; // Receiving socket
+    uint32_t m_port{8833};   // Listening port
+    uint32_t dataset_size;
+    double beta; // necessary CPU cycle to train one data unit
+    double freq ; // the frequency of the CPU of the node
+    double trans_rate; // transmission rate
+    bool availability ; // true if node available to participate, else false
+    double honesty; // the honesty score of the node
 
   
 };
