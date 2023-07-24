@@ -18,7 +18,7 @@ Initiator::GetTypeId()
                                           MakeIpv4AddressChecker())
                             .AddAttribute("Source",
                                           "Source host address.",
-                                          Ipv4AddressValue("255.255.255.255"),
+                                          Ipv4AddressValue(),
                                           MakeIpv4AddressAccessor(&Initiator::m_srcAddr),
                                           MakeIpv4AddressChecker())              
                             .AddAttribute("Port",
@@ -67,7 +67,9 @@ Initiator::StartApplication()
    rapidjson::Document Info; 
    rapidjson::Value value;
    Info.SetObject();
-   
+   enum CommunicationType msg = NEWTASK;
+   value = msg;
+   Info.AddMember("message_type", value, Info.GetAllocator());
    if(ParseJSON(config,d)){
         if (d.HasMember("federated_learning") && d["federated_learning"].IsObject()) {
             const rapidjson::Value& FL_config = d["federated_learning"];
@@ -107,7 +109,6 @@ Initiator::StartApplication()
                 Info.AddMember("model",value,Info.GetAllocator());
             }
         }
-        //    NS_LOG_INFO(m_budget << " " << m_model <<" " << m_batchSize <<" " << m_rounds<< " " << m_epochs<< " " << m_targetAccuracy); 
 
         // Stringify the DOM
         rapidjson::StringBuffer packetInfo;
@@ -125,7 +126,6 @@ Initiator::StartApplication()
         m_socket->Connect(InetSocketAddress(m_destAddr, m_destPort));
         int result = m_socket->Send(reinterpret_cast<const uint8_t*>(packetInfo.GetString()),packetInfo.GetSize(),0);
         NS_LOG_INFO(result);
-        // m_sendEvent = Simulator::ScheduleNow(&Initiator::SendPacket, this);
    }
 
    
@@ -214,10 +214,9 @@ Receiver::StartApplication()
 {
     NS_LOG_FUNCTION_NOARGS();
 
-    NS_LOG_INFO("receiving app launched");
+    
     if (!m_socket)
     {
-        NS_LOG_INFO("if");
         Ptr<SocketFactory> socketFactory =
             GetNode()->GetObject<SocketFactory>(UdpSocketFactory::GetTypeId());
         m_socket = socketFactory->CreateSocket();
@@ -243,7 +242,7 @@ Receiver::StopApplication()
 void
 Receiver::Receive(Ptr<Socket> socket)
 {
-    NS_LOG_INFO("receiving launched");
+    
 
     Ptr<Packet> packet;
     Address from;
@@ -251,7 +250,7 @@ Receiver::Receive(Ptr<Socket> socket)
     while ((packet = socket->RecvFrom(from)))
     {
         char *packetInfo = new char[packet->GetSize () + 1];
-        NS_LOG_INFO("I'm receiving!");
+       
         if (InetSocketAddress::IsMatchingType(from))
         {
             packet->CopyData (reinterpret_cast<uint8_t*>(packetInfo), packet->GetSize ());

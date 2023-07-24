@@ -1,5 +1,5 @@
 #include  "FL-node.h"
-
+#include "FL-task-initiator.h"
 namespace ns3{
     
 NS_LOG_COMPONENT_DEFINE("FLNodeApp");
@@ -12,6 +12,11 @@ TypeId FLNode::GetTypeId() {
                           .AddAttribute("Port", "Listening port", UintegerValue(8833),
                                         MakeUintegerAccessor(&FLNode::m_port),
                                         MakeUintegerChecker<uint32_t>())
+                          .AddAttribute("Destination",
+                                          "Target host address.",
+                                          Ipv4AddressValue(),
+                                          MakeIpv4AddressAccessor(&FLNode::m_destAddr),
+                                          MakeIpv4AddressChecker())
                           .AddAttribute("DatasetSize", "Size of the dataset", UintegerValue(0),
                                         MakeUintegerAccessor(&FLNode::dataset_size),
                                         MakeUintegerChecker<uint32_t>())
@@ -47,6 +52,14 @@ void FLNode::SetPort(uint32_t port) {
 
 uint32_t FLNode::GetPort() const {
   return m_port;
+}
+
+void FLNode::SetDestAddress(Ipv4Address address) {
+  m_destAddr = address;
+}
+
+Ipv4Address FLNode::GetDestAddress() const {
+  return m_destAddr;
 }
 
 void FLNode::SetDatasetSize(uint32_t size) {
@@ -125,16 +138,84 @@ void FLNode::StopApplication() {
 }
 
 void FLNode::Receive(Ptr<Socket> socket) {
-   
+    
+
+    Ptr<Packet> packet;
+    Address from;
+  
+    while ((packet = socket->RecvFrom(from)))
+    {
+        char *packetInfo = new char[packet->GetSize () + 1];
+       
+        if (InetSocketAddress::IsMatchingType(from))
+        {
+            packet->CopyData (reinterpret_cast<uint8_t*>(packetInfo), packet->GetSize ());
+            // NS_LOG_INFO("I'm "<< GetNode()->GetId() << "received " << packet->GetSize() << " bytes from "
+            //                         << InetSocketAddress::ConvertFrom(from).GetIpv4()
+            //                         << " content: "<< packetInfo) ;
+            std::string data = packetInfo ; 
+            rapidjson::Document d;
+           
+            if(ParseJSON(data,d)){
+                if(d.HasMember("message_type") && d["message_type"].IsInt()){
+                    switch (d["message_type"].GetInt())
+                    {
+                    case NEWTASK: 
+                        /* 
+                            newtask is the message sent by the initializer to declare a new task
+                            as a response the FL nodes will send their condidature to the blockchain
+                         */
+                        Condidater();
+                        break;
+                    
+                    default:
+                        break;
+                    }
+                }
+            }
+        }
+
+    }
 }
 
-void FLNode::Send(rapidjson::Document d, Address &outgoingAddr) {
+void FLNode::Send(rapidjson::Document &d) {
  
-   
+ if (!m_socket){
+    Ptr<SocketFactory> socketFactory = GetNode()->GetObject<SocketFactory>(UdpSocketFactory::GetTypeId());
+    m_socket = socketFactory->CreateSocket();
+    m_socket->Bind();
+ }
+    rapidjson::StringBuffer packetInfo;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(packetInfo);
+    d.Accept(writer);
+
+    Ptr<Packet> packet = Create<Packet>(reinterpret_cast<const uint8_t*>(packetInfo.GetString()),packetInfo.GetSize());
+    m_socket->SendTo(packet,0,InetSocketAddress(m_destAddr, m_port));
 }
 
-void FLNode::Condidater(std::string FLTaskId) {
-  // Condidater implementation
+void FLNode::Condidater() {
+ rapidjson::Document d;
+ rapidjson::Value value;
+ d.SetObject();
+ enum CommunicationType msg = CONDIDATURE;
+ value = msg;
+ d.AddMember("message_type", value, d.GetAllocator());
+ value = wantedTask ;
+ d.AddMember("task", value, d.GetAllocator());
+ value = dataset_size ; 
+ d.AddMember("data_size", value, d.GetAllocator());
+ value = beta ;
+ d.AddMember("beta", value, d.GetAllocator());
+  value = freq ;
+ d.AddMember("frequence", value, d.GetAllocator());
+  value = trans_rate ;
+ d.AddMember("transmission_rate", value, d.GetAllocator());
+  value = availability ;
+ d.AddMember("availability", value, d.GetAllocator());
+  value = honesty ;
+ d.AddMember("honesty", value, d.GetAllocator());
+
+ Send(d);
 }
 
 void FLNode::Train() {
@@ -144,4 +225,6 @@ void FLNode::Train() {
 void FLNode::SendModel() {
   // SendModel implementation
 }
+
+
 }

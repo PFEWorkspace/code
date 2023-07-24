@@ -13,8 +13,7 @@ AUTHORS
 .clang-format
 /utils
 
-/doc 
-/contrib 
+/doc  
 /cmake-cache
 /build-support
 /build

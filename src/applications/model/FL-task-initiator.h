@@ -6,6 +6,7 @@
 #include "ns3/address-utils.h"
 #include "ns3/inet-socket-address.h"
 
+
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -16,6 +17,14 @@
 #include "../../../rapidjson/stringbuffer.h"
 
 namespace ns3{
+
+enum CommunicationType {
+  NEWTASK,
+  CONDIDATURE,
+  MODEL,
+  LAUNCH,
+  //add the rest later
+};
 
 class Initiator : public Application
 {
