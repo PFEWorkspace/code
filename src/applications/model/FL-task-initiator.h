@@ -5,6 +5,7 @@
 #include "ns3/address.h"
 #include "ns3/address-utils.h"
 #include "ns3/inet-socket-address.h"
+#include "ns3/ai-helper.h"
 
 
 #include <iostream>

@@ -6,7 +6,8 @@
         "label_distribution": "normal",
         "do_test": true,
         "test_partition": 0.2,
-        "selection": "score"
+        "selection": "score",
+        "source": "generated_nodes.csv" 
     },
     "data": {
         "loading": "static",

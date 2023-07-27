@@ -19,8 +19,9 @@ int
 main(int argc, char* argv[])
 {
 
-  LogComponentEnable("TaskInitiatorApp",LOG_LEVEL_ALL);
-  LogComponentEnable("FLExperimentSimulation",LOG_LEVEL_ALL);
+  LogComponentEnable("TaskInitiatorApp",LOG_LEVEL_INFO);
+  LogComponentEnable("FLExperimentSimulation",LOG_LEVEL_INFO);
+  LogComponentEnable("AiHelper",LOG_LEVEL_INFO);
   Time::SetResolution(Time::NS);
   
     int numFlNodes= 100;
@@ -33,6 +34,9 @@ main(int argc, char* argv[])
     double zPosMax = 0;
     std::string animFile = "FL-animation.xml";
 
+    AiHelper ai = AiHelper();
+    MLModelRefrence m = ai.initializeFL("generated_nodes.csv");
+    NS_LOG_INFO("ml " << m.taskId);
    //--------------------------------------------
     //-- Create nodes and network stacks
     //--------------------------------------------

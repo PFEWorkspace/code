@@ -199,6 +199,7 @@ except KeyboardInterrupt:
     print('Ctrl C')
 finally:
     del exp
+    
 print('Finish')
 with open("log_" + str(delta), "a+") as f:
     f.write("\n")

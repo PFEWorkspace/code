@@ -78,13 +78,11 @@ class FLNode : public Application
     Ptr<Socket> m_socket; // Receiving socket
     uint32_t m_port{8833};   // Listening port
     Ipv4Address m_destAddr; // the destination address
-    enum Task givenTask; // the task that the node will be doing : training, evaluating or agregation
-    enum Task wantedTask; // the task the node wants to do, will be sent in the condidature
+    enum Task task; // the task that the node will be doing : training, evaluating or agregation   
     // characteristics
     uint32_t dataset_size;
-    double beta; // necessary CPU cycle to train one data unit
-    double freq ; // the frequency of the CPU of the node
-    double trans_rate; // transmission rate
+    double freq ; // the frequency of the CPU of the node, btw 50 and 300 MHz
+    double trans_rate; // transmission rate, with wifi the values are btw 150 Mbps and 1 Gbps : https://www.techtarget.com/iotagenda/feature/Everything-you-need-to-know-about-IoT-connectivity-options
     bool availability ; // true if node available to participate, else false
     double honesty; // the honesty score of the node
  

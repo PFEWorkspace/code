@@ -51,6 +51,7 @@
 build_lib(
   LIBNAME applications
   SOURCE_FILES
+    helper/ai-helper.cc
     helper/bulk-send-helper.cc
     helper/on-off-helper.cc
     helper/packet-sink-helper.cc
@@ -86,6 +87,7 @@ build_lib(
     model/FL-task-initiator.cc
     model/FL-node.cc
   HEADER_FILES
+    helper/ai-helper.h
     helper/bulk-send-helper.h
     helper/on-off-helper.h
     helper/packet-sink-helper.h
@@ -122,7 +124,7 @@ build_lib(
     model/FL-node.h
   LIBRARIES_TO_LINK ${libinternet}
                     ${libstats}
-                    # ${TORCH_LIBRARIES}
+                    ${libns3-ai}
   TEST_SOURCES
     test/three-gpp-http-client-server-test.cc
     test/bulk-send-application-test-suite.cc

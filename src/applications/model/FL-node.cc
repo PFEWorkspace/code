@@ -20,9 +20,6 @@ TypeId FLNode::GetTypeId() {
                           .AddAttribute("DatasetSize", "Size of the dataset", UintegerValue(0),
                                         MakeUintegerAccessor(&FLNode::dataset_size),
                                         MakeUintegerChecker<uint32_t>())
-                          .AddAttribute("Beta", "CPU cycle to train one data unit", DoubleValue(0.0),
-                                        MakeDoubleAccessor(&FLNode::beta),
-                                        MakeDoubleChecker<double>())
                           .AddAttribute("Frequency", "Frequency of the CPU", DoubleValue(0.0),
                                         MakeDoubleAccessor(&FLNode::freq),
                                         MakeDoubleChecker<double>())
@@ -70,13 +67,13 @@ uint32_t FLNode::GetDatasetSize() const {
   return dataset_size;
 }
 
-void FLNode::SetBeta(double beta) {
-  this->beta = beta;
-}
+// void FLNode::SetBeta(double beta) {
+//   this->beta = beta;
+// }
 
-double FLNode::GetBeta() const {
-  return beta;
-}
+// double FLNode::GetBeta() const {
+//   return beta;
+// }
 
 void FLNode::SetFrequency(double frequency) {
   freq = frequency;
@@ -200,12 +197,12 @@ void FLNode::Condidater() {
  enum CommunicationType msg = CONDIDATURE;
  value = msg;
  d.AddMember("message_type", value, d.GetAllocator());
- value = wantedTask ;
- d.AddMember("task", value, d.GetAllocator());
+//  value = wantedTask ;
+//  d.AddMember("task", value, d.GetAllocator());
  value = dataset_size ; 
  d.AddMember("data_size", value, d.GetAllocator());
- value = beta ;
- d.AddMember("beta", value, d.GetAllocator());
+//  value = beta ;
+//  d.AddMember("beta", value, d.GetAllocator());
   value = freq ;
  d.AddMember("frequence", value, d.GetAllocator());
   value = trans_rate ;
