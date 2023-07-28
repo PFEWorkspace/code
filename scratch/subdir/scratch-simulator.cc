@@ -5,7 +5,9 @@
 #include "ns3/applications-module.h"
 #include "ns3/wifi-module.h"
 #include "ns3/netanim-module.h"
-
+#include "ai-helper.h"
+#include "FL-node.h"
+#include "FL-task-initiator.h"
 
 #include <string>
 #include <ctime>

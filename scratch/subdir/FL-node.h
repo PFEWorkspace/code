@@ -1,4 +1,4 @@
-#include "ns3/application.h"
+#include "ns3/applications-module.h"
 #include"ns3/core-module.h"
 #include "ns3/network-module.h"
 #include "ns3/internet-module.h"
@@ -11,10 +11,10 @@
 #include <fstream>
 #include <string>
 
-#include "../../../rapidjson/document.h"
-#include "../../../rapidjson/error/en.h"
-#include "../../../rapidjson/writer.h"
-#include "../../../rapidjson/stringbuffer.h"
+#include "../../rapidjson/document.h"
+#include "../../rapidjson/error/en.h"
+#include "../../rapidjson/writer.h"
+#include "../../rapidjson/stringbuffer.h"
 
 namespace ns3{
 

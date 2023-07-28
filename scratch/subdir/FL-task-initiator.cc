@@ -266,9 +266,9 @@ Receiver::Receive(Ptr<Socket> socket)
         if (InetSocketAddress::IsMatchingType(from))
         {
             packet->CopyData (reinterpret_cast<uint8_t*>(packetInfo), packet->GetSize ());
-            // NS_LOG_INFO("I'm "<< GetNode()->GetId() << "received " << packet->GetSize() << " bytes from "
-            //                         << InetSocketAddress::ConvertFrom(from).GetIpv4()
-            //                         << " content: "<< packetInfo) ;
+            NS_LOG_INFO("I'm "<< GetNode()->GetId() << "received " << packet->GetSize() << " bytes from "
+                                    << InetSocketAddress::ConvertFrom(from).GetIpv4()
+                                    << " content: "<< packetInfo) ;
         }
 
     }

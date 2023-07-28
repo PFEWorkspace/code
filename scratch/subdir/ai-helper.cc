@@ -14,13 +14,13 @@
 namespace ns3{
 
 NS_LOG_COMPONENT_DEFINE ("AiHelper");
-
-GlobalValue gNS3AIRLUID (
-  "NS3AIRLUID", 
-  "UID of Ns3AIRL",
-  UintegerValue (2333),
-  MakeUintegerChecker<uint16_t> ()
-);
+  const uint16_t m_ns3ai_id = 2333;
+// GlobalValue gNS3AIRLUID (
+//   "NS3AIRLUID", 
+//   "UID of Ns3AIRL",
+//   UintegerValue (2333),
+//   MakeUintegerChecker<uint16_t> ()
+// );
 
 // TypeId AiHelper::GetTypeId() {
 //   static TypeId tid = TypeId("FLNode")
@@ -28,25 +28,25 @@ GlobalValue gNS3AIRLUID (
 //     return tid ;                      
 // }
                         
-AiHelper::AiHelper()
+AiHelper::AiHelper(): Ns3AIRL<AiHelperEnv, AiHelperAct> (m_ns3ai_id)
 {
     NS_LOG_FUNCTION_NOARGS();
 
-    UintegerValue uv;
-    gNS3AIRLUID.GetValue (uv);
-    m_ns3ai_id = uv.Get ();
-    NS_LOG_UNCOND("m_ns3ai_id " << m_ns3ai_id);
+    // UintegerValue uv;
+    // gNS3AIRLUID.GetValue (uv);
+    // m_ns3ai_id = uv.Get ();
+    // NS_LOG_UNCOND("m_ns3ai_id " << m_ns3ai_id);
 
-    m_ns3ai_mod = new Ns3AIRL<AiHelperEnv, AiHelperAct> (m_ns3ai_id);
-    m_ns3ai_mod->SetCond (2, 0);
+    // m_ns3ai_mod = new Ns3AIRL<AiHelperEnv, AiHelperAct> (m_ns3ai_id);
+    SetCond (2, 0);
     
     NS_LOG_FUNCTION_NOARGS();
 }
 
-AiHelper::~AiHelper(){
-    m_ns3ai_mod->SetFinish();
-    NS_LOG_FUNCTION_NOARGS();
-}
+// AiHelper::~AiHelper(){
+//     SetFinish();
+//     NS_LOG_FUNCTION_NOARGS();
+// }
 
 FLNodeStruct*
 AiHelper::GetNodesFromFile(const std::string& filename,  int& numNodes){
@@ -123,23 +123,20 @@ AiHelper::initializeFL(const std::string& filename){
     FLNodeStruct* nodes = GetNodesFromFile(filename, numNodes);   
     NS_LOG_INFO("the number of initialized nodes is " << numNodes);
     //set input
-    auto env = m_ns3ai_mod->EnvSetterCond();
+    auto env = EnvSetterCond();
     env->type = 0x01; 
     env->numNodes = numNodes ;
     for(int i=0; i<numNodes; i++){env->nodes[i] = nodes[i];}
-    m_ns3ai_mod->SetCompleted();
-     NS_LOG_INFO("Ver:" << (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id));
-    
-    
-    while ((int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id) % 2 != 0);
-    //get output
-    auto act = m_ns3ai_mod->ActionGetterCond();
-    int8_t numlocal = act->numLocalModels;
-    NS_LOG_INFO("number " << numlocal );
-    MLModelRefrence initialModel =  GetModelReference(act->model);
-    m_ns3ai_mod->GetCompleted();
-    NS_LOG_INFO("Ver:" << (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id));
+    SetCompleted();
+    // NS_LOG_INFO("Version: " << (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id)); // to get the momory version
 
+    //get output
+    auto act = ActionGetter();
+    // NS_LOG_INFO("Version: " << (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id));
+    MLModelRefrence initialModel = GetModelReference(act->model);
+    GetCompleted();
+    // NS_LOG_INFO("modelid"<< initialModel.modelId);
+   
     return initialModel ;
 }
 }

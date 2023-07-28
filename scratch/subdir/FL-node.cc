@@ -136,7 +136,6 @@ void FLNode::StopApplication() {
 
 void FLNode::Receive(Ptr<Socket> socket) {
     
-
     Ptr<Packet> packet;
     Address from;
   

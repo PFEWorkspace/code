@@ -51,7 +51,7 @@
 build_lib(
   LIBNAME applications
   SOURCE_FILES
-    helper/ai-helper.cc
+    # helper/ai-helper.cc
     helper/bulk-send-helper.cc
     helper/on-off-helper.cc
     helper/packet-sink-helper.cc
@@ -84,10 +84,10 @@ build_lib(
     model/bitcoin-selfish-miner.cc
     model/bitcoin-simple-attacker.cc
     model/bitcoin.cc
-    model/FL-task-initiator.cc
-    model/FL-node.cc
+    # model/FL-task-initiator.cc
+    # model/FL-node.cc
   HEADER_FILES
-    helper/ai-helper.h
+    # helper/ai-helper.h
     helper/bulk-send-helper.h
     helper/on-off-helper.h
     helper/packet-sink-helper.h
@@ -120,11 +120,10 @@ build_lib(
     model/bitcoin-selfish-miner.h
     model/bitcoin-simple-attacker.h
     model/bitcoin.h
-    model/FL-task-initiator.h
-    model/FL-node.h
+    # model/FL-task-initiator.h
+    # model/FL-node.h
   LIBRARIES_TO_LINK ${libinternet}
-                    ${libstats}
-                    ${libns3-ai}
+                    ${libstats}                   
   TEST_SOURCES
     test/three-gpp-http-client-server-test.cc
     test/bulk-send-application-test-suite.cc
