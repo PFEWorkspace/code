@@ -25,3 +25,4 @@ AUTHORS
 doc*
 scratch/.gitattributes
 !document.h
+__pycache__/
