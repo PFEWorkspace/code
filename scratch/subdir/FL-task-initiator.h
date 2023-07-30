@@ -39,6 +39,55 @@ class Initiator : public Application
     Initiator();
     ~Initiator() override;
 
+    // Setters
+    void setRounds(int rounds) {
+        m_rounds = rounds;
+    }
+
+    void setTargetAcc(double targetAcc) {
+        m_targetAcc = targetAcc;
+    }
+
+    void setNumNodes(int numNodes) {
+        m_numNodes = numNodes;
+    }
+
+    void setNumParticipants(int numParticipants) {
+        m_numParticipants = numParticipants;
+    }
+
+    void setNumAggregators(int numAggregators) {
+        m_numAggregators = numAggregators;
+    }
+
+    void setNodesInfo(FLNodeStruct* nodesInfo, int numNodes);
+
+    // Getters
+    int getRounds() const {
+        return m_rounds;
+    }
+
+    double getTargetAcc() const {
+        return m_targetAcc;
+    }
+
+    int getNumNodes() const {
+        return m_numNodes;
+    }
+
+    int getNumParticipants() const {
+        return m_numParticipants;
+    }
+
+    int getNumAggregators() const {
+        return m_numAggregators;
+    }
+
+    FLNodeStruct* getNodesInfo() {
+        return m_nodesInfo;
+    }
+
+
   protected:
     void DoDispose() override;
 
@@ -59,13 +108,14 @@ class Initiator : public Application
     Ptr<Socket> m_socket; //!< Sending socket
     EventId m_sendEvent;  //!< Send packet event
     
-    // data related to the FL task
-    uint32_t m_budget; //!< le budget pour la tache FL
-    std::string m_model{"MNIST"}; //!< the model name
-    int m_rounds{0};
-    double m_targetAccuracy;
-    int m_epochs{5};
-    int m_batchSize{10};
+  
+    int m_rounds;
+    double m_targetAcc;
+    int m_numNodes;
+    int m_numParticipants;
+    int m_numAggregators;
+    FLNodeStruct m_nodesInfo[numMaxNodes];
+
 
 };
 std::string ReadFileToString(const std::string& filePath);
@@ -103,6 +153,7 @@ class Receiver : public Application
 
     Ptr<Socket> m_socket; //!< Receiving socket
     uint32_t m_port{8833};   //!< Listening port
+    
 
   
 };

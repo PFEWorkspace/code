@@ -17,6 +17,9 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("FLExperimentSimulation");
 
+FLNodeStruct* GetNodesFromFile(const std::string& filename,  int& numNodes);
+
+
 int
 main(int argc, char* argv[])
 {
@@ -27,6 +30,11 @@ main(int argc, char* argv[])
   Time::SetResolution(Time::NS);
   
     int numFlNodes= 100;
+    int numParticipants=50;
+    int numAggregators=20;
+    std::string nodes_source= "";
+    int flrounds = 10;
+    double targetAccuracy = 0.0;
     const uint16_t Port = 8833;
     double xPosMin = 0;
     double xPosMax = 30;
@@ -34,14 +42,32 @@ main(int argc, char* argv[])
     double yPosMax = 30;
     double zPosMin = 0;
     double zPosMax = 0;
+
+
     std::string animFile = "FL-animation.xml";
 
-    AiHelper ai = AiHelper();
-    MLModelRefrence m = ai.initializeFL("generated_nodes.csv");
-    NS_LOG_INFO("ml " << m.taskId);
+    //---------------------------------------------
+    //----- Command line and getting parameters
+    //----------------------------------------------
+    CommandLine cmd;
+    cmd.AddValue ("numNodes","the total number of nodes", numFlNodes);
+    cmd.AddValue ("participantsPerRound","the number of participants per round",numParticipants);
+    cmd.AddValue ("aggregatorsPerRound","the number of aggregators per pround",numAggregators);
+    cmd.AddValue ("source","the path and name of the file to get initial data about nodes", nodes_source);
+    cmd.AddValue ("flRounds", "the number of rounds per FL task", flrounds);
+    cmd.AddValue ("targetAccuracy", "the target accuracy for the FL task",targetAccuracy);
+    cmd.Parse (argc, argv);
+
+
+   
    //--------------------------------------------
     //-- Create nodes and network stacks
     //--------------------------------------------
+
+    //getting nodes data from file 
+
+    FLNodeStruct* nodesInfo = GetNodesFromFile(nodes_source, numFlNodes);   
+
     NS_LOG_INFO("Creating nodes.");
     NodeContainer nodes;
     nodes.Create(numFlNodes);
@@ -122,7 +148,12 @@ main(int argc, char* argv[])
     Ptr<Initiator> flInitTask = CreateObject<Initiator>();
     appSource->AddApplication(flInitTask);
     flInitTask->SetStartTime(Seconds(1));
-    
+    flInitTask->setNumNodes(numFlNodes);
+    flInitTask->setRounds(flrounds);
+    flInitTask->setTargetAcc(targetAccuracy);
+    flInitTask->setNumParticipants(numParticipants);
+    flInitTask->setNumAggregators(numAggregators);
+    flInitTask->setNodesInfo(nodesInfo, numFlNodes);
     Config::Set("/NodeList/*/ApplicationList/*/$Initiator/Destination",
                 Ipv4AddressValue("192.168.255.255"));
                 
@@ -137,4 +168,64 @@ main(int argc, char* argv[])
     Simulator::Destroy();
 
   return 0 ;
+}
+
+
+
+FLNodeStruct* GetNodesFromFile(const std::string& filename,  int& numNodes){
+
+    FLNodeStruct* nodeList = nullptr;
+    std::ifstream file(filename);
+
+    if (!file.is_open()) {
+        std::cerr << "Error opening file: " << filename << std::endl;
+        return nullptr;
+    }
+
+    // Ignore the header line
+    std::string line;
+    std::getline(file, line);
+
+    // Read data line by line and create FLNodeStruct nodes
+    int count = 0;
+      // std::cerr << "file opened "<<numNodes << std::endl;
+    while (std::getline(file, line) && count < numNodes) {
+        std::stringstream ss(line);
+      
+        FLNodeStruct node;
+        std::string field;
+
+        std::getline(ss, field, ','); // Read the ID field
+        node.nodeId = std::stoi(field);
+
+        std::getline(ss, field, ','); // Read the Availability field
+        node.availability = (field == "true");
+
+        std::getline(ss, field, ','); // Read the Honesty field
+        node.honesty = std::stod(field);
+
+        std::getline(ss, field, ','); // Read the Dataset Size field
+        node.datasetSize = std::stoi(field);
+
+        std::getline(ss, field, ','); // Read the Frequency field
+        node.freq = std::stoi(field);
+
+        std::getline(ss, field, ','); // Read the Transmission Rate field
+        node.transRate = std::stoi(field);
+
+        std::getline(ss, field, ','); // Read the Task field
+        node.task = std::stoi(field);
+
+        std::getline(ss, field); // Read the Dropout field
+        node.dropout = (field == "true");
+
+        // Resize the array for each new node
+        nodeList = (FLNodeStruct*)realloc(nodeList, (count + 1) * sizeof(FLNodeStruct));
+        nodeList[count++] = node;
+    }
+
+    file.close();
+    // std::cerr << "file closed "<<count << std::endl;
+    numNodes = count;
+    return nodeList;
 }

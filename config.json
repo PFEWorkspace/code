@@ -1,10 +1,8 @@
 {
     "nodes": {
         "total": 100,
-        "participants_per_round": 20,
-        "agregators_per_round":10,
-        "label_distribution": "normal",
-        "do_test": true,
+        "participants_per_round": 40,
+        "aggregators_per_round":10,
         "test_partition": 0.2,
         "selection": "score",
         "source": "generated_nodes.csv" 
@@ -21,13 +19,13 @@
     },
     "federated_learning": {
         "rounds": 10,
-        "target_accuracy": 0.90,
+        "target_accuracy": 0.999,
         "epochs": 5,
-        "batch_size": 10,
-        "budget":2000
+        "batch_size": 10
     },
     "model": {
-        "name": "MNIST"
+        "name": "MNIST",
+        "size": 1600
     },
     "paths": {
         "data": "./data",
@@ -35,9 +33,5 @@
         "reports": "reports.pkl",
         "plot": "./plots"
     },
-    "link_speed": {
-        "min": 5000,
-        "max": 5000,
-        "std": 0
-    }
+     "plot_interval": 1
 }

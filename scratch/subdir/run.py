@@ -1,10 +1,23 @@
 import ctypes
+import argparse
+import logging
 from py_interface import *
+
+import config
 
 
 numMaxNodes = 100 
 numMaxTrainers = 50  
 numMaxAggregators = 20
+
+# Set up parser
+parser = argparse.ArgumentParser()
+parser.add_argument('-c', '--config', type=str, default='../../config.json',
+                    help='Federated learning configuration file.')
+
+
+args = parser.parse_args()
+
 
 class MLModel(ctypes.Structure):
     _pack_ = 1  # Pack the structure to match the C++ layout
@@ -77,23 +90,35 @@ class AiHelperContainer:
 
     def do(self, env:AiHelperEnv, act:AiHelperAct) -> AiHelperAct:
         if env.type == 0x01: # initialization of clients and initial model
-            m = MLModel(modelId=1, nodeId=-1, taskId=1, round=0)
+            print("init fl task")
+            m = MLModel(modelId=123, nodeId=0, taskId=1, round=0)
             act.model = m
             # create the fl nodes and distribute data 
         return act
 
 if __name__ == '__main__':
-    ns3Settings = {};
-    mempool_key = 1234
-    mem_size = 2048 * 10
-    exp = Experiment(mempool_key, mem_size, 'scratch-simulator', '../../', using_waf=False)
+
+    # Read configuration file
+    fl_config = config.Config(args.config)
+
+    ns3Settings = {
+        'numNodes' : fl_config.nodes.total,
+        'participantsPerRound' : fl_config.nodes.participants_per_round,
+        'aggregatorsPerRound' : fl_config.nodes.aggregators_per_round,
+        'source' : fl_config.nodes.source,
+        'flRounds' : fl_config.fl.rounds,
+        'targetAccuracy' : fl_config.fl.target_accuracy
+    };
+
+    mempool_key = 1432
+    mem_size = 1024 * 2 * 2 * 2
+    exp = Experiment(mempool_key, mem_size, 'main', '../../', using_waf=False)
     exp.reset()
     try:
         memblock_key = 2333
         container = AiHelperContainer(memblock_key)
 
         pro = exp.run(setting=ns3Settings, show_output= True)
-        print ("run scratch simulator with these settings ", ns3Settings)
         while not container.rl.isFinish():
             with container.rl as data:
                 if data == None:

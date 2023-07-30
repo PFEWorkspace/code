@@ -73,12 +73,12 @@ const int numMaxAggregators = 20;
         // static TypeId GetTypeId(void);
         AiHelper();
         
-        MLModelRefrence initializeFL(const std::string& filename);
+        MLModelRefrence initializeFL(FLNodeStruct *nodes, int& numNodes);
 
 
         private:
         
-        FLNodeStruct* GetNodesFromFile(const std::string& filename,  int& numNodes);
+        // FLNodeStruct* GetNodesFromFile(const std::string& filename,  int& numNodes);
         MLModelRefrence GetModelReference(MLModel model);
       
         // Ns3AIRL<AiHelperEnv, AiHelperAct> * m_ns3ai_mod;        
