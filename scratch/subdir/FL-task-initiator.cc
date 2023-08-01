@@ -102,8 +102,8 @@ Initiator::StartApplication()
     m_socket = socketFactory->CreateSocket();
     m_socket->SetAllowBroadcast(true);
     m_socket->Bind();
-        // Ptr<Packet> packet = Create<Packet>(reinterpret_cast<const uint8_t*>(packetInfo.GetString()),packetInfo.GetSize());
-        // m_socket->SendTo(packet,0,InetSocketAddress(m_destAddr, m_destPort));
+    // Ptr<Packet> packet = Create<Packet>(reinterpret_cast<const uint8_t*>(packetInfo.GetString()),packetInfo.GetSize());
+    // m_socket->SendTo(packet,0,InetSocketAddress(m_destAddr, m_destPort));
     m_socket->Connect(InetSocketAddress(m_destAddr, m_destPort));
     int result = m_socket->Send(reinterpret_cast<const uint8_t*>(packetInfo.GetString()),packetInfo.GetSize(),0);
     NS_LOG_INFO("number of bytes sent " << result); 
@@ -227,7 +227,7 @@ Receiver::Receive(Ptr<Socket> socket)
   
     while ((packet = socket->RecvFrom(from)))
     {
-        char *packetInfo = new char[packet->GetSize () + 1];
+        char *packetInfo = new char[packet->GetSize () ];
        
         if (InetSocketAddress::IsMatchingType(from))
         {

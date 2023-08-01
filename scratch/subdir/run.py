@@ -93,7 +93,8 @@ class AiHelperContainer:
             print("init fl task")
             m = MLModel(modelId=123, nodeId=0, taskId=1, round=0)
             act.model = m
-            # create the fl nodes and distribute data 
+            # create the fl nodes and distribute data             
+
         return act
 
 if __name__ == '__main__':
@@ -107,7 +108,8 @@ if __name__ == '__main__':
         'aggregatorsPerRound' : fl_config.nodes.aggregators_per_round,
         'source' : fl_config.nodes.source,
         'flRounds' : fl_config.fl.rounds,
-        'targetAccuracy' : fl_config.fl.target_accuracy
+        'targetAccuracy' : fl_config.fl.target_accuracy,
+        'x' : fl_config.fl.x
     };
 
     mempool_key = 1432

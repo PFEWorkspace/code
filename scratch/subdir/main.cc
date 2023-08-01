@@ -5,6 +5,7 @@
 #include "ns3/applications-module.h"
 #include "ns3/wifi-module.h"
 #include "ns3/netanim-module.h"
+#include "ns3/ascii-file.h"
 #include "ai-helper.h"
 #include "FL-node.h"
 #include "FL-task-initiator.h"
@@ -19,6 +20,15 @@ NS_LOG_COMPONENT_DEFINE("FLExperimentSimulation");
 
 FLNodeStruct* GetNodesFromFile(const std::string& filename,  int& numNodes);
 
+void TracePacketTx (Ptr<const Packet> packet, const Address &source, const Address &destination)
+{
+    // Ici, vous pouvez enregistrer les informations de paquet dans un fichier de trace ASCII ou effectuer d'autres actions souhaitées
+    // Par exemple, pour enregistrer les informations de paquet dans un fichier de trace ASCII nommé "packet-trace.txt"
+    std::ofstream traceFile;
+    traceFile.open ("packet-trace.txt", std::ios::app);
+    traceFile << Simulator::Now ().GetSeconds () << " " << packet->GetSize () << std::endl;
+    traceFile.close ();
+}
 
 int
 main(int argc, char* argv[])
@@ -26,6 +36,7 @@ main(int argc, char* argv[])
 
   LogComponentEnable("TaskInitiatorApp",LOG_LEVEL_INFO);
   LogComponentEnable("FLExperimentSimulation",LOG_LEVEL_INFO);
+  LogComponentEnable("FLNodeApp", LOG_LEVEL_INFO);
   LogComponentEnable("AiHelper",LOG_LEVEL_INFO);
   Time::SetResolution(Time::NS);
   
@@ -34,6 +45,7 @@ main(int argc, char* argv[])
     int numAggregators=20;
     std::string nodes_source= "";
     int flrounds = 10;
+    int x =0 ;
     double targetAccuracy = 0.0;
     const uint16_t Port = 8833;
     double xPosMin = 0;
@@ -42,6 +54,10 @@ main(int argc, char* argv[])
     double yPosMax = 30;
     double zPosMin = 0;
     double zPosMax = 0;
+
+    bool tracing= false;
+
+
 
 
     std::string animFile = "FL-animation.xml";
@@ -56,6 +72,7 @@ main(int argc, char* argv[])
     cmd.AddValue ("source","the path and name of the file to get initial data about nodes", nodes_source);
     cmd.AddValue ("flRounds", "the number of rounds per FL task", flrounds);
     cmd.AddValue ("targetAccuracy", "the target accuracy for the FL task",targetAccuracy);
+    cmd.AddValue("x"," the number of models to aggregate at once",x);
     cmd.Parse (argc, argv);
 
 
@@ -70,13 +87,9 @@ main(int argc, char* argv[])
 
     NS_LOG_INFO("Creating nodes.");
     NodeContainer nodes;
-    nodes.Create(numFlNodes);
+    nodes.Create(numFlNodes + 1 ); // federated learning nodes + 1 for the initiator ( + the blockchain nodes to add later)
 
-    // TODO once the blockchain nodes application is changed to one more suitable to our sinario
-    // we'll replace this one node acting as a server with the BC nodes
-    NodeContainer initiator;
-    initiator.Create(1);
-    nodes.Add(initiator);
+    
     NS_LOG_INFO("Installing WiFi and Internet stack.");
     WifiHelper wifi;
     WifiMacHelper wifiMac;
@@ -115,12 +128,12 @@ main(int argc, char* argv[])
     zVal->SetAttribute("Min", DoubleValue(zPosMin));
     zVal->SetAttribute("Max", DoubleValue(zPosMax));
     positionAlloc->SetAttribute("Z", PointerValue(zVal));
+
     // Set the position allocator for the nodes
     MobilityHelper mobility;
     mobility.SetPositionAllocator (positionAlloc);
     mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
     mobility.Install (nodes);
-    // mobility.Install (initiator);
 
     
      //--------------------------------------------
@@ -128,26 +141,21 @@ main(int argc, char* argv[])
     //--------------------------------------------
     NS_LOG_INFO("installing apps.");
     
-    Ptr<Node> receiveNode;
-    Ptr<Receiver> receive ;
-    for (uint32_t i = 1; i < nodes.GetN()-1 ; ++i) {
-      receiveNode = nodes.Get(i);
-      receive = CreateObject<Receiver>();
-      receiveNode->AddApplication(receive);
-      receive->SetStartTime(Seconds(0));
-      receive->SetStopTime(Seconds(20));
+    Ptr<Node> flNode;
+    Ptr<FLNode> FL ;
+    for (uint32_t i = 1; i < nodes.GetN()-1; ++i) {
+      flNode = nodes.Get(i);
+      FL = CreateObject<FLNode>();
+      flNode->AddApplication(FL);
+      // FL->SetStartTime(Seconds(0));
+      //setting the caracteristics of the nodes
+      FL->Init(nodesInfo[i]);
     }
-      
-     
-    // Ptr<Node> appSink = NodeList::GetNode(1);
-    // Ptr<Receiver> receiver = CreateObject<Receiver>();
-    // appSink->AddApplication(receiver);
-     
-
-    Ptr<Node> appSource = nodes.Get(0);
+    
+    Ptr<Node> initiator = nodes.Get(0); 
     Ptr<Initiator> flInitTask = CreateObject<Initiator>();
-    appSource->AddApplication(flInitTask);
-    flInitTask->SetStartTime(Seconds(1));
+    initiator->AddApplication(flInitTask);
+    // flInitTask->SetStartTime(Seconds(1));
     flInitTask->setNumNodes(numFlNodes);
     flInitTask->setRounds(flrounds);
     flInitTask->setTargetAcc(targetAccuracy);
@@ -156,7 +164,29 @@ main(int argc, char* argv[])
     flInitTask->setNodesInfo(nodesInfo, numFlNodes);
     Config::Set("/NodeList/*/ApplicationList/*/$Initiator/Destination",
                 Ipv4AddressValue("192.168.255.255"));
-                
+    
+    //--------------------------------------------------------------
+    //---- tracing 
+    //-------------------------------------------------------------
+    if (tracing == true)
+    {
+       NS_LOG_INFO("tracing.");
+        // AsciiTraceHelper ascii;
+        // wifiPhy.EnableAsciiAll(ascii.CreateFileStream("main.tr"));
+      
+        // wifiPhy.EnablePcap("wifi-simple-adhoc-grid",nodes);
+        // Trace routing tables
+        // Ptr<OutputStreamWrapper> routingStream =
+        //     Create<OutputStreamWrapper>("wifi-simple-adhoc-grid.routes", std::ios::out);
+        // Ipv4RoutingHelper::PrintRoutingTableAllEvery(Seconds(2), routingStream);
+        // Ptr<OutputStreamWrapper> neighborStream =
+        //     Create<OutputStreamWrapper>("wifi-simple-adhoc-grid.neighbors", std::ios::out);
+        // Ipv4RoutingHelper::PrintNeighborCacheAllEvery(Seconds(2), neighborStream);
+
+        // To do-- enable an IP-level trace that shows forwarding events only
+    }
+
+
      // Create the animation object and configure for specified output
     AnimationInterface anim(animFile);
 

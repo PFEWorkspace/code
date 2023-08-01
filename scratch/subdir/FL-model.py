@@ -20,6 +20,22 @@ log_interval = 10
 rou = 1
 loss_thres = 0.001
 
+class FLManager(object):
+
+    def __init__(self, config):
+        self.config = config
+
+    def setUp(self):
+        logging.info('setting up nodes, datasets and initial model')    
+        
+        total_nodes = self.config.nodes.total
+        self.load_data()
+        self.load_model()
+        self.make_nodes(total_nodes)
+
+    def    
+
+
 
 class Generator():
     """Generator for MNIST dataset."""
@@ -63,7 +79,6 @@ class Generator():
         self.group()
 
         return self.trainset
-
 
 class Loader(object):
     """Load and pass IID data partitions."""

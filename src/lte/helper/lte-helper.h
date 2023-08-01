@@ -553,7 +553,7 @@ class LteHelper : public Object
      * Set the type of fading model to be used in both DL and UL.
      *
      * \param type type of fading model, must be a type name of any class
-     *             inReceivePacketheriting from ns3::SpectrumPropagationLossModel, for
+     *             inheriting from ns3::SpectrumPropagationLossModel, for
      *             example: "ns3::TraceFadingLossModel"
      */
     void SetFadingModel(std::string type);

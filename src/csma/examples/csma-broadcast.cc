@@ -108,17 +108,16 @@ main(int argc, char* argv[])
     // Configure ascii tracing of all enqueue, dequeue, and NetDevice receive
     // events on all devices.  Trace output will be sent to the file
     // "csma-one-subnet.tr"
-    // AsciiTraceHelper ascii;
-    // csma.EnableAsciiAll(ascii.CreateFileStream("csma-broadcast.tr"));
+    AsciiTraceHelper ascii;
+    csma.EnableAsciiAll(ascii.CreateFileStream("csma-broadcast.tr"));
 
     // Also configure some tcpdump traces; each interface will be traced
     // The output files will be named
     // csma-broadcast-<nodeId>-<interfaceId>.pcap
     // and can be read by the "tcpdump -tt -r" command
-    // csma.EnablePcapAll("csma-broadcast", false);
+    csma.EnablePcapAll("csma-broadcast", false);
 
-    
-
+    NS_LOG_INFO("Run Simulation.");
     Simulator::Run();
     Simulator::Destroy();
     NS_LOG_INFO("Done.");
