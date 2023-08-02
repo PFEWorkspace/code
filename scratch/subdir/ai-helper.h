@@ -8,6 +8,7 @@ namespace ns3 {
 const int numMaxNodes = 100;
 const int numMaxTrainers = 50;
 const int numMaxAggregators = 20;
+const int numMaxBCNodes = 30;
 
     struct MLModel{
         int modelId; // used to access the model on the file directly
@@ -45,6 +46,12 @@ const int numMaxAggregators = 20;
         bool dropout; // true if the node will be droping out of its task
     } Packed;
 
+    struct BCNodeStruct
+    {
+        int nodeId;
+        int task; 
+
+    } Packed;
     struct AiHelperEnv
     {
         int type; //1: initialisation, 2:selection, 3:train, 4:evaluation, 5:aggregation
@@ -74,8 +81,9 @@ const int numMaxAggregators = 20;
         AiHelper();
         
         MLModelRefrence initializeFL(FLNodeStruct *nodes, int& numNodes);
-
-
+        // ************************RIMA
+        void ExactSelection (FLNodeStruct *nodes, int& numNodes) ;
+        // ************************RIMA
         private:
         
         // FLNodeStruct* GetNodesFromFile(const std::string& filename,  int& numNodes);

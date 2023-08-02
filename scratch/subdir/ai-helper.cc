@@ -80,4 +80,22 @@ AiHelper::initializeFL(FLNodeStruct *nodes, int& numNodes){
    
     return initialModel ;
 }
+void AiHelper::ExactSelection (FLNodeStruct *nodes, int& numNodes) 
+{
+ NS_LOG_FUNCTION_NOARGS();
+    
+    //set input
+    auto env = EnvSetterCond();
+    env->type = 0x02; 
+    env->numNodes = numNodes ;
+    for(int i=0; i<numNodes; i++){env->nodes[i] = nodes[i];}
+    SetCompleted();
+    NS_LOG_INFO("Version: " << (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id)); // to get the momory version
+
+    //get output
+    auto act = ActionGetter();
+    NS_LOG_INFO("Version: " << (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id));
+    GetCompleted();
+   // NS_LOG_INFO("from python "<< initialModel.modelId );
+}
 }

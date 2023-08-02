@@ -94,6 +94,9 @@ class AiHelperContainer:
             m = MLModel(modelId=123, nodeId=0, taskId=1, round=0)
             act.model = m
             # create the fl nodes and distribute data 
+        if env.type == 0x02 : # exact methode selection
+            print('select trainers and aggregators')
+
         return act
 
 if __name__ == '__main__':
