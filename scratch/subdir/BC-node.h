@@ -1,3 +1,6 @@
+#ifndef BC_NODE_H
+#define BC_NODE_H
+
 #include "ns3/applications-module.h"
 #include"ns3/core-module.h"
 #include "ns3/network-module.h"
@@ -6,17 +9,7 @@
 #include "ns3/address-utils.h"
 #include "ns3/inet-socket-address.h"
 
-#include <iostream>
-#include <fstream>
-#include <string>
-
-#include "../../rapidjson/document.h"
-#include "../../rapidjson/error/en.h"
-#include "../../rapidjson/writer.h"
-#include "../../rapidjson/stringbuffer.h"
-
-#include "Blockchain.h"
-#include  "FL-node.h"
+#include "FL-node.h"
 #include "FL-task-initiator.h"
 
 namespace ns3{
@@ -60,8 +53,9 @@ class BCNode : public Application
     Ptr<Socket> m_socket; // Receiving socket
     uint32_t m_port{8833};   // Listening port
     Ipv4Address m_destAddr; // the destination address
-    Blockchain blockchain ; // to be able to acces the write transaction and info about the execution
- 
+
 };
 
 }
+
+#endif

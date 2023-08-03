@@ -4,12 +4,7 @@
 #include "ns3/log.h"
 #include "ns3/core-module.h"
 
-#include <cstdint>
-#include <cstdlib>
-#include <fstream>
-#include <iostream>
-#include <sstream>
-#include <string>
+#include "Blockchain.h"
 
 namespace ns3{
 
@@ -96,11 +91,9 @@ void AiHelper::ExactSelection ()
     //get output
     auto act = ActionGetter();
     NS_LOG_INFO("Version: " << (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id));
-    Blockchain* blockchain = Blockchain::getInstance() ; 
-    int agg = act->numAggregators ;
-    int trai = act->numTrainers ;
-    blockchain->SetAggregators(act->selectedAggregators, act->numAggregators);
-    blockchain->SetTrainers(act->selectedTrainers, act->numTrainers);
+    Blockchain* bc = Blockchain::getInstance() ; 
+    bc->SetAggregators(act->selectedAggregators, act->numAggregators);
+    bc->SetTrainers(act->selectedTrainers, act->numTrainers);
     GetCompleted();
    // NS_LOG_INFO("from python "<< initialModel.modelId );
 }

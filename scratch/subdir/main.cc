@@ -6,11 +6,10 @@
 #include "ns3/wifi-module.h"
 #include "ns3/netanim-module.h"
 #include "ns3/ascii-file.h"
-#include "ai-helper.h"
-#include "FL-node.h"
-#include "FL-task-initiator.h"
+
 #include "BC-node.h"
-// #include "Blockchain.h"
+#include "Blockchain.h"
+
 
 #include <string>
 #include <ctime>
@@ -41,6 +40,8 @@ main(int argc, char* argv[])
   LogComponentEnable("FLNodeApp", LOG_LEVEL_INFO);
   LogComponentEnable("AiHelper",LOG_LEVEL_INFO);
   Time::SetResolution(Time::NS);
+
+  
   
     int numFlNodes= 100;
     int numBCNodes = 30;
@@ -152,8 +153,8 @@ main(int argc, char* argv[])
     NS_LOG_INFO("installing apps.");
     
     Blockchain* blockchain = Blockchain::getInstance();
-    blockchain.SetBCAddressContainer(BCnodesIpIfaces);
-    blockchain.SetFLAddressContainer(nodesIpIfaces);
+    blockchain->SetBCAddressContainer(BCnodesIpIfaces);
+    blockchain->SetFLAddressContainer(nodesIpIfaces);
 
     Ptr<Node> bcnode;
     Ptr<BCNode> BC ;

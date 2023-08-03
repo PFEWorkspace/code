@@ -218,7 +218,7 @@ void FLNode::Send(Ipv4Address adrs, rapidjson::Document &d) {
 
     Ptr<Packet> packet = Create<Packet>(reinterpret_cast<const uint8_t*>(packetInfo.GetString()),packetInfo.GetSize());
     int result = m_socket->SendTo(packet,0,InetSocketAddress(adrs, m_port));
-    NS_LOG_DEBUG("sent "<< result << " " << packetInfo.GetString());
+    // NS_LOG_DEBUG("sent "<< result << " " << packetInfo.GetString());
 }
 
 void FLNode::Condidater(Ipv4Address adr) {

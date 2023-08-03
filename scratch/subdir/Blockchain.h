@@ -1,24 +1,35 @@
+#ifndef BLOCKCHAIN_H
+#define BLOCKCHAIN_H
 
 #include "ns3/core-module.h"
 #include "ns3/network-module.h"
-#include "../../rapidjson/document.h"
+#include "ns3/log.h"
 #include "ns3/internet-module.h"
 #include "ai-helper.h"
 
+#include <ctime>
+#include <string>
 namespace ns3 {
 
 
-// Assuming the maximum number of nodes, BCNodes, aggregators, trainers, and other constants are defined.
-const int numMaxNodes = 100;
-const int numMaxBCNodes = 50;
-const int numMaxAggregators = 10;
-const int numMaxTrainers = 20;
 
 class Blockchain {
 
     private:
 
     static Blockchain* instance;
+    // Private attributes
+    std::string m_filename;
+    int maxFLround;
+    int actualFLround;
+    int modelToEval[numMaxNodes];
+    int modelToAgreg[numMaxNodes];
+    BCNodeStruct notBusyNodes[numMaxBCNodes];
+    FLNodeStruct m_nodesInfo[numMaxNodes];
+    Ipv4InterfaceContainer nodesFLAdrs;
+    Ipv4InterfaceContainer nodesBCAdrs;
+    int aggregators[numMaxAggregators];
+    int trainers[numMaxTrainers];
 
     // Private constructor and destructor to ensure singleton.
     Blockchain(){
@@ -37,33 +48,23 @@ class Blockchain {
 
    
 
-    // Private attributes
-    std::string m_filename;
-    int maxFLround;
-    int actualFLround;
-    int modelToEval[numMaxNodes];
-    int modelToAgreg[numMaxNodes];
-    BCNodeStruct notBusyNodes[numMaxBCNodes];
-    FLNodeStruct m_nodesInfo[numMaxNodes];
-    Ipv4InterfaceContainer nodesFLAdrs;
-    Ipv4InterfaceContainer nodesBCAdrs;
-    int aggregators[numMaxAggregators];
-    int trainers[numMaxTrainers];
+   
 
     // Private methods
     void SaveBlockchainToFile();
     void AddTransactionToBlockchain(const rapidjson::Value& transaction);
-    std::string Blockchain::GetTimestamp()const;
+    std::string GetTimestamp()const;
 
     // Object's inherited methods
     virtual void DoDispose();
 
 public:
 
+     
     
     // Singleton pattern: static method to get the instance.
     static Blockchain* getInstance() {
-        if(instance==NULL){
+        if(instance==nullptr){
             instance = new Blockchain();
         }
         return instance;
@@ -163,8 +164,9 @@ public:
 
 };
 
-Blockchain* Blockchain::instance = nullptr;
+// Blockchain* Blockchain::instance = nullptr;
 
 
 
 } // namespace ns3
+#endif

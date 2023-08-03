@@ -101,7 +101,7 @@ class AiHelperAct(ctypes.Structure):
         ("numLocalModels", ctypes.c_int),
         ("localModels", MLModelRefrence * numMaxTrainers),
         ("selectedTrainers", ctypes.c_int * numMaxTrainers),
-        ("selectedAggregators", ctypes.c_int * numMaxAggregators)
+        ("selectedAggregators", ctypes.c_int * numMaxAggregators),
         ("numTrainers", ctypes.c_int),
         ("numAggregators", ctypes.c_int)
     ]
@@ -154,8 +154,8 @@ if __name__ == '__main__':
         'x' : fl_config.fl.x
     };
 
-    mempool_key = 1432
-    mem_size = 1024 * 2 * 2 * 2
+    mempool_key = 1132
+    mem_size = 1024 * 2 * 2 * 2 * 2
     exp = Experiment(mempool_key, mem_size, 'main', '../../', using_waf=False)
     exp.reset()
     try:

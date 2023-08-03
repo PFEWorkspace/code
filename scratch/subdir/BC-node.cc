@@ -1,4 +1,5 @@
 
+
 #include "BC-node.h"
 
 
@@ -149,38 +150,10 @@ void BCNode::SendTo( rapidjson::Document &d, std::vector<Ipv4Address> &addresses
 }
 
 
-// void BCNode::Condidater() {
-//  rapidjson::Document d;
-//  rapidjson::Value value;
-//  d.SetObject();
-//  enum CommunicationType msg = CONDIDATURE;
-//  value = msg;
-//  d.AddMember("message_type", value, d.GetAllocator());
-// // //  value = wantedTask ;
-// // //  d.AddMember("task", value, d.GetAllocator());
-// //  value = dataset_size ; 
-// //  d.AddMember("data_size", value, d.GetAllocator());
-// // //  value = beta ;
-// // //  d.AddMember("beta", value, d.GetAllocator());
-// //   value = freq ;
-// //  d.AddMember("frequence", value, d.GetAllocator());
-// //   value = trans_rate ;
-// //  d.AddMember("transmission_rate", value, d.GetAllocator());
-// //   value = availability ;
-// //  d.AddMember("availability", value, d.GetAllocator());
-// //   value = honesty ;
-// //  d.AddMember("honesty", value, d.GetAllocator());
-
-//  Send(d);
-// }
-
-
-// void BCNode::SendModel() {
-//   // SendModel implementation
-// }
 
 void BCNode :: WriteTransaction (){
 
 }
 
 }
+

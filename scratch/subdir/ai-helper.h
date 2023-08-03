@@ -2,10 +2,22 @@
 #define AI_HELPER_H
 
 #include "ns3/ns3-ai-module.h"
-#include "Blockchain.h"
 
+
+#include <cstdint>
+#include <cstdlib>
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include <string>
+
+#include "../../rapidjson/document.h"
+#include "../../rapidjson/error/en.h"
+#include "../../rapidjson/writer.h"
+#include "../../rapidjson/stringbuffer.h"
 
 namespace ns3 {
+
 const int numMaxNodes = 100;
 const int numMaxTrainers = 50;
 const int numMaxAggregators = 20;

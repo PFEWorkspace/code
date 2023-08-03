@@ -1,13 +1,11 @@
-#include "ns3/log.h"
 #include "Blockchain.h"
-#include "ns3/log.h"
-#include <chrono>
 
-#include <string>
 
 namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE("Blockchain");
+
+Blockchain* Blockchain::instance = nullptr;
 
 //TypeId Blockchain::GetTypeId() {
 //    static TypeId tid = TypeId("Blockchain")
@@ -41,9 +39,14 @@ void Blockchain::SetBCAddressContainer(Ipv4InterfaceContainer container){
 
 void Blockchain::WriteTransaction(uint32_t nodeId) {
     rapidjson::Document transaction;
+    rapidjson::Value value;
     transaction.SetObject();
-    transaction.AddMember("node_id", nodeId, transaction.GetAllocator());
-    transaction.AddMember("timestamp", GetTimestamp(), transaction.GetAllocator());
+    value = nodeId ;
+    transaction.AddMember("node_id",value, transaction.GetAllocator());
+    std::string time= GetTimestamp();
+    const char* t = time.c_str() ;
+    value.SetString(t, time.size());
+    transaction.AddMember("timestamp", value, transaction.GetAllocator());
 
     AddTransactionToBlockchain(transaction);
     SaveBlockchainToFile();
@@ -71,9 +74,12 @@ void Blockchain::AddTransactionToBlockchain(const rapidjson::Value &transaction)
 }
 
 std::string Blockchain::GetTimestamp() const {
-     auto r=std::chrono::system_clock::now(); //Contains data about current time
-    std::string s = "time"; //std::format("{:%Y%m%d%H%M}", r);
-    return s;
+    std::time_t currentTime = std::time(nullptr);
+    // Convert the time_t object to a string
+    std::stringstream ss;
+    ss << std::ctime(&currentTime); // Convert time_t to char*
+    std::string timeString = ss.str();
+    return timeString;
 }
 
 void Blockchain::DoDispose() {
