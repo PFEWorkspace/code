@@ -2,6 +2,7 @@ import ctypes
 import argparse
 import logging
 from py_interface import *
+import FL_tasks as fl
 
 import config
 
@@ -64,6 +65,7 @@ class AiHelperEnv(ctypes.Structure):
     _fields_ = [
         ("type", ctypes.c_int),
         ("nodeId", ctypes.c_int),
+        # ("modelId", ctypes.c_int),
         ("numNodes", ctypes.c_int),
         ("numTrainers", ctypes.c_int),
         ("numAggregators", ctypes.c_int),
@@ -88,11 +90,15 @@ class AiHelperContainer:
         self.rl = Ns3AIRL(uid, AiHelperEnv, AiHelperAct)
         pass
 
-    def do(self, env:AiHelperEnv, act:AiHelperAct) -> AiHelperAct:
+    def do(self, env:AiHelperEnv, act:AiHelperAct, config) -> AiHelperAct:
+        FL_manager = fl.FLManager(config)
         if env.type == 0x01: # initialization of clients and initial model
-            print("init fl task")
-            m = MLModel(modelId=123, nodeId=0, taskId=1, round=0)
-            act.model = m
+            print("init FL task")
+            nodesinfo = []
+            [nodesinfo.append(env.nodes[i]) for i in range(env.numNodes)]
+            m = FL_manager.setUp(nodesinfo)
+            
+            act.model = MLModel(modelId=m.modelId,nodeId=m.nodeId,taskId=m.taskId,round=m.round)
             # create the fl nodes and distribute data             
 
         return act
@@ -125,7 +131,7 @@ if __name__ == '__main__':
             with container.rl as data:
                 if data == None:
                     break
-                data.act = container.do(data.env , data.act)
+                data.act = container.do(data.env , data.act, fl_config)
                 pass            
         pro.wait()
     except Exception as e :

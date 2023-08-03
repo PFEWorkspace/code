@@ -106,6 +106,8 @@ main(int argc, char* argv[])
     Ipv4AddressHelper ipAddrs;
     ipAddrs.SetBase("192.168.0.0", "255.255.0.0");
     Ipv4InterfaceContainer nodesIpIfaces = ipAddrs.Assign(nodeDevices);
+
+    // NS_LOG_INFO("ip adress "<< nodesIpIfaces.GetAddress(4));
     // ipAddrs.NewAddress();
     // Ipv4InterfaceContainer initiatorIpIfaces = ipAddrs.Assign(initiatorDevice);
     // Ipv4Address initiatorAddr = initiatorIpIfaces.GetAddress(0);

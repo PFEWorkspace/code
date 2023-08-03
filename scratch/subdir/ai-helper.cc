@@ -76,10 +76,30 @@ AiHelper::initializeFL(FLNodeStruct *nodes, int& numNodes){
     NS_LOG_INFO("Version: " << (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id));
     MLModelRefrence initialModel = GetModelReference(act->model);
     GetCompleted();
-    NS_LOG_INFO("from python "<< initialModel.modelId );
-   
+      
     return initialModel ;
 }
 
+MLModel
+AiHelper::train(int nodeid, int globalModel){
+    NS_LOG_FUNCTION_NOARGS();
+    
+    //set input
+    auto env = EnvSetterCond();
+    env->type = 0x02; 
+    env->nodeId = nodeid;
+    // env->modelId = globalModel;
+    SetCompleted();
+    NS_LOG_INFO("Version: " << (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id)); // to get the momory version
+
+    //get output
+    auto act = ActionGetter();
+    NS_LOG_INFO("Version: " << (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id));
+    MLModel model = act->model;
+    GetCompleted();
+    NS_LOG_INFO("from python "<< model.modelId );
+   
+    return model ;
+}
 
 }

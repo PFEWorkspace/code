@@ -51,6 +51,13 @@ uint32_t FLNode::GetPort() const {
   return m_port;
 }
 
+void FLNode::SetTask(enum Task t){
+  task = t ;
+}
+Task FLNode::GetTask() const{
+  return task ;
+}
+
 void FLNode::SetDestAddress(Ipv4Address address) {
   m_destAddr = address;
 }
@@ -132,7 +139,7 @@ void FLNode::DoDispose() {
 
 void FLNode::StartApplication() {
   NS_LOG_FUNCTION_NOARGS();
-  NS_LOG_DEBUG("starting app");
+  // NS_LOG_DEBUG("starting app");
 
     if (!m_socket)
     {
@@ -181,7 +188,13 @@ void FLNode::Receive(Ptr<Socket> socket) {
                          */
                         Condidater(InetSocketAddress::ConvertFrom(from).GetIpv4());
                         break;
-                    
+                    // case SELECTION :
+                    //      if(d.HasMember("task") && d["task"].IsInt()){
+                    //         SetTask(Task(d['task'].GetInt()));
+                    //         if(GetTask() == TRAIN) {
+                    //           Train(d["modelId"].GetInt());
+                    //         } // the else being aggregate or evaluate
+                    //      }
                     default:
                         break;
                     }
@@ -194,18 +207,18 @@ void FLNode::Receive(Ptr<Socket> socket) {
 
 void FLNode::Send(Ipv4Address adrs, rapidjson::Document &d) {
  
-//  if (!m_socket){
+ if (!m_socket){
     Ptr<SocketFactory> socketFactory = GetNode()->GetObject<SocketFactory>(UdpSocketFactory::GetTypeId());
     m_socket = socketFactory->CreateSocket();
     m_socket->Bind();
-//  }
+ }
     rapidjson::StringBuffer packetInfo;
     rapidjson::Writer<rapidjson::StringBuffer> writer(packetInfo);
     d.Accept(writer);
 
     Ptr<Packet> packet = Create<Packet>(reinterpret_cast<const uint8_t*>(packetInfo.GetString()),packetInfo.GetSize());
     int result = m_socket->SendTo(packet,0,InetSocketAddress(adrs, m_port));
-    // NS_LOG_DEBUG("sent "<< result << " " << packetInfo.GetString());
+    NS_LOG_DEBUG("sent "<< result << " " << packetInfo.GetString());
 }
 
 void FLNode::Condidater(Ipv4Address adr) {
@@ -237,7 +250,7 @@ void FLNode::Condidater(Ipv4Address adr) {
   Send(adr, d);
 }
 
-void FLNode::Train() {
+void FLNode::Train(int globalModelId) {
   // Train implementation
 }
 

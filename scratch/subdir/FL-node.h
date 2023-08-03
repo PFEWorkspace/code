@@ -42,6 +42,9 @@ class FLNode : public Application
   void SetPort(uint32_t port);
   uint32_t GetPort() const;
 
+  void SetTask(enum Task t);
+  Task GetTask() const;
+
    void SetDestAddress(Ipv4Address address);
   Ipv4Address GetDestAddress() const;
 
@@ -72,7 +75,7 @@ class FLNode : public Application
     void Receive(Ptr<Socket> socket);
     void Send(Ipv4Address adrs, rapidjson::Document &d);
     void Condidater(Ipv4Address adr);
-    void Train();
+    void Train(int globalModelId);
     void SendModel();
 
 

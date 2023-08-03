@@ -24,8 +24,8 @@ class Config(object):
         self.nodes = namedtuple('nodes', fields)(*params)
 
         # -- Data --
-        fields = ['loading', 'partition']
-        defaults = ('static', 0)
+        fields = ['loading','IID', 'partition']
+        defaults = ('static','true', 0)
         params = [config['data'].get(field, defaults[i])
                   for i, field in enumerate(fields)]
         self.data = namedtuple('data', fields)(*params)
@@ -56,12 +56,12 @@ class Config(object):
         self.model = namedtuple('model', fields)(*params)
 
         # -- Paths --
-        fields = ['data', 'model', 'reports', 'plot']
-        defaults = ('./data', './models', None, './plots')
+        fields = ['data', 'model','FLmodels', 'reports', 'plot']
+        defaults = ('./data', './models', './models.csv', None, './plots')
         params = [config['paths'].get(field, defaults[i])
                   for i, field in enumerate(fields)]
-        # Set specific model path
-        params[fields.index('model')] += '/' + self.model.name
+        # # Set specific model path
+        # params[fields.index('model')] += '/' + self.model.name
 
         self.paths = namedtuple('paths', fields)(*params)
 

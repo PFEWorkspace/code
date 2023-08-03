@@ -49,6 +49,7 @@ const int numMaxAggregators = 20;
     {
         int type; //1: initialisation, 2:selection, 3:train, 4:evaluation, 5:aggregation
         int nodeId; // used for evaluation or aggregation, to know which node is launching this task
+        // int modelId; // the id of the global model before training
         int numNodes;
         int numTrainers;
         int numAggregators;
@@ -75,13 +76,13 @@ const int numMaxAggregators = 20;
         
         MLModelRefrence initializeFL(FLNodeStruct *nodes, int& numNodes);
 
+        MLModel train(int nodeid, int globalModel);
+
 
         private:
         
         // FLNodeStruct* GetNodesFromFile(const std::string& filename,  int& numNodes);
-        MLModelRefrence GetModelReference(MLModel model);
-      
-        // Ns3AIRL<AiHelperEnv, AiHelperAct> * m_ns3ai_mod;        
+        MLModelRefrence GetModelReference(MLModel model);      
 
     };
 

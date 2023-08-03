@@ -9,6 +9,7 @@
     },
     "data": {
         "loading": "static",
+        "IID" : false,
         "partition": {
             "size": 100,
             "range": [
@@ -30,7 +31,8 @@
     },
     "paths": {
         "data": "./data",
-        "model": "./models",
+        "model": "./model",
+        "FLmodels" : "./models.csv",
         "reports": "reports.pkl",
         "plot": "./plots"
     },
