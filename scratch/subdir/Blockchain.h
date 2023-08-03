@@ -2,28 +2,38 @@
 #include "ns3/core-module.h"
 #include "ns3/network-module.h"
 #include "../../rapidjson/document.h"
+#include "ns3/internet-module.h"
 #include "ai-helper.h"
 
 namespace ns3 {
 
-class Blockchain : public Object {
+class Blockchain {
 public:
-    static TypeId GetTypeId();
+    
 
     void WriteTransaction(uint32_t nodeId);
 
     void PrintBlockchain() const;
+    static Blockchain& getInstance() ; 
+    Ipv4Adresse getAdresse(int nodeId);
+    
 
 private:
+
+    static Blockchain* instance ;
+    void Blockchain () ;
     //attributes
     std::string m_filename;
     int maxFLround ;
     int actualFLround;
-    int modelToEval[numMaxNodes]; //we suppose that we only store modelIds
+    int modelToEval[numMaxNodes]; //we suppose that we only store modelIds we can switch to vectors lib
     int modelToAgreg[numMaxNodes];
    
     BCNodeStruct notBusyNodes[numMaxBCNodes];
     FLNodeStruct m_nodesInfo[numMaxNodes];
+    Ipv4InterfaceContainer nodesFLAdrs;
+    int aggregators[numMaxAggregators];
+    int trainers[numMaxTrainers];
     // functions
     void SaveBlockchainToFile();
     void AddTransactionToBlockchain(const rapidjson::Value& transaction);

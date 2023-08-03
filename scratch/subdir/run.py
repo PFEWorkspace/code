@@ -1,6 +1,7 @@
 import ctypes
 import argparse
 import logging
+import numpy as np
 from py_interface import *
 
 import config
@@ -9,6 +10,7 @@ import config
 numMaxNodes = 100 
 numMaxTrainers = 50  
 numMaxAggregators = 20
+modelSize = 120
 
 # Set up parser
 parser = argparse.ArgumentParser()
@@ -58,6 +60,16 @@ class FLNodeStruct(ctypes.Structure):
         ("task", ctypes.c_int),
         ("dropout", ctypes.c_bool)
     ]
+    def learning_cost(self):
+        c = self.datasetSize / self.freq 
+        return c
+
+    def communication_cost(self, m):
+        c = m / self.transRate  
+        return c
+
+    def get_cost(self, w):
+        return self.learning_cost() + self.communication_cost(w)
 
 class AiHelperEnv(ctypes.Structure):
     _pack_ = 1
@@ -78,7 +90,9 @@ class AiHelperAct(ctypes.Structure):
         ("numLocalModels", ctypes.c_int),
         ("localModels", MLModelRefrence * numMaxTrainers),
         ("selectedTrainers", ctypes.c_int * numMaxTrainers),
-        ("selectedAggregators", ctypes.c_int * numMaxAggregators)
+        ("selectedAggregators", ctypes.c_int * numMaxAggregators),
+        ("numTrainers", ctypes.c_int),
+        ("numAggregators", ctypes.c_int)
     ]
 
 class AiHelperContainer:
@@ -88,15 +102,24 @@ class AiHelperContainer:
         self.rl = Ns3AIRL(uid, AiHelperEnv, AiHelperAct)
         pass
 
-    def do(self, env:AiHelperEnv, act:AiHelperAct) -> AiHelperAct:
+    def do(self, env:AiHelperEnv, act:AiHelperAct, config) -> AiHelperAct:
         if env.type == 0x01: # initialization of clients and initial model
             print("init fl task")
             m = MLModel(modelId=123, nodeId=0, taskId=1, round=0)
             act.model = m
             # create the fl nodes and distribute data 
-        if env.type == 0x02 : # exact methode selection
+        if env.type == 0x02 : # exact method selection
             print('select trainers and aggregators')
-
+            # Example values
+            alpha = 0.7 # to add to config file 
+           
+            node_scores = [(i, alpha * node.honesty - (1 - alpha) * get_cost(node, config.model.size)) for i, node in enumerate(env.nodes)]
+            sorted_indexes = np.argsort([score for _, score in node_scores])[::-1]
+            print ("Sorted Indexes:",sorted_indexes)
+            act.selectedAggregators= sorted_indexes[0:config.nodes.aggregators_per_round]
+            act.selectedTrainers= sorted_indexes[config.nodes.aggregators_per_round : config.nodes.aggregators_per_round+config.nodes.participants_per_round]
+            act.numAggregators = config.nodes.aggregators_per_round
+            act.numTrainers = config.nodes.participants_per_round
         return act
 
 if __name__ == '__main__':

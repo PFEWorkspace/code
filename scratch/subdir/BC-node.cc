@@ -32,7 +32,8 @@ TypeId BCNode::GetTypeId() {
                                         MakeBooleanChecker())
                           .AddAttribute("Honesty", "Honesty score of the node", DoubleValue(0.0),
                                         MakeDoubleAccessor(&BCNode::honesty),
-                                        MakeDoubleChecker<double>());
+                                        MakeDoubleChecker<double>())
+                            .AddAttribute("Blockchain","Blockchain attached to node", Blockchain());
   return tid;
 }
 
@@ -150,12 +151,32 @@ void BCNode::Receive(Ptr<Socket> socket) {
                 if(d.HasMember("message_type") && d["message_type"].IsInt()){
                     switch (d["message_type"].GetInt())
                     {
-                    case NEWTASK: 
+                    case NEWTASK : //NEWTASK 
                         /* 
                             newtask is the message sent by the initializer to declare a new task
                             as a response the FL nodes will send their condidature to the blockchain
+                         task_id,model_id,rounds,target_acc,num_participants,num_aggregators}
                          */
+                      
+                      // TODO : mise a jour de la blokchain with the new task , 
+                      break;
+                    case CANDIDATURE : 
+                     // receive les candidatures and treat them
+
+                     // teste ida got all les candidatures ou time passed ou
+                      
+                      AiHelper aiH = AiHelper () ; 
+                      aiH.ExactSelection()
+
+                      //print blockchainaggregators 
+                      // step get the addresses from blockchain list of node 
+                      // send the messages MODEL to trainers {msgtype:selection, worktype: aggregatio ou learning, modelId}
+
                         break;
+                    case MODEL : //MODEL
+                    break ;
+                    case EVALUATE : // EVALUATE
+                    break; 
                     
                     default:
                         break;

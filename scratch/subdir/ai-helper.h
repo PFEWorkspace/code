@@ -82,7 +82,7 @@ const int numMaxBCNodes = 30;
         
         MLModelRefrence initializeFL(FLNodeStruct *nodes, int& numNodes);
         // ************************RIMA
-        void ExactSelection (FLNodeStruct *nodes, int& numNodes) ;
+        void ExactSelection () ;
         // ************************RIMA
         private:
         

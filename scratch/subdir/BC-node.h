@@ -16,6 +16,8 @@
 #include "../../rapidjson/writer.h"
 #include "../../rapidjson/stringbuffer.h"
 
+#include "Blockchain.h"
+
 namespace ns3{
 
 
@@ -80,6 +82,7 @@ class BCNode : public Application
     double trans_rate; // transmission rate, with wifi the values are btw 150 Mbps and 1 Gbps : https://www.techtarget.com/iotagenda/feature/Everything-you-need-to-know-about-IoT-connectivity-options
     bool availability ; // true if node available to participate, else false
     double honesty; // the honesty score of the node
+    Blockchain blockchain ; // to be able to acces the write transaction and info about the execution
  
 };
 
