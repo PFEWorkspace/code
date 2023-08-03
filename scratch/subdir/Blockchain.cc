@@ -25,8 +25,8 @@ Ipv4Address Blockchain::getFLAddress(int nodeId)
 
 
 Ipv4Address Blockchain::getBCAddress(){
-    //TODO return random;
-    return nodesBCAdrs.GetAddress(0);
+    uint32_t randomid = randomBCAdrsStream->GetInteger();
+    return nodesBCAdrs.GetAddress(randomid);
 }
 
 void Blockchain::SetFLAddressContainer(Ipv4InterfaceContainer container){
@@ -35,6 +35,12 @@ void Blockchain::SetFLAddressContainer(Ipv4InterfaceContainer container){
 
 void Blockchain::SetBCAddressContainer(Ipv4InterfaceContainer container){
     nodesBCAdrs = container;
+}
+
+void Blockchain::SetRandomBCStream(){
+        randomBCAdrsStream = CreateObject<UniformRandomVariable>();
+        randomBCAdrsStream->SetAttribute("Min", DoubleValue(0)); // bcs the addresses and ids of bc nodes start after the FL so min is number of flnodes
+        randomBCAdrsStream->SetAttribute("Max", DoubleValue(numBCNodes-1)); // and max is the sum of both group of nodes size
 }
 
 void Blockchain::WriteTransaction(uint32_t nodeId) {

@@ -39,6 +39,8 @@ main(int argc, char* argv[])
   LogComponentEnable("FLExperimentSimulation",LOG_LEVEL_INFO);
   LogComponentEnable("FLNodeApp", LOG_LEVEL_INFO);
   LogComponentEnable("AiHelper",LOG_LEVEL_INFO);
+  LogComponentEnable("Blockchain", LOG_LEVEL_INFO);
+  LogComponentEnable("BCNodeApp", LOG_LEVEL_INFO);
   Time::SetResolution(Time::NS);
 
   
@@ -155,6 +157,12 @@ main(int argc, char* argv[])
     Blockchain* blockchain = Blockchain::getInstance();
     blockchain->SetBCAddressContainer(BCnodesIpIfaces);
     blockchain->SetFLAddressContainer(nodesIpIfaces);
+    blockchain->setNumFLNodes(numFlNodes);
+    blockchain->setNumBCNodes(numBCNodes);
+    blockchain->SetMaxFLRound(flrounds);
+    blockchain->setNumAggregators(numAggregators);
+    blockchain->setNumTrainers(numParticipants);
+    blockchain->SetRandomBCStream();
 
     Ptr<Node> bcnode;
     Ptr<BCNode> BC ;
@@ -218,6 +226,9 @@ main(int argc, char* argv[])
 
      // Create the animation object and configure for specified output
     AnimationInterface anim(animFile);
+    for(uint32_t i=0; i<BCnodes.GetN();i++){
+      anim.UpdateNodeColor(BCnodes.Get(i),0,0,255);
+    }
 
     //--------------------------------------------
     //-- Run the simulation

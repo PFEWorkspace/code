@@ -7,6 +7,7 @@
 #include "ns3/inet-socket-address.h"
 
 #include "ai-helper.h"
+#include "Blockchain.h"
 
 #include <iostream>
 #include <fstream>
@@ -74,7 +75,7 @@ class FLNode : public Application
     void StopApplication() override;
     void Receive(Ptr<Socket> socket);
     void Send(Ipv4Address adrs, rapidjson::Document &d);
-    void Condidater(Ipv4Address adr);
+    void Candidater();
     void Train(int globalModelId);
     void SendModel();
 

@@ -186,7 +186,8 @@ void FLNode::Receive(Ptr<Socket> socket) {
                             newtask is the message sent by the initializer to declare a new task
                             as a response the FL nodes will send their condidature to the blockchain
                          */
-                        Condidater(InetSocketAddress::ConvertFrom(from).GetIpv4());
+                        // Candidater(InetSocketAddress::ConvertFrom(from).GetIpv4());
+                       Candidater();
                         break;
                     // case SELECTION :
                     //      if(d.HasMember("task") && d["task"].IsInt()){
@@ -221,13 +222,14 @@ void FLNode::Send(Ipv4Address adrs, rapidjson::Document &d) {
     // NS_LOG_DEBUG("sent "<< result << " " << packetInfo.GetString());
 }
 
-void FLNode::Condidater(Ipv4Address adr) {
+void FLNode::Candidater() {
+  Blockchain* bc = Blockchain::getInstance();
+  Ipv4Address adr = bc->getBCAddress();
   NS_LOG_DEBUG("sending candidature to " << adr);
   rapidjson::Document d;
   rapidjson::Value value;
-  d.SetObject();
-  enum CommunicationType msg = CANDIDATURE;
-  value = msg;
+  d.SetObject(); 
+  value = CANDIDATURE;
   d.AddMember("message_type", value, d.GetAllocator());
   value = id ;
   d.AddMember("node_id", value, d.GetAllocator());

@@ -7,6 +7,7 @@
 #include "ns3/internet-module.h"
 #include "ai-helper.h"
 
+
 #include <ctime>
 #include <string>
 namespace ns3 {
@@ -22,6 +23,10 @@ class Blockchain {
     std::string m_filename;
     int maxFLround;
     int actualFLround;
+    int numFLNodes;
+    int numBCNodes;
+    int numAggregators;
+    int numTrainers;
     int modelToEval[numMaxNodes];
     int modelToAgreg[numMaxNodes];
     BCNodeStruct notBusyNodes[numMaxBCNodes];
@@ -30,10 +35,11 @@ class Blockchain {
     Ipv4InterfaceContainer nodesBCAdrs;
     int aggregators[numMaxAggregators];
     int trainers[numMaxTrainers];
+    Ptr<UniformRandomVariable> randomBCAdrsStream;
 
     // Private constructor and destructor to ensure singleton.
     Blockchain(){
-        // Initialize other members here if needed.
+        // Initialize 
         for (int i = 0; i < numMaxNodes; ++i) {
             modelToEval[i] = 0;
             modelToAgreg[i] = 0;
@@ -80,6 +86,8 @@ public:
     void SetFLAddressContainer(Ipv4InterfaceContainer container);
     void SetBCAddressContainer(Ipv4InterfaceContainer container);
 
+    void SetRandomBCStream();
+
      // Setters
 
     void SetAggregators(int aggs[], int num){
@@ -122,9 +130,43 @@ public:
         }
     }
 
-    // Similar setters for other attributes
+  
+
+    // Setters
+    void setNumFLNodes(int value) {
+        numFLNodes = value;
+    }
+
+    void setNumBCNodes(int value) {
+        numBCNodes = value;
+    }
+
+    void setNumAggregators(int value) {
+        numAggregators = value;
+    }
+
+    void setNumTrainers(int value) {
+        numTrainers = value;
+    }
 
     // Getters
+    
+    int getNumFLNodes() const {
+        return numFLNodes;
+    }
+
+    int getNumBCNodes() const {
+        return numBCNodes;
+    }
+
+    int getNumAggregators() const {
+        return numAggregators;
+    }
+
+    int getNumTrainers() const {
+        return numTrainers;
+    }
+    
     int GetMaxFLRound() const {
         return maxFLround;
     }

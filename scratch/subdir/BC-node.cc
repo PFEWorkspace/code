@@ -67,15 +67,15 @@ void BCNode::Receive(Ptr<Socket> socket) {
   
     while ((packet = socket->RecvFrom(from)))
     {
-        char *packetInfo = new char[packet->GetSize () + 1];
+        char *packetInfo = new char[packet->GetSize () ];
        
         if (InetSocketAddress::IsMatchingType(from))
         {
-            packet->CopyData (reinterpret_cast<uint8_t*>(packetInfo), packet->GetSize ());
-            // NS_LOG_INFO("I'm "<< GetNode()->GetId() << "received " << packet->GetSize() << " bytes from "
-            //                         << InetSocketAddress::ConvertFrom(from).GetIpv4()
-            //                         << " content: "<< packetInfo) ;
-            std::string data = packetInfo ; 
+            packet->CopyData(reinterpret_cast<uint8_t*>(packetInfo), packet->GetSize ());
+            NS_LOG_INFO("I'm a bc node id: "<< GetNode()->GetId() << " received " << packet->GetSize() << " bytes from "
+                                    << InetSocketAddress::ConvertFrom(from).GetIpv4()
+                                    << " content: "<< packetInfo) ;
+            std::string data(reinterpret_cast<char*>(packetInfo), packet->GetSize()) ;
             rapidjson::Document d;
            
             if(ParseJSON(data,d)){
