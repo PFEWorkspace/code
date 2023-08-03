@@ -3,6 +3,7 @@
         "total": 10,
         "participants_per_round": 4,
         "aggregators_per_round":1,
+        "BC":3,
         "test_partition": 0.2,
         "selection": "score",
         "source": "generated_nodes.csv" 

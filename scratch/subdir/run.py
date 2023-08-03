@@ -3,13 +3,15 @@ import argparse
 import logging
 from py_interface import *
 import FL_tasks as fl
-
+import numpy as np
 import config
 
 
 numMaxNodes = 100 
 numMaxTrainers = 50  
 numMaxAggregators = 20
+numMaxBCNodes = 30
+modelSize = 120
 
 # Set up parser
 parser = argparse.ArgumentParser()
@@ -60,6 +62,25 @@ class FLNodeStruct(ctypes.Structure):
         ("dropout", ctypes.c_bool)
     ]
 
+    def learning_cost(self):
+        c = self.datasetSize / self.freq 
+        return c
+
+    def communication_cost(self, m):
+        c = m / self.transRate  
+        return c
+
+    def get_cost(self, w):
+        return self.learning_cost() + self.communication_cost(w)
+
+class BCNodeStruct(ctypes.Structure):
+    _pack_ = 1
+    _fields_ = [
+        ("nodeId", ctypes.c_int),
+        ("task", ctypes.c_int),
+    ]
+
+
 class AiHelperEnv(ctypes.Structure):
     _pack_ = 1
     _fields_ = [
@@ -81,6 +102,8 @@ class AiHelperAct(ctypes.Structure):
         ("localModels", MLModelRefrence * numMaxTrainers),
         ("selectedTrainers", ctypes.c_int * numMaxTrainers),
         ("selectedAggregators", ctypes.c_int * numMaxAggregators)
+        ("numTrainers", ctypes.c_int),
+        ("numAggregators", ctypes.c_int)
     ]
 
 class AiHelperContainer:
@@ -97,10 +120,22 @@ class AiHelperContainer:
             nodesinfo = []
             [nodesinfo.append(env.nodes[i]) for i in range(env.numNodes)]
             m = FL_manager.setUp(nodesinfo)
-            
+            self.nodes = nodesinfo
+            self.numNodes = env.numNodes
             act.model = MLModel(modelId=m.modelId,nodeId=m.nodeId,taskId=m.taskId,round=m.round)
             # create the fl nodes and distribute data             
-
+        if env.type == 0x02 : # exact method selection
+            print('select trainers and aggregators')
+            # Example values
+            alpha = 0.7 # to add to config file 
+           
+            node_scores = [(i, alpha * node.honesty - (1 - alpha) * node.get_cost(node, config.model.size)) for i, node in enumerate(self.nodes)]
+            sorted_indexes = np.argsort([score for _, score in node_scores])[::-1]
+            print ("Sorted Indexes:",sorted_indexes)
+            act.selectedAggregators= sorted_indexes[0:config.nodes.aggregators_per_round]
+            act.selectedTrainers= sorted_indexes[config.nodes.aggregators_per_round : config.nodes.aggregators_per_round+config.nodes.participants_per_round]
+            act.numAggregators = config.nodes.aggregators_per_round
+            act.numTrainers = config.nodes.participants_per_round
         return act
 
 if __name__ == '__main__':
@@ -114,6 +149,7 @@ if __name__ == '__main__':
         'aggregatorsPerRound' : fl_config.nodes.aggregators_per_round,
         'source' : fl_config.nodes.source,
         'flRounds' : fl_config.fl.rounds,
+        'numBCNodes' : fl_config.nodes.bc,
         'targetAccuracy' : fl_config.fl.target_accuracy,
         'x' : fl_config.fl.x
     };

@@ -9,6 +9,8 @@
 #include "ai-helper.h"
 #include "FL-node.h"
 #include "FL-task-initiator.h"
+#include "BC-node.h"
+// #include "Blockchain.h"
 
 #include <string>
 #include <ctime>
@@ -41,6 +43,7 @@ main(int argc, char* argv[])
   Time::SetResolution(Time::NS);
   
     int numFlNodes= 100;
+    int numBCNodes = 30;
     int numParticipants=50;
     int numAggregators=20;
     std::string nodes_source= "";
@@ -67,6 +70,7 @@ main(int argc, char* argv[])
     //----------------------------------------------
     CommandLine cmd;
     cmd.AddValue ("numNodes","the total number of nodes", numFlNodes);
+    cmd.AddValue ("numBCNodes", "the number of Blockchain nodes in the community", numBCNodes);
     cmd.AddValue ("participantsPerRound","the number of participants per round",numParticipants);
     cmd.AddValue ("aggregatorsPerRound","the number of aggregators per pround",numAggregators);
     cmd.AddValue ("source","the path and name of the file to get initial data about nodes", nodes_source);
@@ -89,6 +93,8 @@ main(int argc, char* argv[])
     NodeContainer nodes;
     nodes.Create(numFlNodes + 1 ); // federated learning nodes + 1 for the initiator ( + the blockchain nodes to add later)
 
+    NodeContainer BCnodes;
+    BCnodes.Create(numBCNodes);
     
     NS_LOG_INFO("Installing WiFi and Internet stack.");
     WifiHelper wifi;
@@ -98,19 +104,19 @@ main(int argc, char* argv[])
     YansWifiChannelHelper wifiChannel = YansWifiChannelHelper::Default();
     wifiPhy.SetChannel(wifiChannel.Create());
     NetDeviceContainer nodeDevices = wifi.Install(wifiPhy, wifiMac, nodes);
-    // NetDeviceContainer initiatorDevice = wifi.Install(wifiPhy, wifiMac, initiator);
+    NetDeviceContainer BCnodeDevices= wifi.Install(wifiPhy, wifiMac, BCnodes);
     
     InternetStackHelper internet;
     internet.Install(nodes);
+    internet.Install(BCnodes);
     // internet.Install(initiator);
     Ipv4AddressHelper ipAddrs;
     ipAddrs.SetBase("192.168.0.0", "255.255.0.0");
     Ipv4InterfaceContainer nodesIpIfaces = ipAddrs.Assign(nodeDevices);
-
     // NS_LOG_INFO("ip adress "<< nodesIpIfaces.GetAddress(4));
-    // ipAddrs.NewAddress();
-    // Ipv4InterfaceContainer initiatorIpIfaces = ipAddrs.Assign(initiatorDevice);
-    // Ipv4Address initiatorAddr = initiatorIpIfaces.GetAddress(0);
+    
+    ipAddrs.NewAddress();
+    Ipv4InterfaceContainer BCnodesIpIfaces = ipAddrs.Assign(BCnodeDevices);
 
   
     //--------------------------------------------
@@ -137,12 +143,30 @@ main(int argc, char* argv[])
     mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
     mobility.Install (nodes);
 
+    mobility.Install(BCnodes);
+
     
      //--------------------------------------------
     //-- Create a custom traffic source and sink
     //--------------------------------------------
     NS_LOG_INFO("installing apps.");
     
+    Blockchain* blockchain = Blockchain::getInstance();
+    blockchain.SetBCAddressContainer(BCnodesIpIfaces);
+    blockchain.SetFLAddressContainer(nodesIpIfaces);
+
+    Ptr<Node> bcnode;
+    Ptr<BCNode> BC ;
+    for (uint32_t i = 0; i < BCnodes.GetN(); ++i) {
+      bcnode = BCnodes.Get(i);
+      BC = CreateObject<BCNode>();
+      bcnode->AddApplication(BC);
+      BC->SetStartTime(Seconds(0));
+      
+  
+    }
+
+
     Ptr<Node> flNode;
     Ptr<FLNode> FL ;
     for (uint32_t i = 1; i < nodes.GetN()-1; ++i) {
@@ -153,6 +177,8 @@ main(int argc, char* argv[])
       //setting the caracteristics of the nodes
       FL->Init(nodesInfo[i]);
     }
+
+      
     
     Ptr<Node> initiator = nodes.Get(0); 
     Ptr<Initiator> flInitTask = CreateObject<Initiator>();

@@ -17,8 +17,8 @@ class Config(object):
         config = self.config
 
         # -- nodes --
-        fields = ['total', 'participants_per_round', 'aggregators_per_round', 'test_partition', 'selection', 'source']
-        defaults = (0,0,0, 0.2, 'score', 'generated_nodes.csv')
+        fields = ['total', 'participants_per_round', 'aggregators_per_round', 'bc', 'test_partition', 'selection', 'source']
+        defaults = (0,0,0,0, 0.2, 'score', 'generated_nodes.csv')
         params = [config['nodes'].get(field, defaults[i])
                   for i, field in enumerate(fields)]
         self.nodes = namedtuple('nodes', fields)(*params)

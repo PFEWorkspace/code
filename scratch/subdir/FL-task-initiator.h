@@ -21,7 +21,7 @@ namespace ns3{
 
 enum CommunicationType {
   NEWTASK,
-  CONDIDATURE,
+  CANDIDATURE,
   SELECTION,
   MODEL
   //add the rest later

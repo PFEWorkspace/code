@@ -2,12 +2,14 @@
 #define AI_HELPER_H
 
 #include "ns3/ns3-ai-module.h"
+#include "Blockchain.h"
 
 
 namespace ns3 {
 const int numMaxNodes = 100;
 const int numMaxTrainers = 50;
 const int numMaxAggregators = 20;
+const int numMaxBCNodes = 30;
 
     struct MLModel{
         int modelId; // used to access the model on the file directly
@@ -45,6 +47,13 @@ const int numMaxAggregators = 20;
         bool dropout; // true if the node will be droping out of its task
     } Packed;
 
+     struct BCNodeStruct
+    {
+        int nodeId;
+        int task; 
+
+    } Packed;
+
     struct AiHelperEnv
     {
         int type; //1: initialisation, 2:selection, 3:train, 4:evaluation, 5:aggregation
@@ -66,6 +75,8 @@ const int numMaxAggregators = 20;
         MLModelRefrence localModels[numMaxTrainers]; // list of the refrences of the local models generated after a training task, just the refrence cus after the training no need to know all the info about the model, they will be filled automaticaly from c++ side and the next task is directly afecting it to evaluation
         int selectedTrainers[numMaxTrainers]; // list of selected nodes for the training task
         int selectedAggregators[numMaxAggregators]; // list of the selected nodes for the evaluation and aggregation task
+        int numTrainers;
+        int numAggregators;
     } Packed;
 
     class AiHelper: public Ns3AIRL<AiHelperEnv, AiHelperAct> 
@@ -75,7 +86,7 @@ const int numMaxAggregators = 20;
         AiHelper();
         
         MLModelRefrence initializeFL(FLNodeStruct *nodes, int& numNodes);
-
+        void ExactSelection () ;
         MLModel train(int nodeid, int globalModel);
 
 

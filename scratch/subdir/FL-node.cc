@@ -226,7 +226,7 @@ void FLNode::Condidater(Ipv4Address adr) {
   rapidjson::Document d;
   rapidjson::Value value;
   d.SetObject();
-  enum CommunicationType msg = CONDIDATURE;
+  enum CommunicationType msg = CANDIDATURE;
   value = msg;
   d.AddMember("message_type", value, d.GetAllocator());
   value = id ;
