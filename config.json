@@ -24,7 +24,8 @@
         "target_accuracy": 0.999,
         "epochs": 5,
         "batch_size": 10,
-        "x" : 3
+        "x" : 3,
+        "alpha":0.7
     },
     "model": {
         "name": "MNIST",

@@ -17,7 +17,7 @@ class FLManager(object):
 
     def setUp(self, nodesList):
         logging.info('setting up nodes, datasets and initial model for a new FL task')    
-        
+        self.round = 0 
         models_path = self.config.paths.FLmodels
         self.modelsFileManager = CSVFileManager(models_path, MLModel._fields_)
         initial_model = MLModel(
@@ -88,14 +88,33 @@ class FLManager(object):
         self.nodes = nodes
 
     def set_node_data(self, node):
-        if self.config.data.partition.get('size'):
-            partition_size = self.config.data.partition.get('size')
-        elif self.config.data.partition.get('range'):
-            start, stop = self.config.data.partition.get('range')
-            partition_size = random.randint(start, stop)   
+        # if self.config.data.partition.get('size'):
+        #     partition_size = self.config.data.partition.get('size')
+        # elif self.config.data.partition.get('range'):
+        #     start, stop = self.config.data.partition.get('range')
+        #     partition_size = random.randint(start, stop)   
         
-        data = self.loader.get_partition(partition_size)
+        data = self.loader.get_partition(node.node.dataset_size)
         node.set_data(data, self.config)
+
+    def start_round(self, selectedTrainers):
+        rounds = self.config.fl.rounds
+        logging.info('**** Round {}/{} ****'.format(self.round, rounds))
+
+        #configuration
+        loading = self.config.data.loading
+        localmodels = []
+        for i in selectedTrainers:
+            if not self.nodes[i].node.dropout :    
+                if loading == 'dynamic' and self.round > 0 :
+                    self.set_node_data(self.nodes[i])
+                self.nodes[i].configure(self.config)
+                localmodels.append((self.nodes[i].train(self.round, self.modelsFileManager)).get_refrence())
+        return localmodels        
+            
+        
+
+
 
     @staticmethod
     def flatten_weights(weights):

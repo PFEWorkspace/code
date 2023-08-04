@@ -40,6 +40,9 @@ class MLModel(ctypes.Structure):
         ("accuracy", ctypes.c_double)
     ]
 
+    def get_refrence(self):
+        return MLModelRefrence(modelId= self.modelId, nodeId=self.nodeId, taskId=self.taskId, round=self.round)
+
 class MLModelRefrence(ctypes.Structure):
     _pack_ = 1
     _fields_ = [
@@ -113,6 +116,23 @@ class AiHelperContainer:
         self.rl = Ns3AIRL(uid, AiHelperEnv, AiHelperAct)
         pass
 
+    def exactSelection(self, act):
+        alpha = config.fl.alpha # to add to config file 
+        node_scores = [(i, alpha * node.honesty - (1 - alpha) * node.get_cost(node, config.model.size)) for i, node in enumerate(self.nodes)]
+        sorted_indexes = np.argsort([score for _, score in node_scores])[::-1]
+       
+        act.selectedAggregators= sorted_indexes[0:config.nodes.aggregators_per_round]
+        act.selectedTrainers= sorted_indexes[config.nodes.aggregators_per_round : config.nodes.aggregators_per_round+config.nodes.participants_per_round]
+        act.numAggregators = config.nodes.aggregators_per_round
+        act.numTrainers = config.nodes.participants_per_round
+
+    def DRLSelection(self, act):
+        pass
+
+    def hybridSelection(self, act):
+        pass
+
+
     def do(self, env:AiHelperEnv, act:AiHelperAct, config) -> AiHelperAct:
         FL_manager = fl.FLManager(config)
         if env.type == 0x01: # initialization of clients and initial model
@@ -123,19 +143,23 @@ class AiHelperContainer:
             self.nodes = nodesinfo
             self.numNodes = env.numNodes
             act.model = MLModel(modelId=m.modelId,nodeId=m.nodeId,taskId=m.taskId,round=m.round)
-            # create the fl nodes and distribute data             
-        if env.type == 0x02 : # exact method selection
+                       
+        if env.type == 0x02 : # selection
             print('select trainers and aggregators')
-            # Example values
-            alpha = 0.7 # to add to config file 
-           
-            node_scores = [(i, alpha * node.honesty - (1 - alpha) * node.get_cost(node, config.model.size)) for i, node in enumerate(self.nodes)]
-            sorted_indexes = np.argsort([score for _, score in node_scores])[::-1]
-            print ("Sorted Indexes:",sorted_indexes)
-            act.selectedAggregators= sorted_indexes[0:config.nodes.aggregators_per_round]
-            act.selectedTrainers= sorted_indexes[config.nodes.aggregators_per_round : config.nodes.aggregators_per_round+config.nodes.participants_per_round]
-            act.numAggregators = config.nodes.aggregators_per_round
-            act.numTrainers = config.nodes.participants_per_round
+            if config.nodes.selection == "score" :
+                self.exactSelection(act)
+            elif config.nodes.selection == "DRL":
+                self.DRLSelection(act)
+            else : # "hybrid" 
+                self.hybridSelection(act)
+
+            self.selectedAggregators = act.selectedAggregators
+            self.selectedTrainers = act.selectedTrainers
+
+        if env.type == 0x03 : #training
+            lm = FL_manager.start_round(self.selectedTrainers)
+            act.numLocalModels = len(lm)
+            act.localModels = lm
         return act
 
 if __name__ == '__main__':

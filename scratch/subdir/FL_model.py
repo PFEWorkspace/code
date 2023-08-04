@@ -19,7 +19,7 @@ import utils.dists as dists
 # rou = 1
 # loss_thres = 0.001
 
-
+device = torch.device('cpu')
 
 class Arguments():
     def __init__(self, config=False):
@@ -191,17 +191,20 @@ def flatten_weights(weights):
     return np.array(weight_vecs)
 
 def train(model, trainloader, optimizer, epochs, config):
+    
     args = Arguments(config)
-    criterion = nn.CrossEntropyLoss()
+    model.to(device)
+    model.train()
+    criterion = nn.CrossEntropyLoss().to(device)
     
     for epoch in range(1, epochs + 1):
         for batch_id, (image, label) in enumerate(trainloader):
-            # image, label = image.to(device), label.to(device)
-            image = image.reshape(-1,28*28)
-    
+            image, label = image.to(device), label.to(device)
+            # image = image.reshape(-1,28*28)
+            optimizer.zero_grad()
             output = model(image)
             loss = criterion(output, label)
-            optimizer.zero_grad()
+            
             loss.backward()
             optimizer.step()
             if batch_id % args.log_interval == 0:
@@ -214,4 +217,25 @@ def train(model, trainloader, optimizer, epochs, config):
     
     logging.info('loss: {}'.format(loss.item()))
     return loss.item()
+
+def test(model, testloader):
+    model.to(torch.device('cpu'))
+    model.eval()
+    test_loss = 0
+    correct = 0
+    total = len(testloader.dataset)
+    with torch.no_grad():
+        for image, label in testloader:
+            image, label = image.to(device), label.to(device)
+            output = model(image)
+            # sum up batch loss
+            test_loss += F.nll_loss(output, label, reduction='sum').item()
+            # get the index of the max log-probability
+            pred = output.argmax(dim=1, keepdim=True)
+            correct += pred.eq(label.view_as(pred)).sum().item()
+
+    accuracy = correct / total
+    logging.debug('Accuracy: {:.2f}%'.format(100 * accuracy))
+
+    return accuracy
 

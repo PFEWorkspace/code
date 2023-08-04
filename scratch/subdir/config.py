@@ -42,8 +42,8 @@ class Config(object):
         #     self.loader = 'shard'
 
         # -- Federated learning --
-        fields = ['rounds', 'target_accuracy', 'epochs', 'batch_size', "x"]
-        defaults = (0, None, 'train', 0, 0)
+        fields = ['rounds', 'target_accuracy', 'epochs', 'batch_size', 'x', 'alpha']
+        defaults = (0, None, 'train', 0, 0, 0.7)
         params = [config['federated_learning'].get(field, defaults[i])
                   for i, field in enumerate(fields)]
         self.fl = namedtuple('fl', fields)(*params)
