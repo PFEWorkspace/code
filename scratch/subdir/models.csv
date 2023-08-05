@@ -5,3 +5,5 @@ modelId,nodeId,taskId,round,type,positiveVote,negativeVote,evaluator1,evaluator2
 4,-1,4,0,2,0,0,-1,-1,-1,true,0,0.0
 5,-1,5,0,2,0,0,-1,-1,-1,true,0,0.0
 6,-1,6,0,2,0,0,-1,-1,-1,true,0,0.0
+7,-1,7,0,3,0,0,-1,-1,-1,true,0,0.0
+8,-1,8,0,3,0,0,-1,-1,-1,true,0,0.0

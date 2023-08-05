@@ -94,7 +94,7 @@ class FLManager(object):
         #     start, stop = self.config.data.partition.get('range')
         #     partition_size = random.randint(start, stop)   
         
-        data = self.loader.get_partition(node.node.dataset_size)
+        data = self.loader.get_partition(node.node.datasetSize)
         node.set_data(data, self.config)
 
     def start_round(self, selectedTrainers):
