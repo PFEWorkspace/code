@@ -26,6 +26,12 @@ enum Task{
   EVALUATE
 };
 
+enum MODELTYPE{
+  LOCAL,
+  INTERMEDIAIRE,
+  GLOBAL
+};
+
 
 class FLNode : public Application
 {
@@ -65,6 +71,8 @@ class FLNode : public Application
   void SetHonesty(double honesty);
   double GetHonesty() const;
 
+  
+
   void Init(FLNodeStruct n);
   void ResetRound();
   protected:
@@ -76,9 +84,8 @@ class FLNode : public Application
     void Receive(Ptr<Socket> socket);
     void Send(Ipv4Address adrs, rapidjson::Document &d);
     void Candidater();
-    void Train(int globalModelId);
-    void SendModel();
-
+    void Train();
+   
 
     Ptr<Socket> m_socket; // Receiving socket
     uint32_t m_port{8833};   // Listening port
@@ -92,7 +99,7 @@ class FLNode : public Application
     double honesty; // the honesty score of the node
     double dropout ; // if he's going to dropout or not 
     double malicious ; // if he's going to alter his results or not
- 
+  
 };
 
 }

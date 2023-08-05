@@ -9,7 +9,8 @@
 namespace ns3{
 
 NS_LOG_COMPONENT_DEFINE ("AiHelper");
-  const uint16_t m_ns3ai_id = 2333;
+AiHelper* AiHelper::instance = nullptr;
+const uint16_t m_ns3ai_id = 2333;
 // GlobalValue gNS3AIRLUID (
 //   "NS3AIRLUID", 
 //   "UID of Ns3AIRL",
@@ -24,17 +25,10 @@ NS_LOG_COMPONENT_DEFINE ("AiHelper");
 // }
                         
 AiHelper::AiHelper(): Ns3AIRL<AiHelperEnv, AiHelperAct> (m_ns3ai_id)
-{
-    NS_LOG_FUNCTION_NOARGS();
-
-    // UintegerValue uv;
-    // gNS3AIRLUID.GetValue (uv);
-    // m_ns3ai_id = uv.Get ();
-    // NS_LOG_UNCOND("m_ns3ai_id " << m_ns3ai_id);
-
-    // m_ns3ai_mod = new Ns3AIRL<AiHelperEnv, AiHelperAct> (m_ns3ai_id);
+{ 
     SetCond (2, 0);
-    
+    SetTraining(false);
+    numLocalModels = 0 ;
     NS_LOG_FUNCTION_NOARGS();
 }
 
@@ -75,50 +69,67 @@ AiHelper::initializeFL(FLNodeStruct *nodes, int& numNodes){
     return initialModel ;
 }
 
-void AiHelper::ExactSelection () 
+void AiHelper::Selection () 
 {
- NS_LOG_FUNCTION_NOARGS();
-    
+    NS_LOG_FUNCTION_NOARGS();
+     Blockchain* bc = Blockchain::getInstance() ; 
     //set input
     auto env = EnvSetterCond();
     env->type = 0x02; 
-    // env->numNodes = numNodes ;
-
-    // for(int i=0; i<numNodes; i++){env->nodes[i] = nodes[i];}
+    env->numNodes = bc->getNumFLNodes();
+    for(int i=0; i<bc->getNumFLNodes(); i++){env->nodes[i] = bc->GetNodeInfo(i);}
     SetCompleted();
     NS_LOG_INFO("Version: " << (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id)); // to get the momory version
 
     //get output
     auto act = ActionGetter();
     NS_LOG_INFO("Version: " << (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id));
-    Blockchain* bc = Blockchain::getInstance() ; 
     bc->SetAggregators(act->selectedAggregators, act->numAggregators);
     bc->SetTrainers(act->selectedTrainers, act->numTrainers);
     GetCompleted();
-   // NS_LOG_INFO("from python "<< initialModel.modelId );
 }
 
 
 MLModel
-AiHelper::train(int nodeid, int globalModel){
-    NS_LOG_FUNCTION_NOARGS();
+AiHelper::train(int nodeid){
+    NS_LOG_FUNCTION_NOARGS();    
+    while(GetTraining()){ // the python side is training under anather node's request
+        // while training wait till it finish
+    }
+    // the python side is not training
+    if(numLocalModels==0){ //first time calling train
+        // launch training in pythonside
+        SetTraining(true);
+        auto env = EnvSetterCond();
+        env->type = 0x03;  
+        SetCompleted();
+        NS_LOG_INFO("Version: " << (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id)); // to get the momory version
+
+        //get output
+        auto act = ActionGetter();
+        NS_LOG_INFO("Version: " << (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id));
+        numLocalModels = act->numLocalModels;
+        for(int i=0;i<numLocalModels;i++){localModels[i] = act->localModels[i];}
+        GetCompleted();
+           
+    }
+    //training is done and models are saved in localmodels
+    //return the corresponding mlmodel
     
-    //set input
-    auto env = EnvSetterCond();
-    env->type = 0x02; 
-    env->nodeId = nodeid;
-    // env->modelId = globalModel;
-    SetCompleted();
-    NS_LOG_INFO("Version: " << (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id)); // to get the momory version
-
-    //get output
-    auto act = ActionGetter();
-    NS_LOG_INFO("Version: " << (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id));
-    MLModel model = act->model;
-    GetCompleted();
-    NS_LOG_INFO("from python "<< model.modelId );
-   
-    return model ;
+    return GetLocalModel(nodeid);
 }
-
+MLModel
+AiHelper::GetLocalModel(int nodeid){
+    MLModel model= MLModel();
+    int i=0;
+    while(i<numLocalModels){
+        if(localModels[i].nodeId == nodeid){
+            model=localModels[i];
+            break;
+        }
+        i++;
+    }
+    
+    return model;
+}
 }

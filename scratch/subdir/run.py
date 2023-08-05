@@ -102,7 +102,7 @@ class AiHelperAct(ctypes.Structure):
     _fields_ = [
         ("model", MLModel),
         ("numLocalModels", ctypes.c_int),
-        ("localModels", MLModelRefrence * numMaxTrainers),
+        ("localModels", MLModel * numMaxTrainers),
         ("selectedTrainers", ctypes.c_int * numMaxTrainers),
         ("selectedAggregators", ctypes.c_int * numMaxAggregators),
         ("numTrainers", ctypes.c_int),
@@ -118,7 +118,11 @@ class AiHelperContainer:
 
     def exactSelection(self, act):
         alpha = config.fl.alpha # to add to config file 
-        node_scores = [(i, alpha * node.honesty - (1 - alpha) * node.get_cost(node, config.model.size)) for i, node in enumerate(self.nodes)]
+        available_nodes = []
+        for node in self.nodes:
+            if node.availability : 
+                available_nodes.append(node)
+        node_scores = [(i, alpha * node.honesty - (1 - alpha) * node.get_cost(node, config.model.size)) for i, node in enumerate(self.available_nodes)]
         sorted_indexes = np.argsort([score for _, score in node_scores])[::-1]
        
         act.selectedAggregators= sorted_indexes[0:config.nodes.aggregators_per_round]
@@ -157,9 +161,11 @@ class AiHelperContainer:
             self.selectedTrainers = act.selectedTrainers
 
         if env.type == 0x03 : #training
+            print('local training')
             lm = FL_manager.start_round(self.selectedTrainers)
             act.numLocalModels = len(lm)
             act.localModels = lm
+            print(str(lm))
         return act
 
 if __name__ == '__main__':
@@ -179,7 +185,7 @@ if __name__ == '__main__':
     };
 
     mempool_key = 1132
-    mem_size = 1024 * 2 * 2 * 2 * 2
+    mem_size = 1024 * 2 * 2 * 2 * 2 * 2
     exp = Experiment(mempool_key, mem_size, 'main', '../../', using_waf=False)
     exp.reset()
     try:

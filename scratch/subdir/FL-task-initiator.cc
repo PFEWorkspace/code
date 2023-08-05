@@ -75,8 +75,8 @@ Initiator::StartApplication()
    Info.AddMember("message_type", value, Info.GetAllocator());
 
     //initialize model and task fl in python side
-    ns3::AiHelper aihelper = AiHelper();
-    MLModelRefrence model = aihelper.initializeFL(m_nodesInfo, m_numNodes);
+    AiHelper* ai = AiHelper::getInstance();
+    MLModelRefrence model = ai->initializeFL(m_nodesInfo, m_numNodes);
     NS_LOG_INFO("task id " << model.taskId);
     value = model.taskId;
     Info.AddMember("task_id", value, Info.GetAllocator());
@@ -96,7 +96,7 @@ Initiator::StartApplication()
     rapidjson::StringBuffer packetInfo;
     rapidjson::Writer<rapidjson::StringBuffer> writer(packetInfo);
     Info.Accept(writer);
-    NS_LOG_INFO(packetInfo.GetString());
+    // NS_LOG_INFO(packetInfo.GetString());
 
     Ptr<SocketFactory> socketFactory = GetNode()->GetObject<SocketFactory>(UdpSocketFactory::GetTypeId());
     m_socket = socketFactory->CreateSocket();

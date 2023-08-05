@@ -67,11 +67,11 @@ void BCNode::Receive(Ptr<Socket> socket) {
   
     while ((packet = socket->RecvFrom(from)))
     {
-        char *packetInfo = new char[packet->GetSize () ];
+        unsigned char *packetInfo = new unsigned char[packet->GetSize()];
        
         if (InetSocketAddress::IsMatchingType(from))
         {
-            packet->CopyData(reinterpret_cast<uint8_t*>(packetInfo), packet->GetSize ());
+            packet->CopyData(packetInfo, packet->GetSize ());
             NS_LOG_INFO("I'm a bc node id: "<< GetNode()->GetId() << " received " << packet->GetSize() << " bytes from "
                                     << InetSocketAddress::ConvertFrom(from).GetIpv4()
                                     << " content: "<< packetInfo) ;
@@ -88,11 +88,11 @@ void BCNode::Receive(Ptr<Socket> socket) {
                       break;
                     case CANDIDATURE : 
                      // receive les candidatures and treat them
-
+                    TreatCandidature(d);
                      // teste ida got all les candidatures ou time passed ou
                       
-                    //   AiHelper aiH = AiHelper () ; 
-                    //   aiH.ExactSelection();
+                    //   AiHelper* ai = AiHelper::getInstance();
+                    //   ai.ExactSelection();
 
                       //print blockchainaggregators 
                       // step get the addresses from blockchain list of node 
@@ -100,6 +100,9 @@ void BCNode::Receive(Ptr<Socket> socket) {
 
                         break;
                     case MODEL : //MODEL
+                    NS_LOG_INFO("I'm a bc node id: "<< GetNode()->GetId() << " received " << packet->GetSize() << " bytes from "
+                                    << InetSocketAddress::ConvertFrom(from).GetIpv4()
+                                    << " content: "<< packetInfo) ;
                     break ;
                     case EVALUATE : // EVALUATE
                     break; 
@@ -153,6 +156,69 @@ void BCNode::SendTo( rapidjson::Document &d, std::vector<Ipv4Address> &addresses
 
 void BCNode :: WriteTransaction (){
 
+}
+
+FLNodeStruct 
+BCNode::docToFLNodeStruct(rapidjson::Document &d){
+    FLNodeStruct node = FLNodeStruct();
+    if(d.HasMember("nodeId") && d["nodeId"].IsInt()){
+        node.nodeId = d["nodeId"].GetInt();
+    }
+    if(d.HasMember("availability") && d["availability"].IsBool()){
+        node.availability = d["availability"].GetBool();
+    }
+    if(d.HasMember("honesty") && d["honesty"].IsDouble()){
+        node.honesty = d["honesty"].GetDouble();
+    }
+    if(d.HasMember("datasetSize")&& d["datasetSize"].IsInt()){
+        node.datasetSize = d["datasetSize"].GetInt();
+    }
+    if(d.HasMember("freq") && d["freq"].IsInt()){
+        node.freq = d["freq"].GetInt();
+    }
+    if(d.HasMember("transRate") && d["transRate"].IsInt()){
+        node.transRate = d["transRate"].GetInt();
+    }
+    if(d.HasMember("task") && d["task"].IsInt()){
+        node.task = d["task"].GetInt();
+    }
+    return node;
+}
+
+void
+BCNode::TreatCandidature(rapidjson::Document &d){
+    
+    Blockchain* bc = Blockchain::getInstance();
+    //save the candidature in the blockchain
+    bc->SetNodeInfo(bc->GetReceivedCandidatures(), docToFLNodeStruct(d));
+    bc->IncReceivedCandidatures(); 
+    NS_LOG_INFO("bc node "<< GetNode()->GetId() << " received a candidature number " << bc->GetReceivedCandidatures());
+    if(bc->GetReceivedCandidatures()==bc->getNumFLNodes()) //received all candidatur
+    {
+       //selecting nodes
+       NS_LOG_INFO("bc node "<< GetNode() << " starting the selection");
+        AiHelper* ai = AiHelper::getInstance();
+        ai->Selection(); //the selected nodes are set in the bc
+
+        // write the selection message 
+        rapidjson::Document d;
+        rapidjson::Value value;
+        d.SetObject(); 
+        value = SELECTION;
+        d.AddMember("message_type", value, d.GetAllocator());
+        value = TRAIN;
+        d.AddMember("task", value, d.GetAllocator());
+
+        // get selected nodes addresses
+        std::vector<Ipv4Address> adrs;
+        int numSelectedTrainers = bc->getNumTrainers();
+        for(int i=0; i < numSelectedTrainers; i++){
+            adrs[i] = bc->getFLAddress( bc->getTrainer(i));
+        } 
+        //sending the message to all selected trainers
+        SendTo(d,adrs);
+    }    
+        
 }
 
 }

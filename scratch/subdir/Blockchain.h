@@ -27,6 +27,7 @@ class Blockchain {
     int numBCNodes;
     int numAggregators;
     int numTrainers;
+    int receivedCandidatures;
     int modelToEval[numMaxNodes];
     int modelToAgreg[numMaxNodes];
     BCNodeStruct notBusyNodes[numMaxBCNodes];
@@ -36,10 +37,12 @@ class Blockchain {
     int aggregators[numMaxAggregators];
     int trainers[numMaxTrainers];
     Ptr<UniformRandomVariable> randomBCAdrsStream;
+    
 
     // Private constructor and destructor to ensure singleton.
     Blockchain(){
         // Initialize 
+        receivedCandidatures = 0 ;
         for (int i = 0; i < numMaxNodes; ++i) {
             modelToEval[i] = 0;
             modelToAgreg[i] = 0;
@@ -52,9 +55,6 @@ class Blockchain {
         }
     }
 
-   
-
-   
 
     // Private methods
     void SaveBlockchainToFile();
@@ -130,7 +130,8 @@ public:
         }
     }
 
-  
+    void IncReceivedCandidatures(){receivedCandidatures++;}
+    int GetReceivedCandidatures(){return receivedCandidatures;}
 
     // Setters
     void setNumFLNodes(int value) {
@@ -150,6 +151,8 @@ public:
     }
 
     // Getters
+    int getTrainer(int index){return trainers[index];}
+    int getAggregator(int index){return aggregators[index];}
     
     int getNumFLNodes() const {
         return numFLNodes;
@@ -202,7 +205,6 @@ public:
         }
         // Return a default or placeholder FLNodeStruct
     }
-
 
 };
 

@@ -111,11 +111,7 @@ class FLManager(object):
                 self.nodes[i].configure(self.config)
                 localmodels.append((self.nodes[i].train(self.round, self.modelsFileManager)).get_refrence())
         return localmodels        
-            
-        
-
-
-
+ 
     @staticmethod
     def flatten_weights(weights):
         # Flatten weights into vectors

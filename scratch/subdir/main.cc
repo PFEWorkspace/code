@@ -61,7 +61,7 @@ main(int argc, char* argv[])
     double zPosMin = 0;
     double zPosMax = 0;
 
-    bool tracing= false;
+    bool tracing= true;
 
 
 

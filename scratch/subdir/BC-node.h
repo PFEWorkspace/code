@@ -12,6 +12,8 @@
 #include "FL-node.h"
 #include "FL-task-initiator.h"
 
+#include <vector>
+
 namespace ns3{
 
 
@@ -47,8 +49,11 @@ class BCNode : public Application
     void Receive(Ptr<Socket> socket);
     void Send(rapidjson::Document& d);
     void SendTo( rapidjson::Document &d, std::vector<Ipv4Address> &addresses);
-
+    void TreatCandidature(rapidjson::Document &d);
+    
     void WriteTransaction();
+
+    FLNodeStruct docToFLNodeStruct(rapidjson::Document &d);
 
     Ptr<Socket> m_socket; // Receiving socket
     uint32_t m_port{8833};   // Listening port
