@@ -17,15 +17,15 @@ class Config(object):
         config = self.config
 
         # -- nodes --
-        fields = ['total', 'participants_per_round', 'aggregators_per_round', 'test_partition', 'selection', 'source']
-        defaults = (0,0,0, 0.2, 'score', 'generated_nodes.csv')
+        fields = ['total', 'participants_per_round', 'aggregators_per_round', 'bc', 'test_partition', 'selection', 'source']
+        defaults = (0,0,0,0, 0.2, 'score', 'generated_nodes.csv')
         params = [config['nodes'].get(field, defaults[i])
                   for i, field in enumerate(fields)]
         self.nodes = namedtuple('nodes', fields)(*params)
 
         # -- Data --
-        fields = ['loading', 'partition']
-        defaults = ('static', 0)
+        fields = ['loading','IID', 'partition']
+        defaults = ('static','true', 0)
         params = [config['data'].get(field, defaults[i])
                   for i, field in enumerate(fields)]
         self.data = namedtuple('data', fields)(*params)
@@ -42,8 +42,8 @@ class Config(object):
         #     self.loader = 'shard'
 
         # -- Federated learning --
-        fields = ['rounds', 'target_accuracy', 'epochs', 'batch_size']
-        defaults = (0, None, 'train', 0, 0)
+        fields = ['rounds', 'target_accuracy', 'epochs', 'batch_size', 'x', 'alpha']
+        defaults = (0, None, 'train', 0, 0, 0.7)
         params = [config['federated_learning'].get(field, defaults[i])
                   for i, field in enumerate(fields)]
         self.fl = namedtuple('fl', fields)(*params)
@@ -56,12 +56,12 @@ class Config(object):
         self.model = namedtuple('model', fields)(*params)
 
         # -- Paths --
-        fields = ['data', 'model', 'reports', 'plot']
-        defaults = ('./data', './models', None, './plots')
+        fields = ['data', 'model','FLmodels', 'reports', 'plot']
+        defaults = ('./data', './models', './models.csv', None, './plots')
         params = [config['paths'].get(field, defaults[i])
                   for i, field in enumerate(fields)]
-        # Set specific model path
-        params[fields.index('model')] += '/' + self.model.name
+        # # Set specific model path
+        # params[fields.index('model')] += '/' + self.model.name
 
         self.paths = namedtuple('paths', fields)(*params)
 

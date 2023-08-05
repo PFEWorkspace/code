@@ -51,6 +51,13 @@ uint32_t FLNode::GetPort() const {
   return m_port;
 }
 
+void FLNode::SetTask(enum Task t){
+  task = t ;
+}
+Task FLNode::GetTask() const{
+  return task ;
+}
+
 void FLNode::SetDestAddress(Ipv4Address address) {
   m_destAddr = address;
 }
@@ -59,11 +66,11 @@ Ipv4Address FLNode::GetDestAddress() const {
   return m_destAddr;
 }
 
-void FLNode::SetDatasetSize(uint32_t size) {
+void FLNode::SetDatasetSize(int size) {
   dataset_size = size;
 }
 
-uint32_t FLNode::GetDatasetSize() const {
+int FLNode::GetDatasetSize() const {
   return dataset_size;
 }
 
@@ -107,6 +114,23 @@ double FLNode::GetHonesty() const {
   return honesty;
 }
 
+void FLNode::Init(FLNodeStruct n){
+  id = n.nodeId ;
+  availability = n.availability ;
+  honesty = n.honesty ;
+  dataset_size = n.datasetSize;
+  freq = n.freq;
+  trans_rate = n.transRate ;
+  task = Task(n.task);
+  dropout = n.dropout ;
+ 
+  // malicious = n.malicious;
+}
+
+void FLNode::ResetRound(){
+
+}
+
 void FLNode::DoDispose() {
    NS_LOG_FUNCTION_NOARGS();
     m_socket = nullptr;
@@ -116,10 +140,10 @@ void FLNode::DoDispose() {
 
 void FLNode::StartApplication() {
   NS_LOG_FUNCTION_NOARGS();
+  // NS_LOG_DEBUG("starting app");
 
     if (!m_socket)
     {
-     
         Ptr<SocketFactory> socketFactory =
             GetNode()->GetObject<SocketFactory>(UdpSocketFactory::GetTypeId());
         m_socket = socketFactory->CreateSocket();
@@ -138,32 +162,41 @@ void FLNode::Receive(Ptr<Socket> socket) {
     
     Ptr<Packet> packet;
     Address from;
-  
+ 
     while ((packet = socket->RecvFrom(from)))
     {
-        char *packetInfo = new char[packet->GetSize () + 1];
+        unsigned char *packetInfo = new unsigned char[packet->GetSize()];
        
         if (InetSocketAddress::IsMatchingType(from))
         {
-            packet->CopyData (reinterpret_cast<uint8_t*>(packetInfo), packet->GetSize ());
-            // NS_LOG_INFO("I'm "<< GetNode()->GetId() << "received " << packet->GetSize() << " bytes from "
-            //                         << InetSocketAddress::ConvertFrom(from).GetIpv4()
-            //                         << " content: "<< packetInfo) ;
-            std::string data = packetInfo ; 
+            packet->CopyData(packetInfo, packet->GetSize () );
+            NS_LOG_DEBUG("i'am "<< GetNode()->GetId() << " and i received a packet");
+            NS_LOG_DEBUG("I'm "<< GetNode()->GetId() << "received " << packet->GetSize() << " bytes from "
+                                    << InetSocketAddress::ConvertFrom(from).GetIpv4()
+                                    << " content: "<< packetInfo) ;
+
+            std::string data(reinterpret_cast<char*>(packetInfo), packet->GetSize()) ; 
             rapidjson::Document d;
            
             if(ParseJSON(data,d)){
                 if(d.HasMember("message_type") && d["message_type"].IsInt()){
                     switch (d["message_type"].GetInt())
                     {
-                    case NEWTASK: 
+                      case NEWTASK: 
                         /* 
                             newtask is the message sent by the initializer to declare a new task
                             as a response the FL nodes will send their condidature to the blockchain
                          */
-                        Condidater();
+                        // Candidater(InetSocketAddress::ConvertFrom(from).GetIpv4());
+                       Candidater();
                         break;
-                    
+                    case SELECTION :
+                         if(d.HasMember("task") && d["task"].IsInt()){
+                            SetTask(Task(d["task"].GetInt()));
+                            if(GetTask() == TRAIN) {
+                              Train();
+                            } // the else being aggregate or evaluate
+                         }
                     default:
                         break;
                     }
@@ -174,7 +207,7 @@ void FLNode::Receive(Ptr<Socket> socket) {
     }
 }
 
-void FLNode::Send(rapidjson::Document &d) {
+void FLNode::Send(Ipv4Address adrs, rapidjson::Document &d) {
  
  if (!m_socket){
     Ptr<SocketFactory> socketFactory = GetNode()->GetObject<SocketFactory>(UdpSocketFactory::GetTypeId());
@@ -185,42 +218,85 @@ void FLNode::Send(rapidjson::Document &d) {
     rapidjson::Writer<rapidjson::StringBuffer> writer(packetInfo);
     d.Accept(writer);
 
-    Ptr<Packet> packet = Create<Packet>(reinterpret_cast<const uint8_t*>(packetInfo.GetString()),packetInfo.GetSize());
-    m_socket->SendTo(packet,0,InetSocketAddress(m_destAddr, m_port));
+    // Ptr<Packet> packet = Create<Packet>(reinterpret_cast<const uint8_t*>(packetInfo.GetString()),packetInfo.GetSize());
+    // int result = m_socket->SendTo(packet,0,InetSocketAddress(adrs, m_port));
+     m_socket->Connect(InetSocketAddress(adrs, m_port));
+    int result = m_socket->Send(reinterpret_cast<const uint8_t*>(packetInfo.GetString()),packetInfo.GetSize(),0);
+    // NS_LOG_DEBUG("sent "<< result << " " << packetInfo.GetString());
 }
 
-void FLNode::Condidater() {
- rapidjson::Document d;
- rapidjson::Value value;
- d.SetObject();
- enum CommunicationType msg = CONDIDATURE;
- value = msg;
- d.AddMember("message_type", value, d.GetAllocator());
-//  value = wantedTask ;
-//  d.AddMember("task", value, d.GetAllocator());
- value = dataset_size ; 
- d.AddMember("data_size", value, d.GetAllocator());
-//  value = beta ;
-//  d.AddMember("beta", value, d.GetAllocator());
+void FLNode::Candidater() {
+  Blockchain* bc = Blockchain::getInstance();
+  Ipv4Address adr = bc->getBCAddress();
+  NS_LOG_DEBUG("sending candidature to " << adr);
+  rapidjson::Document d;
+  rapidjson::Value value;
+  d.SetObject(); 
+  value = CANDIDATURE;
+  d.AddMember("message_type", value, d.GetAllocator());
+  value = id ;
+  d.AddMember("nodeId", value, d.GetAllocator());
+  value = dataset_size ; 
+  d.AddMember("datasetSize", value, d.GetAllocator());
+  value = task;
+  d.AddMember("task", value, d.GetAllocator()); // this task (before selection) is the previous assigned task: needed in the DRL selection 
   value = freq ;
- d.AddMember("frequence", value, d.GetAllocator());
+  d.AddMember("freq", value, d.GetAllocator());
   value = trans_rate ;
- d.AddMember("transmission_rate", value, d.GetAllocator());
+  d.AddMember("transRate", value, d.GetAllocator());
   value = availability ;
- d.AddMember("availability", value, d.GetAllocator());
+  d.AddMember("availability", value, d.GetAllocator());
   value = honesty ;
- d.AddMember("honesty", value, d.GetAllocator());
-
- Send(d);
+  d.AddMember("honesty", value, d.GetAllocator());
+  // value = dropout ; 
+  // d.AddMember("dropout", value, d.GetAllocator());
+  
+  Send(adr, d);
 }
 
 void FLNode::Train() {
-  // Train implementation
-}
+  AiHelper* ai = AiHelper::getInstance();
+  MLModel model = ai->train(id);
 
-void FLNode::SendModel() {
-  // SendModel implementation
-}
+  Blockchain* bc = Blockchain::getInstance();
+  Ipv4Address adr = bc->getBCAddress();
 
+  NS_LOG_DEBUG("I'am" << id << " sending model to " << adr);
+  rapidjson::Document d;
+  rapidjson::Value value;
+  d.SetObject(); 
+  value = MODEL;
+  d.AddMember("message_type", value, d.GetAllocator());
+  value = model.modelId ;
+  d.AddMember("modelId", value, d.GetAllocator());
+  value = model.nodeId;
+  d.AddMember("nodeId", value, d.GetAllocator());
+  value = model.taskId ;
+  d.AddMember("taskId", value, d.GetAllocator());
+  value = model.round ;
+  d.AddMember("round", value, d.GetAllocator());
+  value = model.type; //LOCAL 
+  d.AddMember("type", value, d.GetAllocator());
+  value = model.positiveVote;
+  d.AddMember("positiveVote", value, d.GetAllocator());
+  value = model.negativeVote ;
+  d.AddMember("negativeVote", value, d.GetAllocator());
+  value = model.evaluator1 ;
+  d.AddMember("evaluator1", value, d.GetAllocator());
+  value = model.evaluator2 ;
+  d.AddMember("evaluator2", value, d.GetAllocator());
+  value = model.evaluator3 ;
+  d.AddMember("evaluator3", value, d.GetAllocator());
+  value = model.aggregated ;
+  d.AddMember("aggregated", value, d.GetAllocator());
+  value = model.aggModelId ;
+  d.AddMember("aggModelId", value, d.GetAllocator());
+  value = model.accuracy ; 
+  d.AddMember("accuracy", value, d.GetAllocator());
+  
+
+  Send(adr, d);
+
+}
 
 }

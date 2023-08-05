@@ -100,6 +100,7 @@
 #include "ns3/uinteger.h"
 #include "ns3/yans-wifi-channel.h"
 #include "ns3/yans-wifi-helper.h"
+#include "ns3/netanim-module.h"
 
 using namespace ns3;
 
@@ -158,7 +159,7 @@ main(int argc, char* argv[])
     uint32_t sourceNode = 24;
     double interval = 1.0; // seconds
     bool verbose = false;
-    bool tracing = false;
+    bool tracing = true;
 
     CommandLine cmd(__FILE__);
     cmd.AddValue("phyMode", "Wifi Phy mode", phyMode);
@@ -270,7 +271,7 @@ main(int argc, char* argv[])
 
         // To do-- enable an IP-level trace that shows forwarding events only
     }
-
+    AnimationInterface anim("adhoc-grid.xml");
     // Give OLSR time to converge-- 30 seconds perhaps
     Simulator::Schedule(Seconds(30.0),
                         &GenerateTraffic,

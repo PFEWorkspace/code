@@ -3,13 +3,18 @@ import argparse
 import logging
 import numpy as np
 from py_interface import *
-
+import FL_tasks as fl
+import numpy as np
 import config
 
 
 numMaxNodes = 100 
 numMaxTrainers = 50  
 numMaxAggregators = 20
+<<<<<<< HEAD
+=======
+numMaxBCNodes = 30
+>>>>>>> FL2
 modelSize = 120
 
 # Set up parser
@@ -38,6 +43,9 @@ class MLModel(ctypes.Structure):
         ("aggModelId", ctypes.c_int),
         ("accuracy", ctypes.c_double)
     ]
+
+    def get_refrence(self):
+        return MLModelRefrence(modelId= self.modelId, nodeId=self.nodeId, taskId=self.taskId, round=self.round)
 
 class MLModelRefrence(ctypes.Structure):
     _pack_ = 1
@@ -71,11 +79,31 @@ class FLNodeStruct(ctypes.Structure):
     def get_cost(self, w):
         return self.learning_cost() + self.communication_cost(w)
 
+    def learning_cost(self):
+        c = self.datasetSize / self.freq 
+        return c
+
+    def communication_cost(self, m):
+        c = m / self.transRate  
+        return c
+
+    def get_cost(self, w):
+        return self.learning_cost() + self.communication_cost(w)
+
+class BCNodeStruct(ctypes.Structure):
+    _pack_ = 1
+    _fields_ = [
+        ("nodeId", ctypes.c_int),
+        ("task", ctypes.c_int),
+    ]
+
+
 class AiHelperEnv(ctypes.Structure):
     _pack_ = 1
     _fields_ = [
         ("type", ctypes.c_int),
         ("nodeId", ctypes.c_int),
+        # ("modelId", ctypes.c_int),
         ("numNodes", ctypes.c_int),
         ("numTrainers", ctypes.c_int),
         ("numAggregators", ctypes.c_int),
@@ -88,7 +116,7 @@ class AiHelperAct(ctypes.Structure):
     _fields_ = [
         ("model", MLModel),
         ("numLocalModels", ctypes.c_int),
-        ("localModels", MLModelRefrence * numMaxTrainers),
+        ("localModels", MLModel * numMaxTrainers),
         ("selectedTrainers", ctypes.c_int * numMaxTrainers),
         ("selectedAggregators", ctypes.c_int * numMaxAggregators),
         ("numTrainers", ctypes.c_int),
@@ -102,6 +130,7 @@ class AiHelperContainer:
         self.rl = Ns3AIRL(uid, AiHelperEnv, AiHelperAct)
         pass
 
+<<<<<<< HEAD
     def do(self, env:AiHelperEnv, act:AiHelperAct, config) -> AiHelperAct:
         if env.type == 0x01: # initialization of clients and initial model
             print("init fl task")
@@ -120,6 +149,58 @@ class AiHelperContainer:
             act.selectedTrainers= sorted_indexes[config.nodes.aggregators_per_round : config.nodes.aggregators_per_round+config.nodes.participants_per_round]
             act.numAggregators = config.nodes.aggregators_per_round
             act.numTrainers = config.nodes.participants_per_round
+=======
+    def exactSelection(self, act):
+        alpha = config.fl.alpha # to add to config file 
+        available_nodes = []
+        for node in self.nodes:
+            if node.availability : 
+                available_nodes.append(node)
+        node_scores = [(i, alpha * node.honesty - (1 - alpha) * node.get_cost(node, config.model.size)) for i, node in enumerate(self.available_nodes)]
+        sorted_indexes = np.argsort([score for _, score in node_scores])[::-1]
+       
+        act.selectedAggregators= sorted_indexes[0:config.nodes.aggregators_per_round]
+        act.selectedTrainers= sorted_indexes[config.nodes.aggregators_per_round : config.nodes.aggregators_per_round+config.nodes.participants_per_round]
+        act.numAggregators = config.nodes.aggregators_per_round
+        act.numTrainers = config.nodes.participants_per_round
+
+    def DRLSelection(self, act):
+        pass
+
+    def hybridSelection(self, act):
+        pass
+
+
+    def do(self, env:AiHelperEnv, act:AiHelperAct, config) -> AiHelperAct:
+        FL_manager = fl.FLManager(config)
+        if env.type == 0x01: # initialization of clients and initial model
+            print("init FL task")
+            nodesinfo = []
+            [nodesinfo.append(env.nodes[i]) for i in range(env.numNodes)]
+            m = FL_manager.setUp(nodesinfo)
+            self.nodes = nodesinfo
+            self.numNodes = env.numNodes
+            act.model = MLModel(modelId=m.modelId,nodeId=m.nodeId,taskId=m.taskId,round=m.round)
+                       
+        if env.type == 0x02 : # selection
+            print('select trainers and aggregators')
+            if config.nodes.selection == "score" :
+                self.exactSelection(act)
+            elif config.nodes.selection == "DRL":
+                self.DRLSelection(act)
+            else : # "hybrid" 
+                self.hybridSelection(act)
+
+            self.selectedAggregators = act.selectedAggregators
+            self.selectedTrainers = act.selectedTrainers
+
+        if env.type == 0x03 : #training
+            print('local training')
+            lm = FL_manager.start_round(self.selectedTrainers)
+            act.numLocalModels = len(lm)
+            act.localModels = lm
+            print(str(lm))
+>>>>>>> FL2
         return act
 
 if __name__ == '__main__':
@@ -133,11 +214,13 @@ if __name__ == '__main__':
         'aggregatorsPerRound' : fl_config.nodes.aggregators_per_round,
         'source' : fl_config.nodes.source,
         'flRounds' : fl_config.fl.rounds,
-        'targetAccuracy' : fl_config.fl.target_accuracy
+        'numBCNodes' : fl_config.nodes.bc,
+        'targetAccuracy' : fl_config.fl.target_accuracy,
+        'x' : fl_config.fl.x
     };
 
-    mempool_key = 1432
-    mem_size = 1024 * 2 * 2 * 2
+    mempool_key = 1132
+    mem_size = 1024 * 2 * 2 * 2 * 2 * 2
     exp = Experiment(mempool_key, mem_size, 'main', '../../', using_waf=False)
     exp.reset()
     try:
@@ -149,7 +232,7 @@ if __name__ == '__main__':
             with container.rl as data:
                 if data == None:
                     break
-                data.act = container.do(data.env , data.act)
+                data.act = container.do(data.env , data.act, fl_config)
                 pass            
         pro.wait()
     except Exception as e :

@@ -190,6 +190,7 @@ build_example(
     ${libinternet}
     ${libwifi}
     ${libolsr}
+    ${libnetanim}
 )
 
 build_example(

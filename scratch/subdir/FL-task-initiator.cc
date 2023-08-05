@@ -75,8 +75,8 @@ Initiator::StartApplication()
    Info.AddMember("message_type", value, Info.GetAllocator());
 
     //initialize model and task fl in python side
-    ns3::AiHelper aihelper = AiHelper();
-    MLModelRefrence model = aihelper.initializeFL(m_nodesInfo, m_numNodes);
+    AiHelper* ai = AiHelper::getInstance();
+    MLModelRefrence model = ai->initializeFL(m_nodesInfo, m_numNodes);
     NS_LOG_INFO("task id " << model.taskId);
     value = model.taskId;
     Info.AddMember("task_id", value, Info.GetAllocator());
@@ -96,14 +96,14 @@ Initiator::StartApplication()
     rapidjson::StringBuffer packetInfo;
     rapidjson::Writer<rapidjson::StringBuffer> writer(packetInfo);
     Info.Accept(writer);
-    NS_LOG_INFO(packetInfo.GetString());
+    // NS_LOG_INFO(packetInfo.GetString());
 
     Ptr<SocketFactory> socketFactory = GetNode()->GetObject<SocketFactory>(UdpSocketFactory::GetTypeId());
     m_socket = socketFactory->CreateSocket();
     m_socket->SetAllowBroadcast(true);
     m_socket->Bind();
-        // Ptr<Packet> packet = Create<Packet>(reinterpret_cast<const uint8_t*>(packetInfo.GetString()),packetInfo.GetSize());
-        // m_socket->SendTo(packet,0,InetSocketAddress(m_destAddr, m_destPort));
+    // Ptr<Packet> packet = Create<Packet>(reinterpret_cast<const uint8_t*>(packetInfo.GetString()),packetInfo.GetSize());
+    // m_socket->SendTo(packet,0,InetSocketAddress(m_destAddr, m_destPort));
     m_socket->Connect(InetSocketAddress(m_destAddr, m_destPort));
     int result = m_socket->Send(reinterpret_cast<const uint8_t*>(packetInfo.GetString()),packetInfo.GetSize(),0);
     NS_LOG_INFO("number of bytes sent " << result); 
@@ -227,7 +227,7 @@ Receiver::Receive(Ptr<Socket> socket)
   
     while ((packet = socket->RecvFrom(from)))
     {
-        char *packetInfo = new char[packet->GetSize () + 1];
+        char *packetInfo = new char[packet->GetSize () ];
        
         if (InetSocketAddress::IsMatchingType(from))
         {

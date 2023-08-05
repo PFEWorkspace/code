@@ -1,3 +1,9 @@
+<<<<<<< HEAD
+=======
+#ifndef BC_NODE_H
+#define BC_NODE_H
+
+>>>>>>> FL2
 #include "ns3/applications-module.h"
 #include"ns3/core-module.h"
 #include "ns3/network-module.h"
@@ -6,6 +12,7 @@
 #include "ns3/address-utils.h"
 #include "ns3/inet-socket-address.h"
 
+<<<<<<< HEAD
 // #include <torch/torch.h>
 #include <iostream>
 #include <fstream>
@@ -17,6 +24,12 @@
 #include "../../rapidjson/stringbuffer.h"
 
 #include "Blockchain.h"
+=======
+#include "FL-node.h"
+#include "FL-task-initiator.h"
+
+#include <vector>
+>>>>>>> FL2
 
 namespace ns3{
 
@@ -42,6 +55,7 @@ class BCNode : public Application
    void SetDestAddress(Ipv4Address address);
   Ipv4Address GetDestAddress() const;
 
+<<<<<<< HEAD
   void SetDatasetSize(uint32_t size);
   uint32_t GetDatasetSize() const;
 
@@ -59,6 +73,9 @@ class BCNode : public Application
 
   void SetHonesty(double honesty);
   double GetHonesty() const;
+=======
+
+>>>>>>> FL2
 
   protected:
     void DoDispose() override;
@@ -69,6 +86,7 @@ class BCNode : public Application
     void Receive(Ptr<Socket> socket);
     void Send(rapidjson::Document& d);
     void SendTo( rapidjson::Document &d, std::vector<Ipv4Address> &addresses);
+<<<<<<< HEAD
 
     void WriteTransaction();
 
@@ -87,3 +105,20 @@ class BCNode : public Application
 };
 
 }
+=======
+    void TreatCandidature(rapidjson::Document &d);
+    
+    void WriteTransaction();
+
+    FLNodeStruct docToFLNodeStruct(rapidjson::Document &d);
+
+    Ptr<Socket> m_socket; // Receiving socket
+    uint32_t m_port{8833};   // Listening port
+    Ipv4Address m_destAddr; // the destination address
+
+};
+
+}
+
+#endif
+>>>>>>> FL2

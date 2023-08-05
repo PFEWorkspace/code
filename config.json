@@ -1,14 +1,16 @@
 {
     "nodes": {
-        "total": 100,
-        "participants_per_round": 40,
-        "aggregators_per_round":10,
+        "total": 10,
+        "participants_per_round": 4,
+        "aggregators_per_round":1,
+        "bc":3,
         "test_partition": 0.2,
         "selection": "score",
         "source": "generated_nodes.csv" 
     },
     "data": {
         "loading": "static",
+        "IID" : false,
         "partition": {
             "size": 100,
             "range": [
@@ -21,7 +23,9 @@
         "rounds": 10,
         "target_accuracy": 0.999,
         "epochs": 5,
-        "batch_size": 10
+        "batch_size": 10,
+        "x" : 3,
+        "alpha":0.7
     },
     "model": {
         "name": "MNIST",
@@ -29,7 +33,8 @@
     },
     "paths": {
         "data": "./data",
-        "model": "./models",
+        "model": "./model",
+        "FLmodels" : "./models.csv",
         "reports": "reports.pkl",
         "plot": "./plots"
     },
