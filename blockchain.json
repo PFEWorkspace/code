@@ -1,6 +1,6 @@
 [
     {
-        "BlockId": 0,
+        "BlockId": 2,
         "Transactions": [
             {
                 "NodeId": 8,
@@ -126,6 +126,141 @@
                     "message_type": 0,
                     "task_id": 46,
                     "model_id": 88,
+                    "target_acc": 0.999,
+                    "rounds": 10,
+                    "num_participants": 1,
+                    "num_aggregators": 1
+                }
+            },
+            {
+                "NodeId": 8,
+                "Timestamp": "Tue Aug  8 21:27:23 2023",
+                "Content": {
+                    "message_type": 0,
+                    "task_id": 0,
+                    "model_id": 0,
+                    "target_acc": 0.999,
+                    "rounds": 10,
+                    "num_participants": 1,
+                    "num_aggregators": 1
+                }
+            },
+            {
+                "NodeId": 5,
+                "Timestamp": "Tue Aug  8 21:27:23 2023",
+                "Content": {
+                    "message_type": 0,
+                    "task_id": 0,
+                    "model_id": 0,
+                    "target_acc": 0.999,
+                    "rounds": 10,
+                    "num_participants": 1,
+                    "num_aggregators": 1
+                }
+            },
+            {
+                "NodeId": 9,
+                "Timestamp": "Tue Aug  8 21:27:23 2023",
+                "Content": {
+                    "message_type": 0,
+                    "task_id": 0,
+                    "model_id": 0,
+                    "target_acc": 0.999,
+                    "rounds": 10,
+                    "num_participants": 1,
+                    "num_aggregators": 1
+                }
+            },
+            {
+                "NodeId": 6,
+                "Timestamp": "Tue Aug  8 21:27:23 2023",
+                "Content": {
+                    "message_type": 0,
+                    "task_id": 0,
+                    "model_id": 0,
+                    "target_acc": 0.999,
+                    "rounds": 10,
+                    "num_participants": 1,
+                    "num_aggregators": 1
+                }
+            },
+            {
+                "NodeId": 7,
+                "Timestamp": "Tue Aug  8 21:27:23 2023",
+                "Content": {
+                    "message_type": 0,
+                    "task_id": 0,
+                    "model_id": 0,
+                    "target_acc": 0.999,
+                    "rounds": 10,
+                    "num_participants": 1,
+                    "num_aggregators": 1
+                }
+            }
+        ]
+    },
+    {
+        "BlockId": 0,
+        "Transactions": [
+            {
+                "NodeId": 8,
+                "Timestamp": "Tue Aug  8 21:33:23 2023",
+                "Content": {
+                    "message_type": 0,
+                    "task_id": 48,
+                    "model_id": 92,
+                    "target_acc": 0.999,
+                    "rounds": 10,
+                    "num_participants": 1,
+                    "num_aggregators": 1
+                }
+            },
+            {
+                "NodeId": 5,
+                "Timestamp": "Tue Aug  8 21:33:23 2023",
+                "Content": {
+                    "message_type": 0,
+                    "task_id": 48,
+                    "model_id": 92,
+                    "target_acc": 0.999,
+                    "rounds": 10,
+                    "num_participants": 1,
+                    "num_aggregators": 1
+                }
+            },
+            {
+                "NodeId": 9,
+                "Timestamp": "Tue Aug  8 21:33:23 2023",
+                "Content": {
+                    "message_type": 0,
+                    "task_id": 48,
+                    "model_id": 92,
+                    "target_acc": 0.999,
+                    "rounds": 10,
+                    "num_participants": 1,
+                    "num_aggregators": 1
+                }
+            },
+            {
+                "NodeId": 6,
+                "Timestamp": "Tue Aug  8 21:33:23 2023",
+                "Content": {
+                    "message_type": 0,
+                    "task_id": 48,
+                    "model_id": 92,
+                    "target_acc": 0.999,
+                    "rounds": 10,
+                    "num_participants": 1,
+                    "num_aggregators": 1
+                }
+            },
+            {
+                "NodeId": 7,
+                "Timestamp": "Tue Aug  8 21:33:23 2023",
+                "Content": {
+                    "message_type": 0,
+                    "task_id": 48,
+                    "model_id": 92,
                     "target_acc": 0.999,
                     "rounds": 10,
                     "num_participants": 1,

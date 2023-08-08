@@ -11,6 +11,7 @@ AUTHORS
 .editorconfig
 .clang-tidy
 .clang-format
+.xml
 /utils
 
 /doc  

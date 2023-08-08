@@ -79,7 +79,7 @@ public:
     
     Blockchain(const Blockchain& obj)= delete;
     // Setters and Getters
-    void WriteTransaction(int blockId, int nodeId, rapidjson::Document message, const rapidjson::Document& message);
+    void WriteTransaction(int blockId, int nodeId, const rapidjson::Document& message);
     void PrintBlockchain() const;
     Ipv4Address getFLAddress(int nodeId);
     Ipv4Address getBCAddress();
