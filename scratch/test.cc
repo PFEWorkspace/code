@@ -29,11 +29,7 @@ void WriteTransaction(rapidjson::Document& blockchain, int blockId, int nodeId, 
     rapidjson::Value transaction;
     rapidjson::Document::AllocatorType& allocator = blockchain.GetAllocator();
     transaction.SetObject();
-
-    // Add node_id
     transaction.AddMember("NodeId", nodeId, allocator);
-
-    // Add timestamp
     std::string time = GetTimestamp();
     transaction.AddMember("Timestamp", rapidjson::Value(time.c_str(), allocator), allocator);
 
@@ -58,6 +54,24 @@ void WriteTransaction(rapidjson::Document& blockchain, int blockId, int nodeId, 
 
                 break; // No need to continue searching
             }
+            {
+            rapidjson::Value& block = *itr;
+rapidjson::Value transactions(rapidjson::kArrayType);
+ transaction.SetObject();
+    transaction.AddMember("NodeId", nodeId, allocator);
+    std::string time = GetTimestamp();
+    transaction.AddMember("Timestamp", rapidjson::Value(time.c_str(), allocator), allocator);
+
+    // Clone the content from input message
+    rapidjson::Value contentCopy;
+    contentCopy.CopyFrom(message, allocator);
+    transaction.AddMember("Content", contentCopy, allocator);
+                    block.AddMember("Transactions", transactions, blockchain.GetAllocator());
+                      rapidjson::Value& transactionsArray = block["Transactions"];
+                transactionsArray.PushBack(transaction, allocator);
+                
+            }
+
         }
     }
 }
