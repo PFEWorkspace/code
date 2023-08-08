@@ -1,0 +1,12 @@
+[{"BlockId":1,
+"Transactions":[
+    {"NodeId":123,"Timestamp":"Tue Aug  8 14:27:45 2023","Content":{"message":"Hello, World!"}},
+    {"NodeId":123,"Timestamp":"Tue Aug  8 14:27:45 2023","Content":{"message":"Hello, World!","message":"SILIIM, World!"}},
+    {"NodeId":123,"Timestamp":"Tue Aug  8 14:52:35 2023","Content":{"message":"TEST"}}
+    ]},
+{"BlockId":2,
+"Transactions":[
+    {"NodeId":123,"Timestamp":"Tue Aug  8 14:27:45 2023","Content":{"message":"Hello, World!","message":"SILIIM, World!"}},
+    {"NodeId":123,"Timestamp":"Tue Aug  8 14:44:13 2023","Content":{"message":"TEST"}}
+    ]},
+{"BlockId":3,"Transactions":[{"NodeId":123,"Timestamp":"Tue Aug  8 14:59:40 2023","Content":{"message":"TEST"}},{"NodeId":123,"Timestamp":"Tue Aug  8 14:59:55 2023","Content":{"message":"TEST"}}]}]

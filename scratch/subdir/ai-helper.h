@@ -59,20 +59,12 @@ const int numMaxBCNodes = 30;
         bool dropout; // true if the node will be droping out of its task
     } Packed;
 
-<<<<<<< HEAD
-    struct BCNodeStruct
-=======
      struct BCNodeStruct
->>>>>>> FL2
     {
         int nodeId;
         int task; 
 
     } Packed;
-<<<<<<< HEAD
-=======
-
->>>>>>> FL2
     struct AiHelperEnv
     {
         int type; //1: initialisation, 2:selection, 3:train, 4:evaluation, 5:aggregation
@@ -110,11 +102,6 @@ const int numMaxBCNodes = 30;
         
         
         MLModelRefrence initializeFL(FLNodeStruct *nodes, int& numNodes);
-<<<<<<< HEAD
-        // ************************RIMA
-        void ExactSelection () ;
-        // ************************RIMA
-=======
         void Selection () ;
         MLModel train(int nodeid);
         MLModel GetLocalModel(int nodeid);
@@ -122,7 +109,6 @@ const int numMaxBCNodes = 30;
         void SetTraining(bool train){training=train;};
         double GetTraining() const{return training;};
 
->>>>>>> FL2
         private:
         bool training ;
         int numLocalModels ;

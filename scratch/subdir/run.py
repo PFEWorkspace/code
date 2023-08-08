@@ -11,10 +11,7 @@ import config
 numMaxNodes = 100 
 numMaxTrainers = 50  
 numMaxAggregators = 20
-<<<<<<< HEAD
-=======
 numMaxBCNodes = 30
->>>>>>> FL2
 modelSize = 120
 
 # Set up parser
@@ -130,26 +127,6 @@ class AiHelperContainer:
         self.rl = Ns3AIRL(uid, AiHelperEnv, AiHelperAct)
         pass
 
-<<<<<<< HEAD
-    def do(self, env:AiHelperEnv, act:AiHelperAct, config) -> AiHelperAct:
-        if env.type == 0x01: # initialization of clients and initial model
-            print("init fl task")
-            m = MLModel(modelId=123, nodeId=0, taskId=1, round=0)
-            act.model = m
-            # create the fl nodes and distribute data 
-        if env.type == 0x02 : # exact method selection
-            print('select trainers and aggregators')
-            # Example values
-            alpha = 0.7 # to add to config file 
-           
-            node_scores = [(i, alpha * node.honesty - (1 - alpha) * get_cost(node, config.model.size)) for i, node in enumerate(env.nodes)]
-            sorted_indexes = np.argsort([score for _, score in node_scores])[::-1]
-            print ("Sorted Indexes:",sorted_indexes)
-            act.selectedAggregators= sorted_indexes[0:config.nodes.aggregators_per_round]
-            act.selectedTrainers= sorted_indexes[config.nodes.aggregators_per_round : config.nodes.aggregators_per_round+config.nodes.participants_per_round]
-            act.numAggregators = config.nodes.aggregators_per_round
-            act.numTrainers = config.nodes.participants_per_round
-=======
     def exactSelection(self, act):
         alpha = config.fl.alpha # to add to config file 
         available_nodes = []
@@ -200,7 +177,6 @@ class AiHelperContainer:
             act.numLocalModels = len(lm)
             act.localModels = lm
             print(str(lm))
->>>>>>> FL2
         return act
 
 if __name__ == '__main__':

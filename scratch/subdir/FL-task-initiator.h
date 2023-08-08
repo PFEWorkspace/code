@@ -18,12 +18,8 @@ namespace ns3{
 enum CommunicationType {
   NEWTASK,
   CANDIDATURE,
-<<<<<<< HEAD
-  MODEL,
-=======
   SELECTION,
   MODEL
->>>>>>> FL2
   //add the rest later
 };
 

@@ -68,18 +68,6 @@ AiHelper::initializeFL(FLNodeStruct *nodes, int& numNodes){
       
     return initialModel ;
 }
-<<<<<<< HEAD
-void AiHelper::ExactSelection () 
-{
- NS_LOG_FUNCTION_NOARGS();
-    
-    //set input
-    auto env = EnvSetterCond();
-    env->type = 0x02; 
-    env->numNodes = numNodes ;
-
-    for(int i=0; i<numNodes; i++){env->nodes[i] = nodes[i];}
-=======
 
 void AiHelper::Selection () 
 {
@@ -90,32 +78,12 @@ void AiHelper::Selection ()
     env->type = 0x02; 
     env->numNodes = bc->getNumFLNodes();
     for(int i=0; i<bc->getNumFLNodes(); i++){env->nodes[i] = bc->GetNodeInfo(i);}
->>>>>>> FL2
     SetCompleted();
     NS_LOG_INFO("Version: " << (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id)); // to get the momory version
 
     //get output
     auto act = ActionGetter();
     NS_LOG_INFO("Version: " << (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id));
-<<<<<<< HEAD
-    Blockchain blockchain.getInstance() ; 
-    int agg = act->numAggregators ;
-    int trai = act->numTrainers ;
-   for(int i=0; i<agg; i++)
-   {
-    blockchain.aggregators[i] = act->selectedAggregators[i] ; 
-    }
-    for(int i=0; i<trai; i++)
-   {
-    blockchain.trainers[i] = act->selectedTrainers[i] ; 
-    }
-   
-    GetCompleted();
-   // NS_LOG_INFO("from python "<< initialModel.modelId );
-}
-
-
-=======
     bc->SetAggregators(act->selectedAggregators, act->numAggregators);
     bc->SetTrainers(act->selectedTrainers, act->numTrainers);
     GetCompleted();
@@ -164,5 +132,4 @@ AiHelper::GetLocalModel(int nodeid){
     
     return model;
 }
->>>>>>> FL2
 }

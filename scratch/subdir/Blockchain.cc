@@ -1,23 +1,12 @@
-<<<<<<< HEAD
-
-#include "ns3/log.h"
-#include "Blockchain.h"
-#include "ns3/log.h"
-#include <chrono>
-=======
 #include "Blockchain.h"
 
->>>>>>> FL2
 
 namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE("Blockchain");
 
-<<<<<<< HEAD
-=======
 Blockchain* Blockchain::instance = nullptr;
 
->>>>>>> FL2
 //TypeId Blockchain::GetTypeId() {
 //    static TypeId tid = TypeId("Blockchain")
 //        .SetParent<Object>()
@@ -29,31 +18,6 @@ Blockchain* Blockchain::instance = nullptr;
 //    return tid;
 //}
 
-<<<<<<< HEAD
-Blockchain& Blockchain::getInstance()  {
-    // Create the instance if it doesn't exist
-        // (This is lazy initialization)
-        if (!instance) {
-            instance = new Blockchain();
-        }
-        return *instance;
-}
-
-Ipv4Adresse Blockchain::getFLAdress(int nodeId)
-{
-    return nodeFLAdrs.GetAdress(nodeId);
-    }
-
-//Ipv4Adresse Blockchain::getBCAdress()
-//{
-//    // return a random adress from blockchain nodes
-//    }
-void Blockchain::WriteTransaction(uint32_t nodeId) {
-    rapidjson::Document transaction;
-    transaction.SetObject();
-    transaction.AddMember("node_id", nodeId, transaction.GetAllocator());
-    transaction.AddMember("timestamp", GetTimestamp(), transaction.GetAllocator());
-=======
 Ipv4Address Blockchain::getFLAddress(int nodeId)
 {
     return nodesFLAdrs.GetAddress(nodeId);
@@ -79,33 +43,32 @@ void Blockchain::SetRandomBCStream(){
         randomBCAdrsStream->SetAttribute("Max", DoubleValue(numBCNodes-1)); // and max is the sum of both group of nodes size
 }
 
-void Blockchain::WriteTransaction(uint32_t nodeId) {
-    rapidjson::Document transaction;
+void Blockchain::WriteTransaction(uint32_t nodeId,rapidjson::Document message) {
+     rapidjson::Document transaction;
     rapidjson::Value value;
     transaction.SetObject();
-    value = nodeId ;
-    transaction.AddMember("node_id",value, transaction.GetAllocator());
-    std::string time= GetTimestamp();
-    const char* t = time.c_str() ;
-    value.SetString(t, time.size());
+    
+    // Add node_id
+    value.SetInt(nodeId);
+    transaction.AddMember("node_id", value, transaction.GetAllocator());
+
+    // Add timestamp
+    std::string time = GetTimestamp();
+    const char* t = time.c_str();
+    value.SetString(t, time.size(), transaction.GetAllocator());
     transaction.AddMember("timestamp", value, transaction.GetAllocator());
->>>>>>> FL2
+
+    // Clone the content from input message
+    rapidjson::Document contentCopy;
+    contentCopy.CopyFrom(message, contentCopy.GetAllocator());
+    transaction.AddMember("content", contentCopy, transaction.GetAllocator());
 
     AddTransactionToBlockchain(transaction);
     SaveBlockchainToFile();
+
 }
 
 void Blockchain::PrintBlockchain() const {
-<<<<<<< HEAD
-    for (const auto& block : m_blocks) {
-        NS_LOG_INFO("Block #" << block["block_id"].GetUint() << ":");
-        for (const auto& transaction : block["transactions"].GetArray()) {
-            NS_LOG_INFO("  Transaction #" << transaction["transaction_id"].GetUint()
-                          << ", Node ID: " << transaction["node_id"].GetUint()
-                          << ", Timestamp: " << transaction["timestamp"].GetUint());
-        }
-    }
-=======
     // for (const auto& block : m_blocks) {
     //     NS_LOG_INFO("Block #" << block["block_id"].GetUint() << ":");
     //     for (const auto& transaction : block["transactions"].GetArray()) {
@@ -114,7 +77,6 @@ void Blockchain::PrintBlockchain() const {
     //                       << ", Timestamp: " << transaction["timestamp"].GetUint());
     //     }
     // }
->>>>>>> FL2
 }
 
 
@@ -127,12 +89,6 @@ void Blockchain::AddTransactionToBlockchain(const rapidjson::Value &transaction)
     // Implementation to add a new transaction to the blockchain
 }
 
-<<<<<<< HEAD
-string Blockchain::GetTimestamp() const {
-     auto r=std::chrono::system_clock::now(); //Contains data about current time
-    std::string s = std::format("{:%Y%m%d%H%M}", r);
-    return s;
-=======
 std::string Blockchain::GetTimestamp() const {
     std::time_t currentTime = std::time(nullptr);
     // Convert the time_t object to a string
@@ -140,20 +96,12 @@ std::string Blockchain::GetTimestamp() const {
     ss << std::ctime(&currentTime); // Convert time_t to char*
     std::string timeString = ss.str();
     return timeString;
->>>>>>> FL2
 }
 
 void Blockchain::DoDispose() {
     NS_LOG_FUNCTION_NOARGS();
     // Clean up resources
-<<<<<<< HEAD
-    Object::DoDispose();
-}
-
-} // namespace ns3
-=======
    
 }
 
 } // namespace ns3
->>>>>>> FL2

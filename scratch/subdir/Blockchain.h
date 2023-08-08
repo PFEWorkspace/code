@@ -1,52 +1,3 @@
-<<<<<<< HEAD
-
-#include "ns3/core-module.h"
-#include "ns3/network-module.h"
-#include "../../rapidjson/document.h"
-#include "ns3/internet-module.h"
-#include "ai-helper.h"
-
-namespace ns3 {
-
-class Blockchain {
-public:
-    
-
-    void WriteTransaction(uint32_t nodeId);
-
-    void PrintBlockchain() const;
-    static Blockchain& getInstance() ; 
-    Ipv4Adresse getAdresse(int nodeId);
-    
-
-private:
-
-    static Blockchain* instance ;
-    void Blockchain () ;
-    //attributes
-    std::string m_filename;
-    int maxFLround ;
-    int actualFLround;
-    int modelToEval[numMaxNodes]; //we suppose that we only store modelIds we can switch to vectors lib
-    int modelToAgreg[numMaxNodes];
-   
-    BCNodeStruct notBusyNodes[numMaxBCNodes];
-    FLNodeStruct m_nodesInfo[numMaxNodes];
-    Ipv4InterfaceContainer nodesFLAdrs;
-    int aggregators[numMaxAggregators];
-    int trainers[numMaxTrainers];
-    // functions
-    void SaveBlockchainToFile();
-    void AddTransactionToBlockchain(const rapidjson::Value& transaction);
-    uint32_t GetTimestamp() const;
-   
-    // Object's inherited methods
-    virtual void DoDispose();
-};
-
-} // namespace ns3
-
-=======
 #ifndef BLOCKCHAIN_H
 #define BLOCKCHAIN_H
 
@@ -127,7 +78,7 @@ public:
     
     Blockchain(const Blockchain& obj)= delete;
     // Setters and Getters
-    void WriteTransaction(uint32_t nodeId);
+    void WriteTransaction(uint32_t nodeId, rapidjson::Document message);
     void PrintBlockchain() const;
     Ipv4Address getFLAddress(int nodeId);
     Ipv4Address getBCAddress();
@@ -263,4 +214,3 @@ public:
 
 } // namespace ns3
 #endif
->>>>>>> FL2
