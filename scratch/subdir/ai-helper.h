@@ -89,7 +89,6 @@ const int numMaxBCNodes = 30;
         int numTrainers;
         int numAggregators;
     } Packed;
-
     class AiHelper: public Ns3AIRL<AiHelperEnv, AiHelperAct> 
     {
         public:

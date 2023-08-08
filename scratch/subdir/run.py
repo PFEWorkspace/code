@@ -6,7 +6,8 @@ from py_interface import *
 import FL_tasks as fl
 import numpy as np
 import config
-
+import copy
+from typing import List
 
 numMaxNodes = 100 
 numMaxTrainers = 50  
@@ -76,16 +77,16 @@ class FLNodeStruct(ctypes.Structure):
     def get_cost(self, w):
         return self.learning_cost() + self.communication_cost(w)
 
-    def learning_cost(self):
-        c = self.datasetSize / self.freq 
-        return c
+    def learning_cost(self,datasetSize,freq):
+        return datasetSize / freq
+        
 
-    def communication_cost(self, m):
-        c = m / self.transRate  
-        return c
+    def communication_cost(self, m, transRate):
+        return m / transRate  
+        
 
-    def get_cost(self, w):
-        return self.learning_cost() + self.communication_cost(w)
+    def get_cost(self,datasetSize,freq,transRate, w):
+        return self.learning_cost(datasetSize,freq) + self.communication_cost(w,transRate)
 
 class BCNodeStruct(ctypes.Structure):
     _pack_ = 1
@@ -122,22 +123,28 @@ class AiHelperAct(ctypes.Structure):
 
 class AiHelperContainer:
     use_ns3ai = True
-
-    def __init__(self, uid: int = 2333) -> None:
+    nodes: List[FLNodeStruct]= []
+    # FL_manager: fl.FLManager
+    def __init__(self, config:config.Config, uid: int = 2333) -> None:
         self.rl = Ns3AIRL(uid, AiHelperEnv, AiHelperAct)
+        self.FL_manager = fl.FLManager(config)
         pass
 
-    def exactSelection(self, act):
-        alpha = config.fl.alpha # to add to config file 
-        available_nodes = []
-        for node in self.nodes:
-            if node.availability : 
-                available_nodes.append(node)
-        node_scores = [(i, alpha * node.honesty - (1 - alpha) * node.get_cost(node, config.model.size)) for i, node in enumerate(self.available_nodes)]
-        sorted_indexes = np.argsort([score for _, score in node_scores])[::-1]
+    def exactSelection(self, act,config):
+        alpha = config.fl.alpha 
+        nodes_scores = []
        
-        act.selectedAggregators= sorted_indexes[0:config.nodes.aggregators_per_round]
-        act.selectedTrainers= sorted_indexes[config.nodes.aggregators_per_round : config.nodes.aggregators_per_round+config.nodes.participants_per_round]
+        for node in self.nodes:
+            if node.availability: 
+                nodes_scores.append({"nodeId":node.nodeId , "score": alpha * node.honesty - (1 - alpha) * node.get_cost(node.datasetSize, node.freq, node.transRate, config.model.size)})
+        sorted_indexes =sorted(nodes_scores, key=lambda x: x["score"], reverse=True) # np.argsort([score for _, score in node_scores])[::-1]
+        print(str(sorted_indexes))
+        # act.selectedAggregators= sorted_indexes[0:config.nodes.aggregators_per_round]
+        # act.selectedTrainers= sorted_indexes[config.nodes.aggregators_per_round : config.nodes.aggregators_per_round+config.nodes.participants_per_round]
+        for i in range(0,config.nodes.aggregators_per_round):
+            act.selectedAggregators[i]= sorted_indexes[i]["nodeId"]
+        for i in range(0, config.nodes.participants_per_round):
+            act.selectedTrainers[i] = sorted_indexes[i+config.nodes.aggregators_per_round]["nodeId"]   
         act.numAggregators = config.nodes.aggregators_per_round
         act.numTrainers = config.nodes.participants_per_round
 
@@ -148,21 +155,18 @@ class AiHelperContainer:
         pass
 
 
-    def do(self, env:AiHelperEnv, act:AiHelperAct, config) -> AiHelperAct:
-        FL_manager = fl.FLManager(config)
+    def do(self, env:AiHelperEnv, act:AiHelperAct, config:config.Config) -> AiHelperAct:
+      
         if env.type == 0x01: # initialization of clients and initial model
             print("init FL task")
-            nodesinfo = []
-            [nodesinfo.append(env.nodes[i]) for i in range(env.numNodes)]
-            m = FL_manager.setUp(nodesinfo)
-            self.nodes = nodesinfo
+            [self.nodes.append(copy.copy(env.nodes[i])) for i in range(env.numNodes)]
+            m = self.FL_manager.setUp(self.nodes)
             self.numNodes = env.numNodes
-            act.model = MLModel(modelId=m.modelId,nodeId=m.nodeId,taskId=m.taskId,round=m.round)
-                       
+            act.model = MLModel(modelId=m.modelId,nodeId=m.nodeId,taskId=m.taskId,round=m.round)                      
         if env.type == 0x02 : # selection
             print('select trainers and aggregators')
             if config.nodes.selection == "score" :
-                self.exactSelection(act)
+                self.exactSelection(act,config)
             elif config.nodes.selection == "DRL":
                 self.DRLSelection(act)
             else : # "hybrid" 
@@ -173,9 +177,10 @@ class AiHelperContainer:
 
         if env.type == 0x03 : #training
             print('local training')
-            lm = FL_manager.start_round(self.selectedTrainers)
+            lm = self.FL_manager.start_round(self.selectedTrainers, config.nodes.participants_per_round)
             act.numLocalModels = len(lm)
-            act.localModels = lm
+            for i in range(0,len(lm)) :
+                act.localModels[i] =  MLModel(modelId=lm[i].modelId,nodeId=lm[i].nodeId,taskId=lm[i].taskId,round=lm[i].round,type=lm[i].type, positiveVote=lm[i].positiveVote, negativeVote=lm[i].negativeVote,evaluator1=lm[i].evaluator1, evaluator2=lm[i].evaluator2,evaluator3=lm[i].evaluator3,aggregated=lm[i].aggregated, aggModelId=lm[i].aggModelId, accuracy=lm[i].accuracy)
             print(str(lm))
         return act
 
@@ -195,13 +200,13 @@ if __name__ == '__main__':
         'x' : fl_config.fl.x
     };
 
-    mempool_key = 1132
-    mem_size = 1024 * 2 * 2 * 2 * 2 * 2
+    mempool_key = 1111
+    mem_size = 1024 * 2 * 2 * 2 * 2 * 2 * 2
     exp = Experiment(mempool_key, mem_size, 'main', '../../', using_waf=False)
     exp.reset()
     try:
         memblock_key = 2333
-        container = AiHelperContainer(memblock_key)
+        container = AiHelperContainer(fl_config,memblock_key)
 
         pro = exp.run(setting=ns3Settings, show_output= True)
         while not container.rl.isFinish():
@@ -216,4 +221,3 @@ if __name__ == '__main__':
         print(e)
     finally:    
         del exp
-

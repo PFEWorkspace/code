@@ -1,5 +1,6 @@
 import FL_model
 import torch
+import copy
 import logging
 from utils.CSVManager import CSVFileManager
 from run import MLModel
@@ -8,7 +9,7 @@ from run import MLModel
 class Node(object):
 
     def __init__(self, nodeinfo) -> None:
-        self.node = nodeinfo
+        self.node = copy.copy(nodeinfo)
         self.loss = 10.0 # set intial loss big 
     
     def download(self, argv):
@@ -47,9 +48,9 @@ class Node(object):
         self.model.eval()
 
         # Create optimizer
-        self.optimizer = FL_model.get_optimizer(self.model)
+        self.optimizer = FL_model.get_optimizer(self.model, config)
     
-    def train(self,round, fileManager:CSVFileManager):
+    def train(self,round, fileManager:CSVFileManager, config):
         logging.info('training on node #{}'.format(self.node.nodeId))
 
         # Perform model training
@@ -68,7 +69,7 @@ class Node(object):
         mlmodel = MLModel(
             modelId=report_id,
             nodeId=self.node.nodeId,
-            taskId=self.modelsFileManager.get_instance_id("taskId"),
+            taskId= fileManager.get_instance_id("taskId"),
             round=round,
             type=1, # 1 for local model
             positiveVote=0,

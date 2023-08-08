@@ -162,7 +162,8 @@ void FLNode::Receive(Ptr<Socket> socket) {
     
     Ptr<Packet> packet;
     Address from;
- 
+    NS_LOG_DEBUG("i'am "<< GetNode()->GetId() << " and i received a packet");
+
     while ((packet = socket->RecvFrom(from)))
     {
         unsigned char *packetInfo = new unsigned char[packet->GetSize()];
@@ -170,7 +171,6 @@ void FLNode::Receive(Ptr<Socket> socket) {
         if (InetSocketAddress::IsMatchingType(from))
         {
             packet->CopyData(packetInfo, packet->GetSize () );
-            NS_LOG_DEBUG("i'am "<< GetNode()->GetId() << " and i received a packet");
             NS_LOG_DEBUG("I'm "<< GetNode()->GetId() << "received " << packet->GetSize() << " bytes from "
                                     << InetSocketAddress::ConvertFrom(from).GetIpv4()
                                     << " content: "<< packetInfo) ;
@@ -188,7 +188,8 @@ void FLNode::Receive(Ptr<Socket> socket) {
                             as a response the FL nodes will send their condidature to the blockchain
                          */
                         // Candidater(InetSocketAddress::ConvertFrom(from).GetIpv4());
-                       Candidater();
+                        // the average packet size for a candidature is around 120 bytes and the trans_rate is in Mbps
+                       Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(120/trans_rate*1000), [this]() { Candidater(); });
                         break;
                     case SELECTION :
                          if(d.HasMember("task") && d["task"].IsInt()){

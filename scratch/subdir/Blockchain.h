@@ -10,6 +10,8 @@
 
 #include <ctime>
 #include <string>
+#include <mutex>
+
 namespace ns3 {
 
 
@@ -17,7 +19,7 @@ namespace ns3 {
 class Blockchain {
 
     private:
-
+    std::mutex mtx;
     static Blockchain* instance;
     // Private attributes
     std::string m_filename;
@@ -37,7 +39,7 @@ class Blockchain {
     int aggregators[numMaxAggregators];
     int trainers[numMaxTrainers];
     Ptr<UniformRandomVariable> randomBCAdrsStream;
-    
+   
 
     // Private constructor and destructor to ensure singleton.
     Blockchain(){
@@ -59,14 +61,13 @@ class Blockchain {
     // Private methods
     void SaveBlockchainToFile();
     void AddTransactionToBlockchain(const rapidjson::Value& transaction);
-    std::string GetTimestamp()const;
+    std::string GetTimestamp();
 
     // Object's inherited methods
     virtual void DoDispose();
 
 public:
 
-     
     
     // Singleton pattern: static method to get the instance.
     static Blockchain* getInstance() {
@@ -78,7 +79,7 @@ public:
     
     Blockchain(const Blockchain& obj)= delete;
     // Setters and Getters
-    void WriteTransaction(uint32_t nodeId, rapidjson::Document message);
+    void WriteTransaction(int blockId, int nodeId, rapidjson::Document message, const rapidjson::Document& message);
     void PrintBlockchain() const;
     Ipv4Address getFLAddress(int nodeId);
     Ipv4Address getBCAddress();
@@ -125,6 +126,7 @@ public:
     }
 
     void SetNodeInfo(int index, const FLNodeStruct& value) {
+        
         if (index >= 0 && index < numMaxNodes) {
             m_nodesInfo[index] = value;
         }

@@ -1,9 +1,9 @@
 {
     "nodes": {
-        "total": 10,
-        "participants_per_round": 4,
+        "total": 5,
+        "participants_per_round": 1,
         "aggregators_per_round":1,
-        "bc":3,
+        "bc":5,
         "test_partition": 0.2,
         "selection": "score",
         "source": "generated_nodes.csv" 
@@ -23,7 +23,7 @@
         "rounds": 10,
         "target_accuracy": 0.999,
         "epochs": 5,
-        "batch_size": 10,
+        "batch_size": 64,
         "x" : 3,
         "alpha":0.7
     },

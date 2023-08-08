@@ -110,7 +110,7 @@ main(int argc, char* argv[])
     // Do pcap tracing on all point-to-point devices on all nodes.
     //
     pointToPoint.EnablePcapAll("star");
-
+      AnimationInterface anim("starTCP.xml");
     NS_LOG_INFO("Run Simulation.");
     Simulator::Run();
     Simulator::Destroy();

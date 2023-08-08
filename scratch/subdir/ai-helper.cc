@@ -87,6 +87,7 @@ void AiHelper::Selection ()
     bc->SetAggregators(act->selectedAggregators, act->numAggregators);
     bc->SetTrainers(act->selectedTrainers, act->numTrainers);
     GetCompleted();
+    
 }
 
 
@@ -97,7 +98,7 @@ AiHelper::train(int nodeid){
         // while training wait till it finish
     }
     // the python side is not training
-    if(numLocalModels==0){ //first time calling train
+    if(numLocalModels==0 && !GetTraining()){ //first time calling train
         // launch training in pythonside
         SetTraining(true);
         auto env = EnvSetterCond();
@@ -111,9 +112,10 @@ AiHelper::train(int nodeid){
         numLocalModels = act->numLocalModels;
         for(int i=0;i<numLocalModels;i++){localModels[i] = act->localModels[i];}
         GetCompleted();
-           
+        SetTraining(false);   
     }
     //training is done and models are saved in localmodels
+
     //return the corresponding mlmodel
     
     return GetLocalModel(nodeid);

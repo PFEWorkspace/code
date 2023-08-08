@@ -77,14 +77,14 @@ void BCNode::Receive(Ptr<Socket> socket) {
                                     << " content: "<< packetInfo) ;
             std::string data(reinterpret_cast<char*>(packetInfo), packet->GetSize()) ;
             rapidjson::Document d;
+            Blockchain* bc = Blockchain::getInstance();
            
             if(ParseJSON(data,d)){
                 if(d.HasMember("message_type") && d["message_type"].IsInt()){
                     switch (d["message_type"].GetInt())
                     {
-                    case NEWTASK : //NEWTASK 
-                       
-                      // TODO : mise a jour de la blokchain with the new task , 
+                        case NEWTASK : //NEWTASK 
+                        bc->WriteTransaction(0,GetNode()->GetId(),d); 
                       break;
                     case CANDIDATURE : 
                      // receive les candidatures and treat them
@@ -108,6 +108,8 @@ void BCNode::Receive(Ptr<Socket> socket) {
                     break; 
                     
                     default:
+                
+                      bc->WriteTransaction(0,GetNode()->GetId(),d); 
                         break;
                     }
                 }
@@ -140,15 +142,16 @@ void BCNode::SendTo( rapidjson::Document &d, std::vector<Ipv4Address> &addresses
         m_socket = socketFactory->CreateSocket();
         m_socket->Bind();
     }
-
+    
     rapidjson::StringBuffer packetInfo;
     rapidjson::Writer<rapidjson::StringBuffer> writer(packetInfo);
     d.Accept(writer);
 
     Ptr<Packet> packet = Create<Packet>(reinterpret_cast<const uint8_t*>(packetInfo.GetString()), packetInfo.GetSize());
-
-    for (const auto& destAddr : addresses) {
-        m_socket->SendTo(packet->Copy(), 0, InetSocketAddress(destAddr, m_port));
+    NS_LOG_INFO("i got here!!");
+    for (Ipv4Address destAddr : addresses) {
+       int result= m_socket->SendTo(packet, 0, InetSocketAddress(destAddr, m_port));
+        NS_LOG_INFO("sent traininig task to "<< destAddr);
     }
 }
 
@@ -192,14 +195,13 @@ BCNode::TreatCandidature(rapidjson::Document &d){
     //save the candidature in the blockchain
     bc->SetNodeInfo(bc->GetReceivedCandidatures(), docToFLNodeStruct(d));
     bc->IncReceivedCandidatures(); 
-    NS_LOG_INFO("bc node "<< GetNode()->GetId() << " received a candidature number " << bc->GetReceivedCandidatures());
+     NS_LOG_INFO("bc node " << GetNode()->GetId() << " received a candidature number " << bc->GetReceivedCandidatures() << " on " << bc->getNumFLNodes());
     if(bc->GetReceivedCandidatures()==bc->getNumFLNodes()) //received all candidatur
     {
        //selecting nodes
-       NS_LOG_INFO("bc node "<< GetNode() << " starting the selection");
+       NS_LOG_INFO("received all candidatures, starting the selection");
         AiHelper* ai = AiHelper::getInstance();
         ai->Selection(); //the selected nodes are set in the bc
-
         // write the selection message 
         rapidjson::Document d;
         rapidjson::Value value;
@@ -208,13 +210,17 @@ BCNode::TreatCandidature(rapidjson::Document &d){
         d.AddMember("message_type", value, d.GetAllocator());
         value = TRAIN;
         d.AddMember("task", value, d.GetAllocator());
-
         // get selected nodes addresses
         std::vector<Ipv4Address> adrs;
         int numSelectedTrainers = bc->getNumTrainers();
+        int id;
         for(int i=0; i < numSelectedTrainers; i++){
-            adrs[i] = bc->getFLAddress( bc->getTrainer(i));
+            id =bc->getTrainer(i);
+            NS_LOG_INFO("address of "<<id<<" id is ");
+            NS_LOG_INFO(bc->getFLAddress(id));
+            adrs.push_back(bc->getFLAddress(id));
         } 
+        
         //sending the message to all selected trainers
         SendTo(d,adrs);
     }    

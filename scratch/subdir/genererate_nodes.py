@@ -28,7 +28,7 @@ with open(csv_file, "w", newline="") as file:
     writer.writerow(header)
 
     # Generating and writing data for each instance
-    for i in range(1, num_instances + 1):
+    for i in range(0, num_instances):
         instance_data = generate_random_instance(i)
         writer.writerow(instance_data)
 
