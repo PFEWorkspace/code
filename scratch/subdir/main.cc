@@ -93,16 +93,45 @@ main(int argc, char* argv[])
     initiator.Create(1);
 
     NS_LOG_INFO("Installing WiFi and Internet stack.");
-    WifiHelper wifi;
     
+    WifiHelper wifi;
+    wifi.SetStandard(WIFI_STANDARD_80211n);
+
     WifiMacHelper wifiMac;
     wifiMac.SetType("ns3::AdhocWifiMac");
     // wifiMac.SetType("ns3::StaWifiMac", "Ssid", SsidValue(ssid), "ActiveProbing", BooleanValue(false));
     
     YansWifiPhyHelper wifiPhy;
+
     YansWifiChannelHelper wifiChannel = YansWifiChannelHelper::Default();
+    
+    // wifiChannel.SetPropagationDelay("ns3::ConstantSpeedPropagationDelayModel");
+    // wifiChannel.AddPropagationLoss("ns3::LogDistancePropagationLossModel",
+    //                            "Exponent", DoubleValue(3.0));
+    
     wifiPhy.SetChannel(wifiChannel.Create());
     
+    // wifiPhy.Set("TxPowerStart", DoubleValue(20));
+    // wifiPhy.Set("TxPowerEnd", DoubleValue(20));
+    // wifiPhy.Set("ChannelSettings",StringValue("{155, 80, BAND_5GHZ, 0}"));
+    
+    // wifiPhy.Set("Antennas", UintegerValue(2));
+    // wifiPhy.Set("MaxSupportedTxSpatialStreams", UintegerValue(2));
+    // wifiPhy.Set("MaxSupportedRxSpatialStreams", UintegerValue(2));
+    
+    // StringValue DataRate = StringValue("HtMcs7");
+    
+    // wifi.SetRemoteStationManager("ns3::ConstantRateWifiManager",
+    //                                  "DataMode",
+    //                                  DataRate,
+    //                                  "ControlMode",
+    //                                  DataRate);
+    
+    // Config::Set("/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/HtConfiguration/"
+    //                     "ShortGuardIntervalSupported",
+    //                     BooleanValue(false));
+
+
     NetDeviceContainer nodeDevices = wifi.Install(wifiPhy, wifiMac, nodes);
     NetDeviceContainer BCnodeDevices= wifi.Install(wifiPhy, wifiMac, BCnodes);
     

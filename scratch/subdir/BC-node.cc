@@ -72,19 +72,19 @@ void BCNode::Receive(Ptr<Socket> socket) {
         if (InetSocketAddress::IsMatchingType(from))
         {
             packet->CopyData(packetInfo, packet->GetSize ());
-            // NS_LOG_INFO("I'm a bc node id: "<< GetNode()->GetId() << " received " << packet->GetSize() << " bytes from "
-            //                         << InetSocketAddress::ConvertFrom(from).GetIpv4()
-            //                         << " content: "<< packetInfo) ;
+            NS_LOG_INFO("I'm a bc node id: "<< GetNode()->GetId() << " received " << packet->GetSize() << " bytes from "
+                                    << InetSocketAddress::ConvertFrom(from).GetIpv4()
+                                    << " content: "<< packetInfo) ;
             std::string data(reinterpret_cast<char*>(packetInfo), packet->GetSize()) ;
             rapidjson::Document d;
+            Blockchain* bc = Blockchain::getInstance();
            
             if(ParseJSON(data,d)){
                 if(d.HasMember("message_type") && d["message_type"].IsInt()){
                     switch (d["message_type"].GetInt())
                     {
-                    case NEWTASK : //NEWTASK 
-                       
-                      // TODO : mise a jour de la blokchain with the new task , 
+                        case NEWTASK : //NEWTASK 
+                        bc->WriteTransaction(0,GetNode()->GetId(),d); 
                       break;
                     case CANDIDATURE : 
                      // receive les candidatures and treat them
@@ -108,6 +108,8 @@ void BCNode::Receive(Ptr<Socket> socket) {
                     break; 
                     
                     default:
+                
+                      bc->WriteTransaction(0,GetNode()->GetId(),d); 
                         break;
                     }
                 }

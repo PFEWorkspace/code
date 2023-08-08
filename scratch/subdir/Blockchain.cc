@@ -43,19 +43,86 @@ void Blockchain::SetRandomBCStream(){
         randomBCAdrsStream->SetAttribute("Max", DoubleValue(numBCNodes-1)); // and max is the sum of both group of nodes size
 }
 
-void Blockchain::WriteTransaction(uint32_t nodeId) {
-    rapidjson::Document transaction;
-    rapidjson::Value value;
-    transaction.SetObject();
-    value = nodeId ;
-    transaction.AddMember("node_id",value, transaction.GetAllocator());
-    std::string time= GetTimestamp();
-    const char* t = time.c_str() ;
-    value.SetString(t, time.size());
-    transaction.AddMember("timestamp", value, transaction.GetAllocator());
+void 
+Blockchain::WriteTransaction(int blockId, int nodeId, const rapidjson::Document& message) {
+    NS_LOG_INFO("wrinting transaction");
+    std::lock_guard<std::mutex> lock(mtx);
+    std::ifstream inFile("blockchain.json");
+    std::stringstream jsonStream;
+    jsonStream << inFile.rdbuf();
+    std::string jsonString = jsonStream.str();
 
-    AddTransactionToBlockchain(transaction);
-    SaveBlockchainToFile();
+    // Parse the existing JSON
+    rapidjson::Document blockchain;
+    blockchain.Parse(jsonString.c_str());
+   
+    rapidjson::Value transaction;
+    rapidjson::Document::AllocatorType& allocator = blockchain.GetAllocator();
+    transaction.SetObject();
+
+    // Add node_id
+    transaction.AddMember("NodeId", nodeId, allocator);
+
+    // Add timestamp
+    std::string time = GetTimestamp();
+    transaction.AddMember("Timestamp", rapidjson::Value(time.c_str(), allocator), allocator);
+
+    // Clone the content from input message
+    rapidjson::Value contentCopy;
+    contentCopy.CopyFrom(message, allocator);
+    transaction.AddMember("Content", contentCopy, allocator);
+
+    // Search for the target block based on blockId
+    if (blockchain.IsArray()) {
+        for (rapidjson::Value::ValueIterator itr = blockchain.Begin(); itr != blockchain.End(); ++itr) {
+            rapidjson::Value& block = *itr;
+            if (block.HasMember("BlockId") && block["BlockId"].GetInt() == blockId) {
+                if (!block.HasMember("Transactions")) {
+                    rapidjson::Value transactions(rapidjson::kArrayType);
+                    block.AddMember("Transactions", transactions, blockchain.GetAllocator());
+                }
+
+                // Add the transaction to the block's transactions array
+                rapidjson::Value& transactionsArray = block["Transactions"];
+                transactionsArray.PushBack(transaction, allocator);
+                 
+                // Print the updated block JSON
+                rapidjson::StringBuffer updatedBuffer;
+                rapidjson::Writer<rapidjson::StringBuffer> updatedWriter(updatedBuffer);
+                blockchain.Accept(updatedWriter);
+                // Save the updated JSON to the file
+                std::ofstream outFile("blockchain.json");
+                outFile << updatedBuffer.GetString();
+                outFile.close();
+                break; // No need to continue searching
+            }else{
+               // if block not found
+                    rapidjson::Value newBlock(rapidjson::kObjectType);
+                    newBlock.AddMember("BlockId", blockId, blockchain.GetAllocator());
+                    rapidjson::Value transactions(rapidjson::kArrayType);
+                    newBlock.AddMember("Transactions", transactions, blockchain.GetAllocator());
+                    blockchain.PushBack(newBlock, blockchain.GetAllocator());                 
+
+                   
+                    // Add the transaction to the block's transactions array
+                    rapidjson::Value& transactionsArray = newBlock["Transactions"];
+                    transactionsArray.PushBack(transaction, allocator);
+
+                    // Print the updated block JSON
+                    rapidjson::StringBuffer updatedBuffer;
+                    rapidjson::Writer<rapidjson::StringBuffer> updatedWriter(updatedBuffer);
+                    blockchain.Accept(updatedWriter);
+
+                    // Save the updated JSON to the file
+                    std::ofstream outFile("blockchain.json");
+                    outFile << updatedBuffer.GetString();
+                    outFile.close();
+        
+            }
+
+        }
+    }
+
 }
 
 void Blockchain::PrintBlockchain() const {
@@ -75,16 +142,30 @@ void Blockchain::SaveBlockchainToFile() {
     // Implementation to save the blockchain to the file
 }
 
-void Blockchain::AddTransactionToBlockchain(const rapidjson::Value &transaction) {
-    // Implementation to add a new transaction to the blockchain
-}
+// void Blockchain::AddTransactionToBlockchain(const rapidjson::Value &transaction) {
+//     // Implementation to add a new transaction to the blockchain
+// }
 
-std::string Blockchain::GetTimestamp() const {
+
+std::string Blockchain::GetTimestamp(){
+    // std::time_t currentTime = std::time(nullptr);
+    // // Convert the time_t object to a string
+    // std::stringstream ss;
+    // ss << std::ctime(&currentTime); // Convert time_t to char*
+    // std::string timeString = ss.str();
+    // return timeString;
+
     std::time_t currentTime = std::time(nullptr);
     // Convert the time_t object to a string
     std::stringstream ss;
     ss << std::ctime(&currentTime); // Convert time_t to char*
     std::string timeString = ss.str();
+
+    // Remove the trailing newline character
+    if (!timeString.empty() && timeString.back() == '\n') {
+        timeString.pop_back();
+    }
+
     return timeString;
 }
 
