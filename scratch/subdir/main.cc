@@ -21,16 +21,6 @@ NS_LOG_COMPONENT_DEFINE("FLExperimentSimulation");
 
 FLNodeStruct* GetNodesFromFile(const std::string& filename,  int& numNodes);
 
-void TracePacketTx (Ptr<const Packet> packet, const Address &source, const Address &destination)
-{
-    // Ici, vous pouvez enregistrer les informations de paquet dans un fichier de trace ASCII ou effectuer d'autres actions souhaitées
-    // Par exemple, pour enregistrer les informations de paquet dans un fichier de trace ASCII nommé "packet-trace.txt"
-    std::ofstream traceFile;
-    traceFile.open ("packet-trace.txt", std::ios::app);
-    traceFile << Simulator::Now ().GetSeconds () << " " << packet->GetSize () << std::endl;
-    traceFile.close ();
-}
-
 int
 main(int argc, char* argv[])
 {
@@ -94,31 +84,43 @@ main(int argc, char* argv[])
 
     NS_LOG_INFO("Creating nodes.");
     NodeContainer nodes;
-    nodes.Create(numFlNodes + 1 ); // federated learning nodes + 1 for the initiator ( + the blockchain nodes to add later)
+    nodes.Create(numFlNodes); // federated learning nodes
 
     NodeContainer BCnodes;
     BCnodes.Create(numBCNodes);
-    
+
+    NodeContainer initiator;
+    initiator.Create(1);
+
     NS_LOG_INFO("Installing WiFi and Internet stack.");
     WifiHelper wifi;
+    
     WifiMacHelper wifiMac;
     wifiMac.SetType("ns3::AdhocWifiMac");
+    // wifiMac.SetType("ns3::StaWifiMac", "Ssid", SsidValue(ssid), "ActiveProbing", BooleanValue(false));
+    
     YansWifiPhyHelper wifiPhy;
     YansWifiChannelHelper wifiChannel = YansWifiChannelHelper::Default();
     wifiPhy.SetChannel(wifiChannel.Create());
+    
     NetDeviceContainer nodeDevices = wifi.Install(wifiPhy, wifiMac, nodes);
     NetDeviceContainer BCnodeDevices= wifi.Install(wifiPhy, wifiMac, BCnodes);
     
+    // wifiMac.SetType("ns3::ApWifiMac", "Ssid", SsidValue(ssid));
+    NetDeviceContainer initiatorDevice = wifi.Install(wifiPhy,wifiMac,initiator);
+
     InternetStackHelper internet;
     internet.Install(nodes);
     internet.Install(BCnodes);
-    // internet.Install(initiator);
+    internet.Install(initiator);
+    
     Ipv4AddressHelper ipAddrs;
-    ipAddrs.SetBase("192.168.0.0", "255.255.0.0");
+    ipAddrs.SetBase("192.168.0.0", "255.255.255.0");
     Ipv4InterfaceContainer nodesIpIfaces = ipAddrs.Assign(nodeDevices);
+    ipAddrs.Assign(initiatorDevice);
     // NS_LOG_INFO("ip adress "<< nodesIpIfaces.GetAddress(4));
     
-    ipAddrs.NewAddress();
+    // ipAddrs.SetBase("192.168.1.0","255.255.255.0");
     Ipv4InterfaceContainer BCnodesIpIfaces = ipAddrs.Assign(BCnodeDevices);
 
   
@@ -145,9 +147,8 @@ main(int argc, char* argv[])
     mobility.SetPositionAllocator (positionAlloc);
     mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
     mobility.Install (nodes);
-
     mobility.Install(BCnodes);
-
+    mobility.Install(initiator);
     
      //--------------------------------------------
     //-- Create a custom traffic source and sink
@@ -178,20 +179,20 @@ main(int argc, char* argv[])
 
     Ptr<Node> flNode;
     Ptr<FLNode> FL ;
-    for (uint32_t i = 1; i < nodes.GetN()-1; ++i) {
+    for (uint32_t i = 0; i < nodes.GetN(); ++i) {
       flNode = nodes.Get(i);
       FL = CreateObject<FLNode>();
       flNode->AddApplication(FL);
-      // FL->SetStartTime(Seconds(0));
+      FL->SetStartTime(Seconds(0));
       //setting the caracteristics of the nodes
       FL->Init(nodesInfo[i]);
     }
 
       
     
-    Ptr<Node> initiator = nodes.Get(0); 
+    Ptr<Node> initnode = initiator.Get(0); 
     Ptr<Initiator> flInitTask = CreateObject<Initiator>();
-    initiator->AddApplication(flInitTask);
+    initnode->AddApplication(flInitTask);
     // flInitTask->SetStartTime(Seconds(1));
     flInitTask->setNumNodes(numFlNodes);
     flInitTask->setRounds(flrounds);
@@ -200,7 +201,7 @@ main(int argc, char* argv[])
     flInitTask->setNumAggregators(numAggregators);
     flInitTask->setNodesInfo(nodesInfo, numFlNodes);
     Config::Set("/NodeList/*/ApplicationList/*/$Initiator/Destination",
-                Ipv4AddressValue("192.168.255.255"));
+                Ipv4AddressValue("192.168.0.255"));
     
     //--------------------------------------------------------------
     //---- tracing 
@@ -229,7 +230,7 @@ main(int argc, char* argv[])
     for(uint32_t i=0; i<BCnodes.GetN();i++){
       anim.UpdateNodeColor(BCnodes.Get(i),0,0,255);
     }
-
+    
     //--------------------------------------------
     //-- Run the simulation
     //--------------------------------------------
@@ -269,7 +270,7 @@ FLNodeStruct* GetNodesFromFile(const std::string& filename,  int& numNodes){
         node.nodeId = std::stoi(field);
 
         std::getline(ss, field, ','); // Read the Availability field
-        node.availability = (field == "true");
+        node.availability = (field == "True");
 
         std::getline(ss, field, ','); // Read the Honesty field
         node.honesty = std::stod(field);
@@ -287,7 +288,7 @@ FLNodeStruct* GetNodesFromFile(const std::string& filename,  int& numNodes){
         node.task = std::stoi(field);
 
         std::getline(ss, field); // Read the Dropout field
-        node.dropout = (field == "true");
+        node.dropout = (field == "True");
 
         // Resize the array for each new node
         nodeList = (FLNodeStruct*)realloc(nodeList, (count + 1) * sizeof(FLNodeStruct));

@@ -10,6 +10,8 @@
 
 #include <ctime>
 #include <string>
+#include <mutex>
+
 namespace ns3 {
 
 
@@ -37,7 +39,7 @@ class Blockchain {
     int aggregators[numMaxAggregators];
     int trainers[numMaxTrainers];
     Ptr<UniformRandomVariable> randomBCAdrsStream;
-    
+   
 
     // Private constructor and destructor to ensure singleton.
     Blockchain(){
@@ -66,7 +68,6 @@ class Blockchain {
 
 public:
 
-     
     
     // Singleton pattern: static method to get the instance.
     static Blockchain* getInstance() {
@@ -125,6 +126,7 @@ public:
     }
 
     void SetNodeInfo(int index, const FLNodeStruct& value) {
+        
         if (index >= 0 && index < numMaxNodes) {
             m_nodesInfo[index] = value;
         }

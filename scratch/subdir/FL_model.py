@@ -50,13 +50,13 @@ class Generator():
             path, train=True, download=True, transform=transforms.Compose([
                 transforms.ToTensor(),
                 transforms.Normalize(
-                    (0.1307,), (0.3081,))
+                    (0.5,), (0.5,))
             ]))
         self.testset = datasets.MNIST(
-            path, train=False, transform=transforms.Compose([
+            path, train=False, download=True, transform=transforms.Compose([
                 transforms.ToTensor(),
                 transforms.Normalize(
-                    (0.1307,), (0.3081,))
+                    (0.5,), (0.5,))
             ]))
         self.labels = list(self.trainset.classes)
 
@@ -139,17 +139,22 @@ class Loader(object):
 
 class Net(nn.Module):
     def __init__(self):
-         arg = Arguments()
-         super(Net, self).__init__()
-         self.inputsiz = arg.inpsiz
-         self.l1 = nn.Linear(arg.inpsiz, arg.hidensiz) 
-         self.relu = nn.ReLU()
-         self.l2 = nn.Linear(arg.hidensiz, arg.numclases) 
-    def forward(self, y):
-         outp = self.l1(y)
-         outp = self.relu(outp)
-         outp = self.l2(outp)
-         return outp
+        arg = Arguments()
+        super(Net, self).__init__()
+        #  self.inputsiz = arg.inpsiz
+        #  self.l1 = nn.Linear(arg.inpsiz, arg.hidensiz) 
+        #  self.relu = nn.ReLU()
+        #  self.l2 = nn.Linear(arg.hidensiz, arg.numclases)
+        self.fc1 = nn.Linear(28 * 28, 500)
+        self.fc2 = nn.Linear(500, 10)
+    def forward(self, x):
+        #  outp = self.l1(y)
+        #  outp = self.relu(outp)
+        #  outp = self.l2(outp)
+        #  return outp
+        x = torch.relu(self.fc1(x.view(-1, 28 * 28)))
+        x = self.fc2(x)
+        return x
 
 
 
@@ -190,52 +195,80 @@ def flatten_weights(weights):
 
     return np.array(weight_vecs)
 
-def train(model, trainloader, optimizer, epochs, config):
+# def train(model, trainloader, optimizer, epochs, config):
     
-    args = Arguments(config)
-    model.to(device)
-    model.train()
-    criterion = nn.CrossEntropyLoss().to(device)
+#     args = Arguments(config)
+#     # model.to(device)
+#     model.train()
+#     criterion = nn.CrossEntropyLoss().to(device)
     
-    for epoch in range(1, epochs + 1):
-        for batch_id, (image, label) in enumerate(trainloader):
-            image, label = image.to(device), label.to(device)
-            # image = image.reshape(-1,28*28)
-            optimizer.zero_grad()
-            output = model(image)
-            loss = criterion(output, label)
+#     for epoch in range(1, epochs + 1):
+#         for batch_id, (image, label) in enumerate(trainloader):
+#             image, label = image.to(device), label.to(device)
+#             image = image.reshape(-1,28*28)
+#             optimizer.zero_grad()
+#             output = model(image)
+#             loss = criterion(output, label)
             
+#             loss.backward()
+#             optimizer.step()
+#             if batch_id % args.log_interval == 0:
+#                 logging.debug('Epoch: [{}/{}]\tLoss: {:.6f}'.format(
+#                     epoch, epochs, loss.item()))
+
+#             # Stop training if model is already in good shape
+#             if loss.item() < args.loss_thres:
+#                 return loss.item()
+    
+#     logging.info('loss: {}'.format(loss.item()))
+#     return loss.item()
+
+def train(model, train_loader, optimizer, epochs):
+    criterion = nn.CrossEntropyLoss()
+    for epoch in range(epochs):
+        running_loss = 0.0
+        for i, (inputs, labels) in enumerate(train_loader):
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
-            if batch_id % args.log_interval == 0:
-                logging.debug('Epoch: [{}/{}]\tLoss: {:.6f}'.format(
-                    epoch, epochs, loss.item()))
+            running_loss += loss.item()
 
-            # Stop training if model is already in good shape
-            if loss.item() < args.loss_thres:
-                return loss.item()
-    
-    logging.info('loss: {}'.format(loss.item()))
-    return loss.item()
+        print(f"Epoch {epoch + 1}, Loss: {running_loss / len(train_loader)}")
 
-def test(model, testloader):
-    model.to(torch.device('cpu'))
-    model.eval()
-    test_loss = 0
+    print("Training completed!")
+
+# def test(model, testloader):
+#     model.to(torch.device('cpu'))
+#     model.eval()
+#     test_loss = 0
+#     correct = 0
+#     total = len(testloader.dataset)
+#     with torch.no_grad():
+#         for image, label in testloader:
+#             image, label = image.to(device), label.to(device)
+#             output = model(image)
+#             # sum up batch loss
+#             test_loss += F.nll_loss(output, label, reduction='sum').item()
+#             # get the index of the max log-probability
+#             pred = output.argmax(dim=1, keepdim=True)
+#             correct += pred.eq(label.view_as(pred)).sum().item()
+
+#     accuracy = correct / total
+#     logging.debug('Accuracy: {:.2f}%'.format(100 * accuracy))
+
+#     return accuracy
+
+def test(model, test_loader):
     correct = 0
-    total = len(testloader.dataset)
+    total = 0
     with torch.no_grad():
-        for image, label in testloader:
-            image, label = image.to(device), label.to(device)
-            output = model(image)
-            # sum up batch loss
-            test_loss += F.nll_loss(output, label, reduction='sum').item()
-            # get the index of the max log-probability
-            pred = output.argmax(dim=1, keepdim=True)
-            correct += pred.eq(label.view_as(pred)).sum().item()
-
-    accuracy = correct / total
-    logging.debug('Accuracy: {:.2f}%'.format(100 * accuracy))
-
+        for inputs, labels in test_loader:
+            outputs = model(inputs)
+            _, predicted = torch.max(outputs.data, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+    accuracy =  100 * correct / total
+    print(f"accuracy on testset {accuracy:.2f}%") 
     return accuracy
-

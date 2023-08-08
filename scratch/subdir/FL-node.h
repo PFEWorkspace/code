@@ -99,7 +99,7 @@ class FLNode : public Application
     double honesty; // the honesty score of the node
     double dropout ; // if he's going to dropout or not 
     double malicious ; // if he's going to alter his results or not
-  
+   
 };
 
 }

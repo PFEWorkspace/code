@@ -96,7 +96,7 @@ Initiator::StartApplication()
     rapidjson::StringBuffer packetInfo;
     rapidjson::Writer<rapidjson::StringBuffer> writer(packetInfo);
     Info.Accept(writer);
-    // NS_LOG_INFO(packetInfo.GetString());
+    NS_LOG_INFO(packetInfo.GetString());
 
     Ptr<SocketFactory> socketFactory = GetNode()->GetObject<SocketFactory>(UdpSocketFactory::GetTypeId());
     m_socket = socketFactory->CreateSocket();

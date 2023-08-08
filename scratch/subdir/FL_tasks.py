@@ -97,19 +97,21 @@ class FLManager(object):
         data = self.loader.get_partition(node.node.datasetSize)
         node.set_data(data, self.config)
 
-    def start_round(self, selectedTrainers):
+    def start_round(self, selectedTrainers, numSelectedTrainers):
         rounds = self.config.fl.rounds
-        logging.info('**** Round {}/{} ****'.format(self.round, rounds))
+        print('**** Round {}/{} ****'.format(self.round, rounds))
 
         #configuration
         loading = self.config.data.loading
         localmodels = []
-        for i in selectedTrainers:
-            if not self.nodes[i].node.dropout :    
+        for i in range(0,numSelectedTrainers):
+            print("training on node "+str(selectedTrainers[i]))
+            if not self.nodes[selectedTrainers[i]].node.dropout :    
                 if loading == 'dynamic' and self.round > 0 :
-                    self.set_node_data(self.nodes[i])
-                self.nodes[i].configure(self.config)
-                localmodels.append((self.nodes[i].train(self.round, self.modelsFileManager)).get_refrence())
+                    self.set_node_data(self.nodes[selectedTrainers[i]])
+                self.nodes[selectedTrainers[i]].configure(self.config)
+                ml:MLModel = self.nodes[selectedTrainers[i]].train(self.round, self.modelsFileManager, self.config)
+                localmodels.append(ml)
         return localmodels        
  
     @staticmethod
