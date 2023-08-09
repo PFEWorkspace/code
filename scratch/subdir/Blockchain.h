@@ -39,12 +39,14 @@ class Blockchain {
     int aggregators[numMaxAggregators];
     int trainers[numMaxTrainers];
     Ptr<UniformRandomVariable> randomBCAdrsStream;
-   
-
+    std::string currentblockId;
+    int taskId;
+    
     // Private constructor and destructor to ensure singleton.
     Blockchain(){
         // Initialize 
         receivedCandidatures = 0 ;
+        
         for (int i = 0; i < numMaxNodes; ++i) {
             modelToEval[i] = 0;
             modelToAgreg[i] = 0;
@@ -79,7 +81,7 @@ public:
     
     Blockchain(const Blockchain& obj)= delete;
     // Setters and Getters
-    void WriteTransaction(int blockId, int nodeId, const rapidjson::Document& message);
+    void WriteTransaction(std::string blockId, int nodeId, const rapidjson::Document& message);
     void PrintBlockchain() const;
     Ipv4Address getFLAddress(int nodeId);
     Ipv4Address getBCAddress();
@@ -98,6 +100,10 @@ public:
     void SetTrainers(int aggs[], int num){
         for(int i=0; i<num; i++){trainers[i]=aggs[i];}
     }
+
+    void SetCurrentBlockId(){
+        currentblockId = std::to_string(taskId)+ "/"+ std::to_string(actualFLround); 
+    };
 
     void SetMaxFLRound(int value) {
         maxFLround = value;
@@ -151,11 +157,17 @@ public:
     void setNumTrainers(int value) {
         numTrainers = value;
     }
-
+    void setTaskId(int taskid){this->taskId = taskid;}
     // Getters
     int getTrainer(int index){return trainers[index];}
     int getAggregator(int index){return aggregators[index];}
     
+    int getTaskId()const{return this->taskId;}
+    
+    std::string getCurrentBlockId()const {
+        return currentblockId;
+    }
+
     int getNumFLNodes() const {
         return numFLNodes;
     }

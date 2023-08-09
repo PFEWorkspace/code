@@ -8,6 +8,8 @@
 #include "ns3/ascii-file.h"
 
 #include "BC-node.h"
+#include "FL-node.h"
+#include "FL-task-initiator.h"
 #include "Blockchain.h"
 
 
@@ -43,7 +45,8 @@ main(int argc, char* argv[])
     int flrounds = 10;
     int x =0 ;
     double targetAccuracy = 0.0;
-    const uint16_t Port = 8833;
+    int modelSize=1600;
+    // const uint16_t Port = 8833;
     double xPosMin = 0;
     double xPosMax = 30;
     double yPosMin = 0;
@@ -69,6 +72,7 @@ main(int argc, char* argv[])
     cmd.AddValue ("source","the path and name of the file to get initial data about nodes", nodes_source);
     cmd.AddValue ("flRounds", "the number of rounds per FL task", flrounds);
     cmd.AddValue ("targetAccuracy", "the target accuracy for the FL task",targetAccuracy);
+    cmd.AddValue ("modelSize","the size of the model to train",modelSize);
     cmd.AddValue("x"," the number of models to aggregate at once",x);
     cmd.Parse (argc, argv);
 
@@ -144,7 +148,7 @@ main(int argc, char* argv[])
     internet.Install(initiator);
     
     Ipv4AddressHelper ipAddrs;
-    ipAddrs.SetBase("192.168.0.0", "255.255.255.0");
+    ipAddrs.SetBase("192.168.0.0", "255.255.0.0");
     Ipv4InterfaceContainer nodesIpIfaces = ipAddrs.Assign(nodeDevices);
     ipAddrs.Assign(initiatorDevice);
     // NS_LOG_INFO("ip adress "<< nodesIpIfaces.GetAddress(4));
@@ -156,6 +160,7 @@ main(int argc, char* argv[])
     //--------------------------------------------
     //-- Setup physical layout
     //--------------------------------------------
+
      // Create a position allocator
     Ptr<RandomBoxPositionAllocator> positionAlloc = CreateObject<RandomBoxPositionAllocator> ();
     Ptr<UniformRandomVariable> xVal = CreateObject<UniformRandomVariable>();
@@ -201,7 +206,7 @@ main(int argc, char* argv[])
       BC = CreateObject<BCNode>();
       bcnode->AddApplication(BC);
       BC->SetStartTime(Seconds(0));
-      
+      // BC->SetStopTime(Seconds(10));
   
     }
 
@@ -213,8 +218,9 @@ main(int argc, char* argv[])
       FL = CreateObject<FLNode>();
       flNode->AddApplication(FL);
       FL->SetStartTime(Seconds(0));
+      // FL->SetStopTime(Seconds(10));
       //setting the caracteristics of the nodes
-      FL->Init(nodesInfo[i]);
+      FL->Init(nodesInfo[i],modelSize);
     }
 
       
@@ -222,22 +228,33 @@ main(int argc, char* argv[])
     Ptr<Node> initnode = initiator.Get(0); 
     Ptr<Initiator> flInitTask = CreateObject<Initiator>();
     initnode->AddApplication(flInitTask);
-    // flInitTask->SetStartTime(Seconds(1));
+    flInitTask->SetStartTime(Seconds(1));
+    // flInitTask->SetStopTime(Seconds(10));
+
     flInitTask->setNumNodes(numFlNodes);
     flInitTask->setRounds(flrounds);
     flInitTask->setTargetAcc(targetAccuracy);
     flInitTask->setNumParticipants(numParticipants);
     flInitTask->setNumAggregators(numAggregators);
     flInitTask->setNodesInfo(nodesInfo, numFlNodes);
-    Config::Set("/NodeList/*/ApplicationList/*/$Initiator/Destination",
-                Ipv4AddressValue("192.168.0.255"));
+    //set the destination adresses
+    std::vector<Ipv4Address> adrs;
+    adrs.push_back(blockchain->getBCAddress()); 
+   
+    for(int i=0; i<numFlNodes; i++){
+      adrs.push_back(nodesIpIfaces.GetAddress(i));
+    }
+    flInitTask->setDestAddrs(adrs);
+
     
     //--------------------------------------------------------------
     //---- tracing 
     //-------------------------------------------------------------
+   
+    
     if (tracing == true)
     {
-       NS_LOG_INFO("tracing.");
+      
         // AsciiTraceHelper ascii;
         // wifiPhy.EnableAsciiAll(ascii.CreateFileStream("main.tr"));
       
@@ -259,7 +276,8 @@ main(int argc, char* argv[])
     for(uint32_t i=0; i<BCnodes.GetN();i++){
       anim.UpdateNodeColor(BCnodes.Get(i),0,0,255);
     }
-    
+    anim.UpdateNodeColor(initiator.Get(0),0,255,0);
+    anim.SetMaxPktsPerTraceFile(50000000);
     //--------------------------------------------
     //-- Run the simulation
     //--------------------------------------------

@@ -114,7 +114,21 @@ double FLNode::GetHonesty() const {
   return honesty;
 }
 
-void FLNode::Init(FLNodeStruct n){
+void FLNode::SetLearningCost(double learningCost){
+  this->learning_cost = learningCost;
+}
+  double FLNode::GetLearningCost() const{
+    return learning_cost;
+  }
+
+  void FLNode::SetCommunicationCost(double communicationCost){
+    this->communication_cost = communicationCost;
+  }
+  double FLNode::GetCommunicationCost() const{
+    return communication_cost;
+  }
+
+void FLNode::Init(FLNodeStruct n, int modelsize){
   id = n.nodeId ;
   availability = n.availability ;
   honesty = n.honesty ;
@@ -123,7 +137,9 @@ void FLNode::Init(FLNodeStruct n){
   trans_rate = n.transRate ;
   task = Task(n.task);
   dropout = n.dropout ;
- 
+  model_size = modelsize;
+  learning_cost = n.datasetSize / n.freq ;
+  communication_cost = model_size / n.transRate ;
   // malicious = n.malicious;
 }
 
@@ -189,13 +205,14 @@ void FLNode::Receive(Ptr<Socket> socket) {
                          */
                         // Candidater(InetSocketAddress::ConvertFrom(from).GetIpv4());
                         // the average packet size for a candidature is around 120 bytes and the trans_rate is in Mbps
-                       Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(120/trans_rate*1000), [this]() { Candidater(); });
+                       Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(120/trans_rate + 1), [this]() { Candidater(); });
                         break;
                     case SELECTION :
                          if(d.HasMember("task") && d["task"].IsInt()){
                             SetTask(Task(d["task"].GetInt()));
                             if(GetTask() == TRAIN) {
-                              Train();
+                              // Train();
+                               Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(GetLearningCost()+GetCommunicationCost()), [this]() { Train();});
                             } // the else being aggregate or evaluate
                          }
                     default:
@@ -222,7 +239,7 @@ void FLNode::Send(Ipv4Address adrs, rapidjson::Document &d) {
     // Ptr<Packet> packet = Create<Packet>(reinterpret_cast<const uint8_t*>(packetInfo.GetString()),packetInfo.GetSize());
     // int result = m_socket->SendTo(packet,0,InetSocketAddress(adrs, m_port));
      m_socket->Connect(InetSocketAddress(adrs, m_port));
-    int result = m_socket->Send(reinterpret_cast<const uint8_t*>(packetInfo.GetString()),packetInfo.GetSize(),0);
+    m_socket->Send(reinterpret_cast<const uint8_t*>(packetInfo.GetString()),packetInfo.GetSize(),0);
     // NS_LOG_DEBUG("sent "<< result << " " << packetInfo.GetString());
 }
 
@@ -261,8 +278,8 @@ void FLNode::Train() {
 
   Blockchain* bc = Blockchain::getInstance();
   Ipv4Address adr = bc->getBCAddress();
-
-  NS_LOG_DEBUG("I'am" << id << " sending model to " << adr);
+ 
+  NS_LOG_DEBUG("I'am " << id << " sending model to " << adr);
   rapidjson::Document d;
   rapidjson::Value value;
   d.SetObject(); 

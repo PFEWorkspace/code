@@ -1,9 +1,9 @@
 {
     "nodes": {
-        "total": 5,
-        "participants_per_round": 1,
-        "aggregators_per_round":1,
-        "bc":5,
+        "total": 300,
+        "participants_per_round": 150,
+        "aggregators_per_round":50,
+        "bc":50,
         "test_partition": 0.2,
         "selection": "score",
         "source": "generated_nodes.csv" 

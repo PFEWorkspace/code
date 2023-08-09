@@ -18,10 +18,10 @@
 
 namespace ns3 {
 
-const int numMaxNodes = 100;
-const int numMaxTrainers = 50;
-const int numMaxAggregators = 20;
-const int numMaxBCNodes = 30;
+const int numMaxNodes = 1000;
+const int numMaxTrainers = 200;
+const int numMaxAggregators = 100;
+const int numMaxBCNodes = 100;
 
     struct MLModel{
         int modelId; // used to access the model on the file directly

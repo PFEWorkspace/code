@@ -14,7 +14,7 @@ def generate_random_instance(instance_id):
     return [instance_id, availability, honesty, dataset_size, frequency, transmission_rate, task, dropout]
 
 # Number of instances to generate
-num_instances = 100
+num_instances = 1000
 
 # CSV file name
 csv_file = "generated_nodes.csv"

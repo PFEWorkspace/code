@@ -45,21 +45,21 @@ void Blockchain::SetRandomBCStream(){
 
 
 
-void Blockchain::WriteTransaction(int blockId, int nodeId, const rapidjson::Document& message) {
+void Blockchain::WriteTransaction(std::string blockId, int nodeId, const rapidjson::Document& message) {
    
-    NS_LOG_INFO("START WRITE TRANSACTION");
+    // NS_LOG_INFO("START WRITE TRANSACTION");
     std::lock_guard<std::mutex> lock(mtx);
     // Load the existing JSON from the file or create if not exists
     rapidjson::Document blockchain;
     std::ifstream inFile("blockchain.json");
     if (inFile.good()) {
-        NS_LOG_INFO("Loading existing JSON from the file");
+        // NS_LOG_INFO("Loading existing JSON from the file");
         std::stringstream jsonStream;
         jsonStream << inFile.rdbuf();
         std::string jsonString = jsonStream.str();
         blockchain.Parse(jsonString.c_str());
     } else {
-        NS_LOG_INFO("File doesn't exist, creating initial structure");
+        // NS_LOG_INFO("File doesn't exist, creating initial structure");
         blockchain.SetArray();
     }
     
@@ -80,7 +80,7 @@ void Blockchain::WriteTransaction(int blockId, int nodeId, const rapidjson::Docu
     contentCopy.CopyFrom(message, allocator);
     transaction.AddMember("Content", contentCopy, allocator);
 
-    NS_LOG_INFO(time);
+    // NS_LOG_INFO(time);
 
     bool blockFound = false;
 
@@ -88,11 +88,11 @@ void Blockchain::WriteTransaction(int blockId, int nodeId, const rapidjson::Docu
     if (blockchain.IsArray()) {
         for (rapidjson::Value::ValueIterator itr = blockchain.Begin(); itr != blockchain.End(); ++itr) {
             rapidjson::Value& block = *itr;
-            NS_LOG_INFO("Iterating on the blocks to find the one matching with blockid");
-            if (block.HasMember("BlockId") && block["BlockId"].GetInt() == blockId) {
-                NS_LOG_INFO("Found target block");
+            // NS_LOG_INFO("Iterating on the blocks to find the one matching with blockid");
+            if (block.HasMember("BlockId") && block["BlockId"].GetString() == blockId) {
+                // NS_LOG_INFO("Found target block");
                 if (!block.HasMember("Transactions")) {
-                    NS_LOG_INFO("Block doesn't have any transactions");
+                    // NS_LOG_INFO("Block doesn't have any transactions");
                     rapidjson::Value transactions(rapidjson::kArrayType);
                     block.AddMember("Transactions", transactions, allocator);
                 }
@@ -109,11 +109,13 @@ void Blockchain::WriteTransaction(int blockId, int nodeId, const rapidjson::Docu
     }
 
     if (!blockFound) {
-        NS_LOG_INFO("Block not found, creating a new block");
+        // NS_LOG_INFO("Block not found, creating a new block");
 
         // Create a new block
         rapidjson::Value newBlock(rapidjson::kObjectType);
-        newBlock.AddMember("BlockId", blockId, allocator);
+        rapidjson::Value value;
+        value.SetString(blockId.c_str(),blockId.size(),allocator);
+        newBlock.AddMember("BlockId", value, allocator);
         rapidjson::Value transactions(rapidjson::kArrayType);
         newBlock.AddMember("Transactions", transactions, allocator);
 
@@ -134,7 +136,7 @@ void Blockchain::WriteTransaction(int blockId, int nodeId, const rapidjson::Docu
     std::ofstream outFile("blockchain.json");
     outFile << updatedBuffer.GetString();
     outFile.close();
-    NS_LOG_INFO("END WRITE TRANSACTION, file should be closed");
+    // NS_LOG_INFO("END WRITE TRANSACTION, file should be closed");
 }
 
 void Blockchain::PrintBlockchain() const {

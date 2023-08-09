@@ -71,9 +71,14 @@ class FLNode : public Application
   void SetHonesty(double honesty);
   double GetHonesty() const;
 
+  void SetLearningCost(double learningCost);
+  double GetLearningCost() const;
+
+  void SetCommunicationCost(double communicationCost);
+  double GetCommunicationCost() const;
   
 
-  void Init(FLNodeStruct n);
+  void Init(FLNodeStruct n, int modelsize);
   void ResetRound();
   protected:
     void DoDispose() override;
@@ -99,7 +104,9 @@ class FLNode : public Application
     double honesty; // the honesty score of the node
     double dropout ; // if he's going to dropout or not 
     double malicious ; // if he's going to alter his results or not
-   
+    int model_size;
+    double learning_cost;
+    double communication_cost;
 };
 
 }

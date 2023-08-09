@@ -50,7 +50,7 @@ class Node(object):
         # Create optimizer
         self.optimizer = FL_model.get_optimizer(self.model, config)
     
-    def train(self,round, fileManager:CSVFileManager, config):
+    def train(self,numRound, fileManager:CSVFileManager, config):
         logging.info('training on node #{}'.format(self.node.nodeId))
 
         # Perform model training
@@ -70,7 +70,7 @@ class Node(object):
             modelId=report_id,
             nodeId=self.node.nodeId,
             taskId= fileManager.get_instance_id("taskId"),
-            round=round,
+            round=numRound,
             type=1, # 1 for local model
             positiveVote=0,
             negativeVote=0,
@@ -79,7 +79,7 @@ class Node(object):
             evaluator3=-1,
             aggregated=False,
             aggModelId=0,
-            accuracy=0
+            accuracy=round(accuracy,2)
         )
         fileManager.write_instance(mlmodel)
         self.report = Report(report_id, self.node, self.data, weights,self.loss,accuracy, mlmodel)

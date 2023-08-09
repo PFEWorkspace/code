@@ -8,11 +8,11 @@ import config
 import copy
 from typing import List
 
-numMaxNodes = 100 
-numMaxTrainers = 50  
-numMaxAggregators = 20
-numMaxBCNodes = 30
-modelSize = 120
+numMaxNodes = 1000 
+numMaxTrainers = 200  
+numMaxAggregators = 100
+numMaxBCNodes = 100
+
 
 # Set up parser
 parser = argparse.ArgumentParser()
@@ -189,8 +189,8 @@ if __name__ == '__main__':
         'x' : fl_config.fl.x
     };
 
-    mempool_key = 1111
-    mem_size = 1024 * 2 * 2 * 2 * 2 * 2 * 2
+    mempool_key = 1000
+    mem_size = 1024 * 2 * 2 * 2 * 2 * 2 * 2 * 2 * 2
     exp = Experiment(mempool_key, mem_size, 'main', '../../', using_waf=False)
     exp.reset()
     try:

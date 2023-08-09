@@ -8,9 +8,12 @@
 #include "ns3/address.h"
 #include "ns3/address-utils.h"
 #include "ns3/inet-socket-address.h"
+#include "ai-helper.h"
+#include "../../rapidjson/document.h"
 
-#include "FL-node.h"
-#include "FL-task-initiator.h"
+// #include "../../rapidjson/error/en.h"
+// #include "../../rapidjson/writer.h"
+// #include "../../rapidjson/stringbuffer.h"
 
 #include <vector>
 
@@ -50,7 +53,7 @@ class BCNode : public Application
     void Send(rapidjson::Document& d);
     void SendTo( rapidjson::Document &d, std::vector<Ipv4Address> &addresses);
     void TreatCandidature(rapidjson::Document &d);
-    
+    void Selection();
     void WriteTransaction();
 
     FLNodeStruct docToFLNodeStruct(rapidjson::Document &d);
@@ -58,6 +61,7 @@ class BCNode : public Application
     Ptr<Socket> m_socket; // Receiving socket
     uint32_t m_port{8833};   // Listening port
     Ipv4Address m_destAddr; // the destination address
+    
 
 };
 

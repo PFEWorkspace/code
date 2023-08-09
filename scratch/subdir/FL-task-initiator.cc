@@ -10,17 +10,7 @@ Initiator::GetTypeId()
 {
     static TypeId tid = TypeId("Initiator")
                             .SetParent<Application>()
-                            .AddConstructor<Initiator>()
-                            .AddAttribute("Destination",
-                                          "Target host address.",
-                                          Ipv4AddressValue("255.255.255.255"),
-                                          MakeIpv4AddressAccessor(&Initiator::m_destAddr),
-                                          MakeIpv4AddressChecker())
-                            .AddAttribute("Source",
-                                          "Source host address.",
-                                          Ipv4AddressValue(),
-                                          MakeIpv4AddressAccessor(&Initiator::m_srcAddr),
-                                          MakeIpv4AddressChecker())              
+                            .AddConstructor<Initiator>()           
                             .AddAttribute("Port",
                                           "Destination app port.",
                                           UintegerValue(8833),
@@ -102,11 +92,15 @@ Initiator::StartApplication()
     m_socket = socketFactory->CreateSocket();
     m_socket->SetAllowBroadcast(true);
     m_socket->Bind();
-    // Ptr<Packet> packet = Create<Packet>(reinterpret_cast<const uint8_t*>(packetInfo.GetString()),packetInfo.GetSize());
+     Ptr<Packet> packet = Create<Packet>(reinterpret_cast<const uint8_t*>(packetInfo.GetString()),packetInfo.GetSize());
+    for (Ipv4Address destAddr : m_destAddr) {
+        m_socket->SendTo(packet, 0, InetSocketAddress(destAddr, m_destPort));
+        
+    }
     // m_socket->SendTo(packet,0,InetSocketAddress(m_destAddr, m_destPort));
-    m_socket->Connect(InetSocketAddress(m_destAddr, m_destPort));
-    int result = m_socket->Send(reinterpret_cast<const uint8_t*>(packetInfo.GetString()),packetInfo.GetSize(),0);
-    NS_LOG_INFO("number of bytes sent " << result); 
+    // m_socket->Connect(InetSocketAddress(m_destAddr, m_destPort));
+    // int result = m_socket->Send(reinterpret_cast<const uint8_t*>(packetInfo.GetString()),packetInfo.GetSize(),0);
+    // NS_LOG_INFO("number of bytes sent " << result); 
 
 }
 
@@ -116,11 +110,6 @@ Initiator::StopApplication(){
     // Simulator::Cancel(m_sendEvent);
 }
 
-void
-Initiator::SendPacket(rapidjson::Document d, Address &outgoingAddr)
-{
-
-}
 
 std::string ReadFileToString(const std::string& filePath) {
     std::ifstream file(filePath);

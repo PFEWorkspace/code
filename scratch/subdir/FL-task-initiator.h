@@ -11,6 +11,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <vector>
 
 
 namespace ns3{
@@ -58,6 +59,11 @@ class Initiator : public Application
 
     void setNodesInfo(FLNodeStruct* nodesInfo, int numNodes);
 
+    void setDestAddrs(std::vector<Ipv4Address> adrs){
+        m_destAddr = adrs;
+    };
+
+
     // Getters
     int getRounds() const {
         return m_rounds;
@@ -98,8 +104,8 @@ class Initiator : public Application
     
 
 
-    Ipv4Address m_destAddr; //!< Destination address
-    Ipv4Address m_srcAddr; //!< source address
+    std::vector<Ipv4Address> m_destAddr; //!< Destination address
+  
     uint32_t m_destPort{8833}; //!< Destination port
     Ptr<Socket> m_socket; //!< Sending socket
     EventId m_sendEvent;  //!< Send packet event
