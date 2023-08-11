@@ -197,6 +197,7 @@ main(int argc, char* argv[])
     blockchain->SetMaxFLRound(flrounds);
     blockchain->setNumAggregators(numAggregators);
     blockchain->setNumTrainers(numParticipants);
+    blockchain->SetModelsToAggAtOnce(x);
     blockchain->SetRandomBCStream();
 
     Ptr<Node> bcnode;

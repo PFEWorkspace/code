@@ -12,6 +12,7 @@ numMaxNodes = 1000
 numMaxTrainers = 200  
 numMaxAggregators = 100
 numMaxBCNodes = 100
+numMaxModelsToAgg= 20
 
 
 # Set up parser
@@ -38,7 +39,10 @@ class MLModel(ctypes.Structure):
         ("evaluator3", ctypes.c_int),
         ("aggregated", ctypes.c_bool),
         ("aggModelId", ctypes.c_int),
-        ("accuracy", ctypes.c_double)
+        ("accuracy", ctypes.c_double),
+        ("acc1", ctypes.c_double),
+        ("acc2", ctypes.c_double),
+        ("acc3", ctypes.c_double)
     ]
 
     def get_refrence(self):
@@ -90,7 +94,7 @@ class AiHelperEnv(ctypes.Structure):
     _fields_ = [
         ("type", ctypes.c_int),
         ("nodeId", ctypes.c_int),
-        # ("modelId", ctypes.c_int),
+        ("models",  MLModel * numMaxModelsToAgg),
         ("numNodes", ctypes.c_int),
         ("numTrainers", ctypes.c_int),
         ("numAggregators", ctypes.c_int),
@@ -169,7 +173,7 @@ class AiHelperContainer:
             lm = self.FL_manager.start_round(self.selectedTrainers, config.nodes.participants_per_round)
             act.numLocalModels = len(lm)
             for i in range(0,len(lm)) :
-                act.localModels[i] =  MLModel(modelId=lm[i].modelId,nodeId=lm[i].nodeId,taskId=lm[i].taskId,round=lm[i].round,type=lm[i].type, positiveVote=lm[i].positiveVote, negativeVote=lm[i].negativeVote,evaluator1=lm[i].evaluator1, evaluator2=lm[i].evaluator2,evaluator3=lm[i].evaluator3,aggregated=lm[i].aggregated, aggModelId=lm[i].aggModelId, accuracy=lm[i].accuracy)
+                act.localModels[i] =  MLModel(modelId=lm[i].modelId,nodeId=lm[i].nodeId,taskId=lm[i].taskId,round=lm[i].round,type=lm[i].type, positiveVote=lm[i].positiveVote, negativeVote=lm[i].negativeVote,evaluator1=lm[i].evaluator1, evaluator2=lm[i].evaluator2,evaluator3=lm[i].evaluator3,aggregated=lm[i].aggregated, aggModelId=lm[i].aggModelId, accuracy=lm[i].accuracy, acc1=lm[i].acc1, acc2=lm[i].acc2, acc3=lm[i].acc3)
             print(str(lm))
         return act
 

@@ -17,11 +17,16 @@
 namespace ns3{
 
 enum CommunicationType {
+    // msg from nodes -> BC
   NEWTASK,
   CANDIDATURE,
+  MODEL,
+   // msg from bc -> nodes
+  NEWROUND,
   SELECTION,
-  MODEL
-  //add the rest later
+  AGGREGATION,
+  EVALUATION
+ 
 };
 
 class Initiator : public Application

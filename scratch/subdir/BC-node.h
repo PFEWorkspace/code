@@ -50,12 +50,19 @@ class BCNode : public Application
     void StartApplication() override;
     void StopApplication() override;
     void Receive(Ptr<Socket> socket);
-    void Send(rapidjson::Document& d);
+    void Send(rapidjson::Document& d, Ipv4Address adrs);
     void SendTo( rapidjson::Document &d, std::vector<Ipv4Address> &addresses);
     void TreatCandidature(rapidjson::Document &d);
+    MLModel DocToMLModel(rapidjson::Document &d);
+    void TreatModel(MLModel model, Ipv4Address source);
     void Selection();
     void WriteTransaction();
-
+    void Evaluation(MLModel model, int nodeId);
+    void Aggregation(std::vector<MLModel> models, int nodeId, int type);
+    void DetectDropOut(AggregatorsTasks task);
+    void NewRound();
+    
+    
     FLNodeStruct docToFLNodeStruct(rapidjson::Document &d);
 
     Ptr<Socket> m_socket; // Receiving socket

@@ -279,7 +279,7 @@ void FLNode::Train() {
   Blockchain* bc = Blockchain::getInstance();
   Ipv4Address adr = bc->getBCAddress();
  
-  NS_LOG_DEBUG("I'am " << id << " sending model to " << adr);
+  // NS_LOG_DEBUG("I'am " << id << " sending model to " << adr);
   rapidjson::Document d;
   rapidjson::Value value;
   d.SetObject(); 
@@ -311,7 +311,12 @@ void FLNode::Train() {
   d.AddMember("aggModelId", value, d.GetAllocator());
   value = model.accuracy ; 
   d.AddMember("accuracy", value, d.GetAllocator());
-  
+  value = model.acc1;
+  d.AddMember("acc1", value, d.GetAllocator());
+  value = model.acc2;
+  d.AddMember("acc2", value, d.GetAllocator());
+  value = model.acc3;
+  d.AddMember("acc3", value, d.GetAllocator());
 
   Send(adr, d);
 

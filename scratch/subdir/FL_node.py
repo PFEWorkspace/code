@@ -71,7 +71,7 @@ class Node(object):
             nodeId=self.node.nodeId,
             taskId= fileManager.get_instance_id("taskId"),
             round=numRound,
-            type=1, # 1 for local model
+            type=0, # 0 for local model
             positiveVote=0,
             negativeVote=0,
             evaluator1=-1,
@@ -79,7 +79,10 @@ class Node(object):
             evaluator3=-1,
             aggregated=False,
             aggModelId=0,
-            accuracy=round(accuracy,2)
+            accuracy=round(accuracy,2),
+            acc1=0.0,
+            acc2=0.0,
+            acc3=0.0
         )
         fileManager.write_instance(mlmodel)
         self.report = Report(report_id, self.node, self.data, weights,self.loss,accuracy, mlmodel)

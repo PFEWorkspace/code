@@ -14,7 +14,12 @@
 
 namespace ns3 {
 
-
+struct AggregatorsTasks{
+    int nodeId;
+    int task; // 1 Aggregate, 2:Evaluate , TASK enum
+    MLModel models[numMaxModelsToAgg]; // if task is evaluation 1 model in the list
+    // std::time_t startTime; // use it to check if it exceeds a certain amount of time to reschedule the task
+}Packed;
 
 class Blockchain {
 
@@ -29,11 +34,12 @@ class Blockchain {
     int numBCNodes;
     int numAggregators;
     int numTrainers;
+    int modelsToAggAtOnce;
     int receivedCandidatures;
-    int modelToEval[numMaxNodes];
-    int modelToAgreg[numMaxNodes];
-    BCNodeStruct notBusyNodes[numMaxBCNodes];
+    // MLModel modelToEval[numMaxNodes];
+    std::vector<MLModel> modelToAgreg;
     FLNodeStruct m_nodesInfo[numMaxNodes];
+    std::vector<AggregatorsTasks> tasks;
     Ipv4InterfaceContainer nodesFLAdrs;
     Ipv4InterfaceContainer nodesBCAdrs;
     int aggregators[numMaxAggregators];
@@ -47,13 +53,7 @@ class Blockchain {
         // Initialize 
         receivedCandidatures = 0 ;
         
-        for (int i = 0; i < numMaxNodes; ++i) {
-            modelToEval[i] = 0;
-            modelToAgreg[i] = 0;
-        }
-        for (int i = 0; i < numMaxBCNodes; ++i) {
-            notBusyNodes[i] = BCNodeStruct(); // Initialize with default constructor.
-        }
+       
         for (int i = 0; i < numMaxNodes; ++i) {
             m_nodesInfo[i] = FLNodeStruct(); // Initialize with default constructor.
         }
@@ -64,7 +64,7 @@ class Blockchain {
     void SaveBlockchainToFile();
     void AddTransactionToBlockchain(const rapidjson::Value& transaction);
     std::string GetTimestamp();
-
+    
     // Object's inherited methods
     virtual void DoDispose();
 
@@ -80,18 +80,25 @@ public:
     }
     
     Blockchain(const Blockchain& obj)= delete;
-    // Setters and Getters
+   
     void WriteTransaction(std::string blockId, int nodeId, const rapidjson::Document& message);
     void PrintBlockchain() const;
     Ipv4Address getFLAddress(int nodeId);
-    Ipv4Address getBCAddress();
+    int getFLNodeId(Ipv4Address adrs);
+    void AddTask(AggregatorsTasks task);
+    bool hasPreviousTask(int nodeid, int task, MLModel models[]);
+    AggregatorsTasks RemoveTask(int id);
 
+    Ipv4Address getBCAddress();
+    int GetAggregatorNotBusy();
     void SetFLAddressContainer(Ipv4InterfaceContainer container);
     void SetBCAddressContainer(Ipv4InterfaceContainer container);
 
     void SetRandomBCStream();
 
      // Setters
+    void SetModelsToAggAtOnce(int x){modelsToAggAtOnce=x;}
+    int GetModelsToAggAtOnce(){return modelsToAggAtOnce;}
 
     void SetAggregators(int aggs[], int num){
         for(int i=0; i<num; i++){aggregators[i]=aggs[i];}
@@ -113,23 +120,28 @@ public:
         actualFLround = value;
     }
 
-    void SetModelToEval(int index, int value) {
-        if (index >= 0 && index < numMaxNodes) {
-            modelToEval[index] = value;
-        }
+    // void SetModelToEval(int index,  const MLModel& value) {
+    //     if (index >= 0 && index < numMaxNodes) {
+    //         modelToEval[index] = value;
+    //     }
+    // }
+
+    void AddModelToAgg( const MLModel& value) {
+        modelToAgreg.push_back(value);
     }
 
-    void SetModelToAgreg(int index, int value) {
-        if (index >= 0 && index < numMaxNodes) {
-            modelToAgreg[index] = value;
-        }
+    void removeModelsToAgg(int start, int end){
+        modelToAgreg.erase(modelToAgreg.begin()+start, modelToAgreg.begin()+end);
     }
 
-    void SetNotBusyNode(int index, const BCNodeStruct& value) {
-        if (index >= 0 && index < numMaxBCNodes) {
-            notBusyNodes[index] = value;
-        }
+    std::vector<MLModel> getxModelsToAgg(int x){
+        std::lock_guard<std::mutex> lock(mtx);
+        x = std::min(x, static_cast<int>(modelToAgreg.size()));
+        std::vector<MLModel> sublist(modelToAgreg.begin(), modelToAgreg.begin() + x);
+        removeModelsToAgg(0,x);
+        return sublist;
     }
+    int getModelsToAggSize(){return modelToAgreg.size();}
 
     void SetNodeInfo(int index, const FLNodeStruct& value) {
         
@@ -141,7 +153,6 @@ public:
     void IncReceivedCandidatures(){receivedCandidatures++;}
     int GetReceivedCandidatures(){return receivedCandidatures;}
 
-    // Setters
     void setNumFLNodes(int value) {
         numFLNodes = value;
     }
@@ -158,10 +169,12 @@ public:
         numTrainers = value;
     }
     void setTaskId(int taskid){this->taskId = taskid;}
+   
     // Getters
     int getTrainer(int index){return trainers[index];}
     int getAggregator(int index){return aggregators[index];}
     
+    int getNumAggTasksAwaiting();
     int getTaskId()const{return this->taskId;}
     
     std::string getCurrentBlockId()const {
@@ -192,27 +205,21 @@ public:
         return actualFLround;
     }
 
-    int GetModelToEval(int index) const {
-        if (index >= 0 && index < numMaxNodes) {
-            return modelToEval[index];
-        }
-        return 0; // or appropriate default value
-    }
+    // MLModel GetModelToEval(int index) const {
+    //     if (index >= 0 && index < numMaxNodes) {
+    //         return modelToEval[index];
+    //     }
+    //     return MLModel(); // or appropriate default value
+    // }
 
-    int GetModelToAgreg(int index) const {
+    MLModel GetModelToAgreg(int index) const {
         if (index >= 0 && index < numMaxNodes) {
             return modelToAgreg[index];
         }
-        return 0; // or appropriate default value
+        return MLModel(); // or appropriate default value
     }
 
-    const BCNodeStruct& GetNotBusyNode(int index) const {
-        if (index >= 0 && index < numMaxBCNodes) {
-            return notBusyNodes[index];
-        }
-        // Return a default or placeholder BCNodeStruct
-    }
-
+   
     const FLNodeStruct& GetNodeInfo(int index) const {
         if (index >= 0 && index < numMaxNodes) {
             return m_nodesInfo[index];

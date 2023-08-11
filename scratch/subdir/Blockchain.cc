@@ -1,5 +1,6 @@
 #include "Blockchain.h"
 
+#include "FL-node.h"
 
 namespace ns3 {
 
@@ -22,7 +23,37 @@ Ipv4Address Blockchain::getFLAddress(int nodeId)
 {
     return nodesFLAdrs.GetAddress(nodeId);
 }
-
+int
+Blockchain::getFLNodeId(Ipv4Address adrs){
+    int id = -1 ;
+    for(uint32_t i=0; i < nodesFLAdrs.GetN(); i++){
+        if(nodesFLAdrs.GetAddress(i)==adrs){
+            id=i;
+            break;
+        }
+    }
+    return id;
+}
+bool 
+Blockchain::hasPreviousTask(int id, int task, MLModel models[]){
+    for(AggregatorsTasks t :tasks){
+        if(t.nodeId==id && t.task == task && t.models[0].modelId==models[0].modelId)return true;
+    }
+    return false;
+}
+AggregatorsTasks 
+Blockchain::RemoveTask(int id){
+    for(int i=0;i< tasks.size();i++){
+        if(tasks[i].nodeId==id){
+            tasks.erase(tasks.begin()+i);
+            break;
+        }
+    }
+}
+void 
+Blockchain::AddTask(AggregatorsTasks task){
+    tasks.push_back(task);
+}
 
 Ipv4Address Blockchain::getBCAddress(){
     uint32_t randomid = randomBCAdrsStream->GetInteger();
@@ -43,7 +74,13 @@ void Blockchain::SetRandomBCStream(){
         randomBCAdrsStream->SetAttribute("Max", DoubleValue(numBCNodes-1)); // and max is the sum of both group of nodes size
 }
 
-
+int Blockchain::getNumAggTasksAwaiting(){
+    int count = 0;
+    for(AggregatorsTasks task : tasks){
+        if(task.task == AGGREGATE){count++;}
+    }
+    return count;
+}
 
 void Blockchain::WriteTransaction(std::string blockId, int nodeId, const rapidjson::Document& message) {
    
@@ -181,6 +218,26 @@ std::string Blockchain::GetTimestamp(){
     }
 
     return timeString;
+}
+int
+Blockchain::GetAggregatorNotBusy(){
+    int id=-1;
+    bool busy;
+    for(int agg : aggregators){
+        busy= false;
+        for(AggregatorsTasks task : tasks){
+            if(agg == task.nodeId){
+                busy = true;
+                break;
+            }
+        }
+        if(!busy){
+            id = agg ;
+            break;
+        } 
+    }
+    return id; // -1 for no available 
+
 }
 
 void Blockchain::DoDispose() {

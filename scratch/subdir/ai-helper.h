@@ -22,13 +22,14 @@ const int numMaxNodes = 1000;
 const int numMaxTrainers = 200;
 const int numMaxAggregators = 100;
 const int numMaxBCNodes = 100;
+const int numMaxModelsToAgg = 20;
 
     struct MLModel{
         int modelId; // used to access the model on the file directly
         int nodeId; // the id of the trainer if it's a local model, the aggregatorID if it's an intermediate or global model, -1 if it's the initial model
         int taskId; // the id of the FL task 
         int round; // the number of the FL round
-        int type; // 0:local, 1:intermediaire or 3:global, the enum MODELTYPE
+        int type; // 0:local, 1:intermediaire or 2:global, the enum MODELTYPE
         int positiveVote; // counter for the validations
         int negativeVote; //counter for the non validations
         int evaluator1 ; // the id of the first evaluator node
@@ -37,7 +38,9 @@ const int numMaxBCNodes = 100;
         bool aggregated; // true if it was assigned to be aggregated, else false
         int aggModelId; // the id of the aggregated model including this one (level+1)
         double accuracy; // the accuracy of the model
-        //TODO decide the type weights;
+        double acc1; // the accuracy obtained from 1st evaluator
+        double acc2;// the accuracy obtained from 2nd evaluator
+        double acc3; // the accuracy obtained from 3rd evaluator
     }Packed;
 
     struct MLModelRefrence{
@@ -70,7 +73,7 @@ const int numMaxBCNodes = 100;
     {
         int type; //1: initialisation, 2:selection, 3:train, 4:evaluation, 5:aggregation
         int nodeId; // used for evaluation or aggregation, to know which node is launching this task
-        // int modelId; // the id of the global model before training
+        MLModel models[numMaxModelsToAgg]; // the model to evaluate or aggregate
         int numNodes;
         int numTrainers;
         int numAggregators;

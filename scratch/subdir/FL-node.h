@@ -21,8 +21,9 @@
 namespace ns3{
 
 enum Task{
+  NOTSELECTED,
   TRAIN,
-  AGREGATE,
+  AGGREGATE,
   EVALUATE
 };
 

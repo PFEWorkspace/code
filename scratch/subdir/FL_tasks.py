@@ -25,7 +25,7 @@ class FLManager(object):
             nodeId=-1,
             taskId=self.modelsFileManager.get_instance_id("taskId") + 1,
             round=0,
-            type=3, # 3 for global model
+            type=2, # 2 for global model
             positiveVote=0,
             negativeVote=0,
             evaluator1=-1,
