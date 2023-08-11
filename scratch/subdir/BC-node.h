@@ -10,7 +10,7 @@
 #include "ns3/inet-socket-address.h"
 #include "ai-helper.h"
 #include "../../rapidjson/document.h"
-
+#include "Blockchain.h"
 // #include "../../rapidjson/error/en.h"
 // #include "../../rapidjson/writer.h"
 // #include "../../rapidjson/stringbuffer.h"
@@ -33,7 +33,8 @@ class BCNode : public Application
 
     BCNode();
     ~BCNode() override;
-
+    
+  static MLModel DocToMLModel(rapidjson::Document &d);
     
   void SetPort(uint32_t port);
   uint32_t GetPort() const;
@@ -53,7 +54,7 @@ class BCNode : public Application
     void Send(rapidjson::Document& d, Ipv4Address adrs);
     void SendTo( rapidjson::Document &d, std::vector<Ipv4Address> &addresses);
     void TreatCandidature(rapidjson::Document &d);
-    MLModel DocToMLModel(rapidjson::Document &d);
+    
     void TreatModel(MLModel model, Ipv4Address source);
     void Selection();
     void WriteTransaction();

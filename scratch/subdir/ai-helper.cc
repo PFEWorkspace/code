@@ -72,7 +72,7 @@ AiHelper::initializeFL(FLNodeStruct *nodes, int& numNodes){
 void AiHelper::Selection () 
 {
     NS_LOG_FUNCTION_NOARGS();
-     Blockchain* bc = Blockchain::getInstance() ; 
+    Blockchain* bc = Blockchain::getInstance() ; 
     //set input
     auto env = EnvSetterCond();
     env->type = 0x02; 
@@ -132,6 +132,42 @@ AiHelper::GetLocalModel(int nodeid){
         i++;
     }
     
+    return model;
+}
+
+MLModel
+AiHelper::evaluate(MLModel model, int aggId){
+    //set input
+    auto env = EnvSetterCond();
+    env->type = 0x04; 
+    env->nodeId = aggId;
+    env->models[0] = model ;
+    SetCompleted();
+    NS_LOG_INFO("Version: " << (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id)); // to get the momory version
+
+    //get output
+    auto act = ActionGetter();
+    NS_LOG_INFO("Version: " << (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id));
+    MLModel model = act->model;
+    GetCompleted();
+    return model;
+}
+
+MLModel
+AiHelper::aggregate(std::vector<MLModel> models, int aggId){
+    //set input
+    auto env = EnvSetterCond();
+    env->type = 0x05; 
+    env->nodeId = aggId ;
+    for(uint i=0; i<models.size(); i++){env->models[i] = models[i];}
+    SetCompleted();
+    NS_LOG_INFO("Version: " << (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id)); // to get the momory version
+
+    //get output
+    auto act = ActionGetter();
+    NS_LOG_INFO("Version: " << (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id));
+    MLModel model = act->model;
+    GetCompleted();
     return model;
 }
 }

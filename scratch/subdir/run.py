@@ -190,6 +190,7 @@ if __name__ == '__main__':
         'flRounds' : fl_config.fl.rounds,
         'numBCNodes' : fl_config.nodes.bc,
         'targetAccuracy' : fl_config.fl.target_accuracy,
+        'testPartition' : fl_config.nodes.test_partition,
         'x' : fl_config.fl.x
     };
 

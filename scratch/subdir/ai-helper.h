@@ -72,7 +72,7 @@ const int numMaxModelsToAgg = 20;
     struct AiHelperEnv
     {
         int type; //1: initialisation, 2:selection, 3:train, 4:evaluation, 5:aggregation
-        int nodeId; // used for evaluation or aggregation, to know which node is launching this task
+        int nodeId; // used for evaluation or aggregation, to know which node is doing this task
         MLModel models[numMaxModelsToAgg]; // the model to evaluate or aggregate
         int numNodes;
         int numTrainers;
@@ -109,6 +109,8 @@ const int numMaxModelsToAgg = 20;
         void Selection () ;
         MLModel train(int nodeid);
         MLModel GetLocalModel(int nodeid);
+        MLModel evaluate(MLModel model, int aggId);
+        MLModel aggregate(std::vector<MLModel> models, int aggId);
         //setters and getters
         void SetTraining(bool train){training=train;};
         double GetTraining() const{return training;};

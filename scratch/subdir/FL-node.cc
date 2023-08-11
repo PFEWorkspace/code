@@ -1,5 +1,8 @@
-#include  "FL-node.h"
 #include "FL-task-initiator.h"
+#include "BC-node.h"
+
+#include  "FL-node.h"
+
 namespace ns3{
     
 NS_LOG_COMPONENT_DEFINE("FLNodeApp");
@@ -121,6 +124,11 @@ void FLNode::SetLearningCost(double learningCost){
     return learning_cost;
   }
 
+  double
+  FLNode:: GetEvaluationCost() const{
+      return evaluationCost;
+  }
+
   void FLNode::SetCommunicationCost(double communicationCost){
     this->communication_cost = communicationCost;
   }
@@ -128,7 +136,7 @@ void FLNode::SetLearningCost(double learningCost){
     return communication_cost;
   }
 
-void FLNode::Init(FLNodeStruct n, int modelsize){
+void FLNode::Init(FLNodeStruct n, int modelsize, double testPartitionSize){
   id = n.nodeId ;
   availability = n.availability ;
   honesty = n.honesty ;
@@ -140,6 +148,7 @@ void FLNode::Init(FLNodeStruct n, int modelsize){
   model_size = modelsize;
   learning_cost = n.datasetSize / n.freq ;
   communication_cost = model_size / n.transRate ;
+  evaluationCost = testPartitionSize * n.datasetSize / n.freq ;
   // malicious = n.malicious;
 }
 
@@ -178,7 +187,7 @@ void FLNode::Receive(Ptr<Socket> socket) {
     
     Ptr<Packet> packet;
     Address from;
-    NS_LOG_DEBUG("i'am "<< GetNode()->GetId() << " and i received a packet");
+    // NS_LOG_DEBUG("i'am "<< GetNode()->GetId() << " and i received a packet");
 
     while ((packet = socket->RecvFrom(from)))
     {
@@ -193,16 +202,12 @@ void FLNode::Receive(Ptr<Socket> socket) {
 
             std::string data(reinterpret_cast<char*>(packetInfo), packet->GetSize()) ; 
             rapidjson::Document d;
-           
+            MLModel model;
             if(ParseJSON(data,d)){
                 if(d.HasMember("message_type") && d["message_type"].IsInt()){
                     switch (d["message_type"].GetInt())
                     {
                       case NEWTASK: 
-                        /* 
-                            newtask is the message sent by the initializer to declare a new task
-                            as a response the FL nodes will send their condidature to the blockchain
-                         */
                         // Candidater(InetSocketAddress::ConvertFrom(from).GetIpv4());
                         // the average packet size for a candidature is around 120 bytes and the trans_rate is in Mbps
                        Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(120/trans_rate + 1), [this]() { Candidater(); });
@@ -215,6 +220,10 @@ void FLNode::Receive(Ptr<Socket> socket) {
                                Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(GetLearningCost()+GetCommunicationCost()), [this]() { Train();});
                             } // the else being aggregate or evaluate
                          }
+                      break;
+                    case EVALUATION:
+                      model = BCNode::DocToMLModel(d);
+                      Simulator::ScheduleWithContext(GetNode()->GetId(), Seconds(GetEvaluationCost()+GetCommunicationCost()),[this,model](){Evaluate(model);});     
                     default:
                         break;
                     }
@@ -246,7 +255,7 @@ void FLNode::Send(Ipv4Address adrs, rapidjson::Document &d) {
 void FLNode::Candidater() {
   Blockchain* bc = Blockchain::getInstance();
   Ipv4Address adr = bc->getBCAddress();
-  NS_LOG_DEBUG("sending candidature to " << adr);
+  // NS_LOG_DEBUG("sending candidature to " << adr);
   rapidjson::Document d;
   rapidjson::Value value;
   d.SetObject(); 
@@ -272,14 +281,8 @@ void FLNode::Candidater() {
   Send(adr, d);
 }
 
-void FLNode::Train() {
-  AiHelper* ai = AiHelper::getInstance();
-  MLModel model = ai->train(id);
-
-  Blockchain* bc = Blockchain::getInstance();
-  Ipv4Address adr = bc->getBCAddress();
- 
-  // NS_LOG_DEBUG("I'am " << id << " sending model to " << adr);
+void
+FLNode::SendModel(MLModel model, Ipv4Address adrs){
   rapidjson::Document d;
   rapidjson::Value value;
   d.SetObject(); 
@@ -293,7 +296,7 @@ void FLNode::Train() {
   d.AddMember("taskId", value, d.GetAllocator());
   value = model.round ;
   d.AddMember("round", value, d.GetAllocator());
-  value = model.type; //LOCAL 
+  value = model.type; 
   d.AddMember("type", value, d.GetAllocator());
   value = model.positiveVote;
   d.AddMember("positiveVote", value, d.GetAllocator());
@@ -318,8 +321,41 @@ void FLNode::Train() {
   value = model.acc3;
   d.AddMember("acc3", value, d.GetAllocator());
 
-  Send(adr, d);
+  Send(adrs, d);
 
 }
 
+void FLNode::Train() {
+  AiHelper* ai = AiHelper::getInstance();
+  MLModel model = ai->train(id);
+
+  Blockchain* bc = Blockchain::getInstance();
+  Ipv4Address adr = bc->getBCAddress();
+ 
+  // NS_LOG_DEBUG("I'am " << id << " sending model to " << adr);
+  SendModel(model, adr);
+}
+void
+FLNode::Evaluate(MLModel model){
+  AiHelper* ai = AiHelper::getInstance();
+  MLModel model = ai->evaluate(model,  GetNode()->GetId());
+
+  Blockchain* bc = Blockchain::getInstance();
+  Ipv4Address adr = bc->getBCAddress();
+ 
+  // NS_LOG_DEBUG("I'am " << id << " sending model to " << adr);
+  SendModel(model, adr);
+}
+
+void
+FLNode::Aggregate(std::vector<MLModel> models){
+  AiHelper* ai = AiHelper::getInstance();
+  MLModel model = ai->aggregate(models, GetNode()->GetId());
+
+  Blockchain* bc = Blockchain::getInstance();
+  Ipv4Address adr = bc->getBCAddress();
+ 
+  // NS_LOG_DEBUG("I'am " << id << " sending model to " << adr);
+  SendModel(model, adr);
+}
 }

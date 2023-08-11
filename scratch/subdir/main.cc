@@ -46,6 +46,7 @@ main(int argc, char* argv[])
     int x =0 ;
     double targetAccuracy = 0.0;
     int modelSize=1600;
+    double testPartitionSize = 0.2 ;
     // const uint16_t Port = 8833;
     double xPosMin = 0;
     double xPosMax = 30;
@@ -73,6 +74,7 @@ main(int argc, char* argv[])
     cmd.AddValue ("flRounds", "the number of rounds per FL task", flrounds);
     cmd.AddValue ("targetAccuracy", "the target accuracy for the FL task",targetAccuracy);
     cmd.AddValue ("modelSize","the size of the model to train",modelSize);
+    cmd.AddValue ("testPartition", "percentage for the test partition from datasets", testPartitionSize);
     cmd.AddValue("x"," the number of models to aggregate at once",x);
     cmd.Parse (argc, argv);
 
@@ -221,7 +223,7 @@ main(int argc, char* argv[])
       FL->SetStartTime(Seconds(0));
       // FL->SetStopTime(Seconds(10));
       //setting the caracteristics of the nodes
-      FL->Init(nodesInfo[i],modelSize);
+      FL->Init(nodesInfo[i],modelSize,testPartitionSize);
     }
 
       

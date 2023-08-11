@@ -75,11 +75,13 @@ class FLNode : public Application
   void SetLearningCost(double learningCost);
   double GetLearningCost() const;
 
+  double GetEvaluationCost() const;
+
   void SetCommunicationCost(double communicationCost);
   double GetCommunicationCost() const;
   
 
-  void Init(FLNodeStruct n, int modelsize);
+  void Init(FLNodeStruct n, int modelsize, double testPartitionSize);
   void ResetRound();
   protected:
     void DoDispose() override;
@@ -89,9 +91,11 @@ class FLNode : public Application
     void StopApplication() override;
     void Receive(Ptr<Socket> socket);
     void Send(Ipv4Address adrs, rapidjson::Document &d);
+    void SendModel(MLModel model, Ipv4Address adrs);
     void Candidater();
     void Train();
-   
+    void Evaluate(MLModel model);
+    void Aggregate(std::vector<MLModel> models);
 
     Ptr<Socket> m_socket; // Receiving socket
     uint32_t m_port{8833};   // Listening port
@@ -108,6 +112,7 @@ class FLNode : public Application
     int model_size;
     double learning_cost;
     double communication_cost;
+    double evaluationCost;
 };
 
 }

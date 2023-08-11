@@ -1,8 +1,6 @@
 #include "FL-task-initiator.h"
 #include "FL-node.h"
 
-#include "Blockchain.h"
-
 #include "BC-node.h"
 
 
@@ -84,7 +82,7 @@ void BCNode::Receive(Ptr<Socket> socket) {
             std::string data(reinterpret_cast<char*>(packetInfo), packet->GetSize()) ;
             rapidjson::Document d;
             Blockchain* bc = Blockchain::getInstance();
-           
+           MLModel model;
             if(ParseJSON(data,d)){
                    
                 if(d.HasMember("message_type") && d["message_type"].IsInt()){
@@ -96,22 +94,19 @@ void BCNode::Receive(Ptr<Socket> socket) {
                             bc->SetActualFLRound(0);
                             bc->SetCurrentBlockId(); 
                         }
-                        
                         // the max delay for receiving candidature is: size_message=120 / smallest_trans_rate=150 + 2 seconds for
-                        Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(120/150 + 2), [this]() { Selection(); });
+                        Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(120/150 + 2), [this]() { Selection();});
                         break;
-
                         case CANDIDATURE : 
                         // receive les candidatures and treat them
                         TreatCandidature(d);
                         break;
-
-                        case MODEL : //MODEL
-                        MLModel model = DocToMLModel(d);
+                        case MODEL: //MODEL
+                        model = DocToMLModel(d);
                         TreatModel(model,InetSocketAddress::ConvertFrom(from).GetIpv4());
-                        break ;
-                                            
-                    default:
+                        break;                    
+                        default:
+                        NS_LOG_INFO("default");
                         break;
                     }
                 
@@ -394,6 +389,8 @@ BCNode::TreatModel(MLModel model, Ipv4Address source){
     case GLOBAL:
         NewRound();
     break;
+    default:
+    break;
  }
     
    
@@ -463,7 +460,7 @@ BCNode::Aggregation(std::vector<MLModel> models, int nodeId, int type){
     AggregatorsTasks task = AggregatorsTasks();
     task.nodeId = nodeId;
     task.task = AGGREGATE;
-    for(int i=0;i<models.size();i++){
+    for(uint i=0;i<models.size();i++){
         task.models[i] = models[i];
     }    
     bc->AddTask(task);
