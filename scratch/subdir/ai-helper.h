@@ -110,7 +110,7 @@ const int numMaxModelsToAgg = 20;
         MLModel train(int nodeid);
         MLModel GetLocalModel(int nodeid);
         MLModel evaluate(MLModel model, int aggId);
-        MLModel aggregate(std::vector<MLModel> models, int aggId);
+        MLModel aggregate(std::vector<MLModel> models, int aggId, int aggType);
         //setters and getters
         void SetTraining(bool train){training=train;};
         double GetTraining() const{return training;};

@@ -225,6 +225,7 @@ public:
             return m_nodesInfo[index];
         }
         // Return a default or placeholder FLNodeStruct
+        return FLNodeStruct();
     }
 
 };

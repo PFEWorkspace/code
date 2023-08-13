@@ -148,17 +148,19 @@ AiHelper::evaluate(MLModel model, int aggId){
     //get output
     auto act = ActionGetter();
     NS_LOG_INFO("Version: " << (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id));
-    MLModel model = act->model;
+    MLModel evalModel = act->model;
     GetCompleted();
-    return model;
+    return evalModel;
 }
 
 MLModel
-AiHelper::aggregate(std::vector<MLModel> models, int aggId){
+AiHelper::aggregate(std::vector<MLModel> models, int aggId, int aggType){
     //set input
     auto env = EnvSetterCond();
     env->type = 0x05; 
     env->nodeId = aggId ;
+    env->numNodes = models.size(); // use the numNodes for the number of models to aggregate, just bcs in this type numNodes is empty
+    env->numRounds = aggType; //used the numRounds for the type cus its empty
     for(uint i=0; i<models.size(); i++){env->models[i] = models[i];}
     SetCompleted();
     NS_LOG_INFO("Version: " << (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id)); // to get the momory version

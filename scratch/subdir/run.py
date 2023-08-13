@@ -131,7 +131,7 @@ class AiHelperContainer:
             if node.availability: 
                 nodes_scores.append({"nodeId":node.nodeId , "score": alpha * node.honesty - (1 - alpha) * node.get_cost(node.datasetSize, node.freq, node.transRate, config.model.size)})
         sorted_indexes =sorted(nodes_scores, key=lambda x: x["score"], reverse=True) # np.argsort([score for _, score in node_scores])[::-1]
-        print(str(sorted_indexes))
+        # print(str(sorted_indexes))
         # act.selectedAggregators= sorted_indexes[0:config.nodes.aggregators_per_round]
         # act.selectedTrainers= sorted_indexes[config.nodes.aggregators_per_round : config.nodes.aggregators_per_round+config.nodes.participants_per_round]
         for i in range(0,config.nodes.aggregators_per_round):
@@ -174,7 +174,28 @@ class AiHelperContainer:
             act.numLocalModels = len(lm)
             for i in range(0,len(lm)) :
                 act.localModels[i] =  MLModel(modelId=lm[i].modelId,nodeId=lm[i].nodeId,taskId=lm[i].taskId,round=lm[i].round,type=lm[i].type, positiveVote=lm[i].positiveVote, negativeVote=lm[i].negativeVote,evaluator1=lm[i].evaluator1, evaluator2=lm[i].evaluator2,evaluator3=lm[i].evaluator3,aggregated=lm[i].aggregated, aggModelId=lm[i].aggModelId, accuracy=lm[i].accuracy, acc1=lm[i].acc1, acc2=lm[i].acc2, acc3=lm[i].acc3)
-            print(str(lm))
+            
+        if env.type == 0x04 : #evaluation
+            print("model evaluation")
+            nodeId = env.nodeId
+            m = copy.copy(env.models[0])
+            print("nodeId {} fl_manager.nodes[nodeId].node.nodeId {}".format(nodeId,self.FL_manager.nodes[nodeId].node.nodeId))
+            if m.type == 0 : #local
+                model = self.FL_manager.evaluateLocal(self,nodeId, m)
+            elif m.type == 1 : #intermediaire
+                model = self.FL_manager.evaluateIntermediaire(self,nodeId, m)
+            act.model = MLModel(modelId=model.modelId,nodeId=model.nodeId,taskId=model.taskId,round=model.round,type=model.type, positiveVote=model.positiveVote, negativeVote=model.negativeVote,evaluator1=model.evaluator1, evaluator2=model.evaluator2,evaluator3=model.evaluator3,aggregated=model.aggregated, aggModelId=model.aggModelId, accuracy=model.accuracy, acc1=model.acc1, acc2=model.acc2, acc3=model.acc3)
+        if env.type == 0x05 : #aggregation  
+            print("model aggregation")
+            nodeId = env.nodeId
+            numModels = env.numNodes
+            aggType = env.numRounds
+            models = []
+            for i in range(0,numModels):
+                models.append(copy.copy(env.models[i]))
+            print("nodeId {} fl_manager.nodes[nodeId].node.nodeId {}".format(nodeId,self.FL_manager.nodes[nodeId].node.nodeId))
+            model = self.FL_manager.aggregate(self,nodeId, models,aggType)
+            act.model = MLModel(modelId=model.modelId,nodeId=model.nodeId,taskId=model.taskId,round=model.round,type=model.type, positiveVote=model.positiveVote, negativeVote=model.negativeVote,evaluator1=model.evaluator1, evaluator2=model.evaluator2,evaluator3=model.evaluator3,aggregated=model.aggregated, aggModelId=model.aggModelId, accuracy=model.accuracy, acc1=model.acc1, acc2=model.acc2, acc3=model.acc3)
         return act
 
 if __name__ == '__main__':

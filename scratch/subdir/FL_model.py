@@ -261,14 +261,44 @@ def train(model, train_loader, optimizer, epochs):
 #     return accuracy
 
 def test(model, test_loader):
+    
     correct = 0
     total = 0
+    total_loss = 0.0
+    criterion = nn.CrossEntropyLoss()
+
     with torch.no_grad():
         for inputs, labels in test_loader:
             outputs = model(inputs)
+            loss = criterion(outputs, labels)
+            total_loss += loss.item()
             _, predicted = torch.max(outputs.data, 1)
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
-    accuracy =  100 * correct / total
-    print(f"accuracy on testset {accuracy:.2f}%") 
-    return accuracy
+
+    accuracy = 100 * correct / total
+    average_loss = total_loss / len(test_loader)
+    print("test loss {} accuracy {}".format(average_loss,accuracy))
+    return average_loss, accuracy
+
+    # model.eval()
+
+    # total_loss = 0.0
+    # total_correct = 0.0
+    # total_samples = 0
+
+    # for idx, (data, target) in enumerate(test_loader):
+    #     data, target = data.to(device), target.to(device)
+
+    #     logits = model(data)
+    #     loss = F.nll_loss(logits, target)
+
+    #     total_loss += loss.item()
+    #     total_correct += (logits.argmax(dim=1) == target).sum().item()
+    #     total_samples += data.size()
+
+    #     # calculate average accuracy and loss
+    #     total_loss /= idx
+    #     total_acc = total_correct / total_samples
+
+    #     return total_loss, total_acc

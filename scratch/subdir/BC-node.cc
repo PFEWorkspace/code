@@ -378,12 +378,13 @@ BCNode::TreatModel(MLModel model, Ipv4Address source){
                 Evaluation(model,aggId);                   
             }
 
-        }else if((model.positiveVote+model.negativeVote < 2) || (model.positiveVote - model.negativeVote == 0)){
+        }else if(model.negativeVote == 1){ //evaluated once and they found it was wrong, evaluated again 
             bc->RemoveTask(sourceId);
             aggId = bc->GetAggregatorNotBusy();
             if(aggId != -1){ //no available nodes
                 Evaluation(model,aggId);                   
             }
+            //else : it's either evaluated once and its true or twice and the decision is 2vs1 (2 evals + the actual model)
         } 
     break;
     case GLOBAL:
@@ -471,7 +472,7 @@ BCNode::Aggregation(std::vector<MLModel> models, int nodeId, int type){
     value = AGGREGATION;
     d.AddMember("message_type", value, d.GetAllocator());
     value = type ;
-    d.AddMember("Aggregation_type",value,d.GetAllocator());
+    d.AddMember("aggregation_type",value,d.GetAllocator());
     
     rapidjson::Value jsonModels(rapidjson::kArrayType);
     rapidjson::Value m;

@@ -1,11 +1,12 @@
 import logging
 import random
 import torch
+import copy
 import numpy as np
 from utils.CSVManager import CSVFileManager
 from run import MLModel, MLModelRefrence
 from FL_model import Generator, Loader, Net, extract_weights
-from FL_node import Node
+from FL_node import Node, Report
 
 import utils.dists as dists
 
@@ -40,7 +41,8 @@ class FLManager(object):
         self.load_data()
         self.load_model()        
         self.make_nodes(nodesList)
-
+        for node in self.nodes: #passing the global model
+            node.model = node.download(self.model)
         return initial_model
 
     def load_data(self):
@@ -77,9 +79,9 @@ class FLManager(object):
         self.save_model(self.model, model_path)
 
          # Extract flattened weights (if applicable)
-        if self.config.paths.reports:
-            self.saved_reports = {}
-            self.save_reports(0, [])  # Save initial model
+        # if self.config.paths.reports:
+        #     self.saved_reports = {}
+        #     self.save_reports(0, [])  # Save initial model
 
     def make_nodes(self, nodes_info):
         nodes = []
@@ -104,16 +106,160 @@ class FLManager(object):
         #configuration
         loading = self.config.data.loading
         localmodels = []
+        
         for i in range(0,numSelectedTrainers):
             print("training on node "+str(selectedTrainers[i]))
             if not self.nodes[selectedTrainers[i]].node.dropout :    
                 if loading == 'dynamic' and self.round > 0 :
                     self.set_node_data(self.nodes[selectedTrainers[i]])
                 self.nodes[selectedTrainers[i]].configure(self.config)
-                ml:MLModel = self.nodes[selectedTrainers[i]].train(self.round, self.modelsFileManager, self.config)
-                localmodels.append(ml)
+                report = self.nodes[selectedTrainers[i]].train(self.round, self.modelsFileManager)
+                localmodels.append(report.model)
+                # # Extract flattened weights (if applicable)
+                # if self.config.paths.reports:
+                #     self.save_reports(self.round, report)
         return localmodels        
- 
+    
+        
+    def evaluateLocal(self, nodeId, model:MLModel):
+        #get the model from the source node
+        m = self.nodes[model.nodeId].get_model(model)
+        acc = self.nodes[nodeId].evaluate(m)
+        print("accuracy {} evaluator accuracy {}".format(model.accuracy,acc))
+        #get the evaluation
+        evaluation = False
+        if (abs(model.accuracy - acc) < 0.1 ):
+            evaluation = True
+
+        #update the model and nodes
+        if model.evaluator1==-1: #first evaluation
+            model.evaluator1 = nodeId
+            model.acc1 = acc
+            self.modelsFileManager.modify_instance_field(model.modelId,"evaluator1",model.evaluator1)
+            self.modelsFileManager.modify_instance_field(model.modelId,"acc1",model.acc1)
+            self.nodes[nodeId].add_new_evaluation()
+            if evaluation:
+                model.positiveVote =+ 1
+                self.modelsFileManager.modify_instance_field(model.modelId,"positiveVote",model.positiveVote)
+            else :
+                model.negativeVote =+ 1
+                self.modelsFileManager.modify_instance_field(model.modelId,"negativeVote",model.negativeVote) 
+        elif model.evaluator2 == -1 :
+            model.evaluator2 = nodeId
+            model.acc2 = acc 
+            self.modelsFileManager.modify_instance_field(model.modelId,"evaluator2",model.evaluator2)
+            self.modelsFileManager.modify_instance_field(model.modelId,"acc2",model.acc2)
+            self.nodes[nodeId].add_new_evaluation()
+            #check if its true or false                      
+            if evaluation:
+                model.positiveVote =+ 1
+                self.modelsFileManager.modify_instance_field(model.modelId,"positiveVote",model.positiveVote)
+                if model.positiveVote==2 :
+                    self.nodes[nodeId].add_true_evaluation()
+                    self.nodes[model.evaluator1].add_true_evaluation()
+            else :
+                model.negativeVote =+ 1 
+                self.modelsFileManager.modify_instance_field(model.modelId,"negativeVote",model.negativeVote)
+                if model.negativeVote==2 :
+                    self.nodes[nodeId].add_true_evaluation()
+                    self.nodes[model.evaluator1].add_true_evaluation()
+        else: # third evaluation
+            model.evaluator3 = nodeId
+            model.acc3 = acc
+            self.modelsFileManager.modify_instance_field(model.modelId,"evaluator3",model.evaluator3)
+            self.modelsFileManager.modify_instance_field(model.modelId,"acc3",model.acc3)
+            self.nodes[nodeId].add_new_evaluation()
+            if evaluation:
+                model.positiveVote =+ 1
+                self.modelsFileManager.modify_instance_field(model.modelId,"positiveVote",model.positiveVote)
+                if abs(model.acc1 - model.accuracy)< 0.1 : #the first eval gave a positiveVote
+                    self.nodes[nodeId].add_true_evaluation()
+                    self.nodes[model.evaluator1].add_true_evaluation()
+                    self.nodes[model.evaluator2].add_false_evaluation()
+                elif abs(model.acc2 - model.accuracy) < 0.1 : #second one who gate the positivevote
+                    self.nodes[nodeId].add_true_evaluation()
+                    self.nodes[model.evaluator2].add_true_evaluation()
+                    self.nodes[model.evaluator1].add_false_evaluation()
+            else :
+                model.negativeVote =+ 1
+                self.modelsFileManager.modify_instance_field(model.modelId,"negativeVote",model.negativeVote)
+                if abs(model.acc1 - model.accuracy)>= 0.1 : #the first eval gave a negativeVote
+                    self.nodes[nodeId].add_true_evaluation()
+                    self.nodes[model.evaluator1].add_true_evaluation()
+                    self.nodes[model.evaluator2].add_false_evaluation()
+                elif abs(model.acc2 - model.accuracy)>= 0.1 : #second one who gate the positivevote
+                    self.nodes[nodeId].add_true_evaluation()
+                    self.nodes[model.evaluator2].add_true_evaluation()
+                    self.nodes[model.evaluator1].add_false_evaluation()  
+        return model    
+    
+    def evaluateIntermediaire(self, nodeId, model:MLModel):
+        allModels = self.modelsFileManager.retrieve_instances()
+        modelToEval = self.nodes[model.nodeId].get_model(model)
+        modelsToagg=[]
+        for m in allModels:
+            if m.aggregated and m.aggModelId==model.modelId :
+                modelsToagg.append(self.nodes[m.nodeId].report)
+
+        #aggregate them and compare it to self.nodes[model.nodeId].model and update the aggregations/evaluations accordingly        
+        evaluationModel = self.nodes[nodeId].aggregate(modelsToagg, -1, self.round, self.modelsFileManager, True)
+        evaluation = self.compare_model(modelToEval, evaluationModel)
+        
+        if model.evaluator1==-1:
+            model.evaluator1 = nodeId
+            self.modelsFileManager.modify_instance_field(model.modelId,"evaluator1",model.evaluator1)
+            if evaluation:
+                model.positiveVote =+ 1
+                self.modelsFileManager.modify_instance_field(model.modelId,"positiveVote",model.positiveVote)
+                self.nodes[nodeId].add_new_aggregation()
+                self.nodes[nodeId].add_true_aggregation()
+            else :
+                model.negativeVote =+ 1
+                self.modelsFileManager.modify_instance_field(model.modelId,"negativeVote",model.negativeVote)
+                self.nodes[nodeId].add_new_aggregation()
+                self.nodes[nodeId].add_true_aggregation() # the second evaluator will decide wich one will be to false
+        elif model.evaluator2==-1:  # to have 2nd eval means first one was false  
+            model.evaluator2 = nodeId
+            self.modelsFileManager.modify_instance_field(model.modelId,"evaluator2",model.evaluator2)
+            if evaluation:
+                model.positiveVote =+ 1
+                self.modelsFileManager.modify_instance_field(model.modelId,"positiveVote",model.positiveVote)
+                self.nodes[nodeId].add_new_aggregation()
+                self.nodes[nodeId].add_true_aggregation()
+                self.nodes[model.evaluator1].add_false_aggregation()
+            else:
+                model.negativeVote =+ 1
+                self.modelsFileManager.modify_instance_field(model.modelId,"negativeVote",model.negativeVote)
+                self.nodes[nodeId].add_new_aggregation()
+                self.nodes[nodeId].add_true_aggregation()
+                self.nodes[model.nodeId].add_false_aggregation()
+
+    def aggregate(self, nodeId, models:MLModel, aggType):
+        modelsReports = []
+        for m in models:
+            modelsReports.append(self.nodes[m.nodeId].report)
+        mlmodel , self.model = self.nodes[nodeId].aggregate(modelsReports, aggType, self.round, self.modelsFileManager, False)
+        self.modelsFileManager.write_instance(mlmodel)
+        for m in models:
+            self.modelsFileManager.modify_instance_field(m.modelId,"aggregated",True)
+            self.modelsFileManager.modify_instance_field(m.modelId,"aggModelId",mlmodel.modelId)
+
+        if aggType==2 : #global model
+            self.save_model(self.model, self.config.paths.model)
+            # for node in self.nodes:
+            #     node.model = node.download(self.model) #set the global model
+            
+        # # Extract flattened weights (if applicable)
+        # if self.config.paths.reports:
+        #     self.save_reports(self.round, modelsReports)
+        
+        self.nodes[nodeId].add_new_aggregation()
+        #assume it's a true aggregration until proven wrong
+        self.nodes[nodeId].add_true_aggregation()
+
+        return mlmodel
+    
+
     @staticmethod
     def flatten_weights(weights):
         # Flatten weights into vectors
@@ -128,10 +274,22 @@ class FLManager(object):
         torch.save(model.state_dict(), path)
         logging.info('Saved global model: {}'.format(path))
 
-    def save_reports(self, round, reports):
-        if reports:
-            self.saved_reports['round{}'.format(round)] = [(report.client_id, self.flatten_weights(
-                report.weights)) for report in reports]
+    def compare_model(self, model1, model2):
+        model1.eval()
+        model2.eval()
 
-        # Extract global weights
-        self.saved_reports['w{}'.format(round)] = self.flatten_weights(extract_weights(self.model))
+        # Iterate through corresponding parameters of both models
+        for param1, param2 in zip(model1.parameters(), model2.parameters()):
+            if not torch.allclose(param1.data, param2.data,atol=1e-6,rtol=1e-4):
+                return False
+        return True
+
+    # def save_reports(self, round, reports):
+    #     if reports:
+    #         self.saved_reports['round{}'.format(round)] = [(report.nodeid, self.flatten_weights(
+    #             report.weights)) for report in reports]
+
+    #     # Extract global weights
+    #     self.saved_reports['w{}'.format(round)] = self.flatten_weights(extract_weights(self.model))
+
+    

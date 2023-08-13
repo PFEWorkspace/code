@@ -202,7 +202,8 @@ void FLNode::Receive(Ptr<Socket> socket) {
 
             std::string data(reinterpret_cast<char*>(packetInfo), packet->GetSize()) ; 
             rapidjson::Document d;
-            MLModel model;
+            std::vector<MLModel> models;
+            int aggType ;
             if(ParseJSON(data,d)){
                 if(d.HasMember("message_type") && d["message_type"].IsInt()){
                     switch (d["message_type"].GetInt())
@@ -222,8 +223,12 @@ void FLNode::Receive(Ptr<Socket> socket) {
                          }
                       break;
                     case EVALUATION:
-                      model = BCNode::DocToMLModel(d);
-                      Simulator::ScheduleWithContext(GetNode()->GetId(), Seconds(GetEvaluationCost()+GetCommunicationCost()),[this,model](){Evaluate(model);});     
+                      models[0] = BCNode::DocToMLModel(d);
+                      Simulator::ScheduleWithContext(GetNode()->GetId(), Seconds(GetEvaluationCost()+GetCommunicationCost()),[this,models](){Evaluate(models[0]);});     
+                    case AGGREGATION:
+                        aggType = d["aggregation_type"].GetInt(); // 1:INTERMEDIAIRE, 2:GLOBAL
+                        models = docToModels(d);
+                        Aggregate(models,aggType);
                     default:
                         break;
                     }
@@ -338,19 +343,55 @@ void FLNode::Train() {
 void
 FLNode::Evaluate(MLModel model){
   AiHelper* ai = AiHelper::getInstance();
-  MLModel model = ai->evaluate(model,  GetNode()->GetId());
+  MLModel evaluatedmodel = ai->evaluate(model,  GetNode()->GetId());
 
   Blockchain* bc = Blockchain::getInstance();
   Ipv4Address adr = bc->getBCAddress();
  
   // NS_LOG_DEBUG("I'am " << id << " sending model to " << adr);
-  SendModel(model, adr);
+  SendModel(evaluatedmodel, adr);
+}
+
+std::vector<MLModel>
+FLNode::docToModels(rapidjson::Document& d){
+  std::vector<MLModel> mlModels;
+  if (!d.HasParseError() && d.IsObject()) {
+        const rapidjson::Value& modelsArray = d["models"];
+        if (modelsArray.IsArray()) {
+          for (rapidjson::SizeType i = 0; i < modelsArray.Size(); ++i) {
+                const rapidjson::Value& model = modelsArray[i];
+                MLModel mlModel;
+
+                mlModel.modelId = model["modelId"].GetInt();
+                mlModel.nodeId = model["nodeId"].GetInt();
+                mlModel.taskId = model["taskId"].GetInt();
+                mlModel.round = model["round"].GetInt();
+                mlModel.type = model["type"].GetInt();
+                mlModel.positiveVote = model["positiveVote"].GetInt();
+                mlModel.negativeVote = model["negativeVote"].GetInt();
+                mlModel.evaluator1 = model["evaluator1"].GetInt();
+                mlModel.evaluator2 = model["evaluator2"].GetInt();
+                mlModel.evaluator3 = model["evaluator3"].GetInt();
+                mlModel.aggregated = model["aggregated"].GetBool();
+                mlModel.aggModelId = model["aggModelId"].GetInt();
+                mlModel.accuracy = model["accuracy"].GetDouble();
+                mlModel.acc1 = model["acc1"].GetDouble();
+                mlModel.acc2 = model["acc2"].GetDouble();
+                mlModel.acc3 = model["acc3"].GetDouble();
+
+                mlModels.push_back(mlModel);
+            }
+        }
+  } 
+
+  return mlModels ;       
+
 }
 
 void
-FLNode::Aggregate(std::vector<MLModel> models){
+FLNode::Aggregate(std::vector<MLModel> models, int aggType){
   AiHelper* ai = AiHelper::getInstance();
-  MLModel model = ai->aggregate(models, GetNode()->GetId());
+  MLModel model = ai->aggregate(models, GetNode()->GetId(), aggType);
 
   Blockchain* bc = Blockchain::getInstance();
   Ipv4Address adr = bc->getBCAddress();

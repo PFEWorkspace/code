@@ -95,7 +95,8 @@ class FLNode : public Application
     void Candidater();
     void Train();
     void Evaluate(MLModel model);
-    void Aggregate(std::vector<MLModel> models);
+    std::vector<MLModel> docToModels(rapidjson::Document& d);
+    void Aggregate(std::vector<MLModel> models, int aggType);
 
     Ptr<Socket> m_socket; // Receiving socket
     uint32_t m_port{8833};   // Listening port
