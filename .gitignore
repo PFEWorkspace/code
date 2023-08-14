@@ -26,3 +26,5 @@ doc*
 scratch/.gitattributes
 !document.h
 __pycache__/
+.gitignore
+SAC/
