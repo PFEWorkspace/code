@@ -200,7 +200,7 @@ class FLManager(object):
         modelsToagg=[]
         for m in allModels:
             if m.aggregated and m.aggModelId==model.modelId :
-                modelsToagg.append(self.nodes[m.nodeId].report)
+                modelsToagg.append(self.nodes[m.nodeId].get_report(model.modelId))
 
         #aggregate them and compare it to self.nodes[model.nodeId].model and update the aggregations/evaluations accordingly        
         evaluationModel = self.nodes[nodeId].aggregate(modelsToagg, -1, self.round, self.modelsFileManager, True)
@@ -238,8 +238,8 @@ class FLManager(object):
     def aggregate(self, nodeId, models:MLModel, aggType):
         modelsReports = []
         for m in models:
-            modelsReports.append(self.nodes[m.nodeId].report)
-        mlmodel , self.model = self.nodes[nodeId].aggregate(modelsReports, aggType, self.round, self.modelsFileManager, False)
+            modelsReports.append(self.nodes[m.nodeId].get_report(m.modelId))
+        mlmodel, self.model = self.nodes[nodeId].aggregate(modelsReports, aggType, self.round, self.modelsFileManager, False)
         self.modelsFileManager.write_instance(mlmodel)
         for m in models:
             self.modelsFileManager.modify_instance_field(m.modelId,"aggregated",True)

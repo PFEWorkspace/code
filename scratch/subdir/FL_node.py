@@ -129,14 +129,15 @@ class Node(object):
     def aggregate(self, reports, aggType, numRound, fileManager:CSVFileManager, evaluation=False):
 
         updated_weights = self.federated_averaging(reports)
-        
+        print("got updated model")
         if evaluation :
             aggModel = copy.deepcopy(self.model)
             FL_model.load_weights(aggModel,updated_weights)
-            return aggModel
+            return MLModel(), aggModel
         else:
             FL_model.load_weights(self.model, updated_weights) #putting the new weights in the model for this node
             # Test global model accuracy
+            print("model loaded next test it")
             testloader = FL_model.get_testloader(self.testset, self.batch_size)
             self.loss, accuracy = FL_model.test(self.model, testloader)
         
@@ -162,6 +163,7 @@ class Node(object):
             )
             # fileManager.write_instance(mlmodel)
             self.reports.append(Report(report_id, self.node.nodeId, len(self.data),self.loss, updated_weights,accuracy, mlmodel, self.model))
+            print("done aggregation")
             return mlmodel, self.model 
         
 
@@ -197,6 +199,10 @@ class Node(object):
         # Extract global weights
         self.saved_reports['w{}'.format(round)] = self.flatten_weights(FL_model.extract_weights(self.model))  
 
+    def get_report(self,id):
+        for r in self.reports:
+            if r.id == id :
+                return r
 class Report(object):
     """Federated learning client report."""
 
