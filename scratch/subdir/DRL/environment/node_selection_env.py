@@ -3,23 +3,32 @@ from gym.spaces import Box, Dict
 import numpy as np
 from custom_observation_space import CustomObservationSpace
 from custom_action_space import CustomActionSpace
+from numpy.random import default_rng
 
 
 class FLNodeSelectionEnv(gym.Env):
-    def __init__(self,total_nodes,num_selected , num_features,aggregator_ratio=0.3):
+    def __init__(self,total_nodes,num_selected , num_features,target,aggregator_ratio=0.3):
         super().__init__() 
         self.total_nodes = total_nodes
         self.num_selected = num_selected
         self.num_features = num_features
         self.aggregator_ratio = aggregator_ratio
+        self.target_accuracy = target
         # Calculate the number of aggregators and trainers based on the ratio
         num_aggregators = int(num_selected * aggregator_ratio)
         num_trainers = num_selected - num_aggregators
         self.num_aggregators = num_aggregators
         self.num_trainers = num_trainers
-        self.current_state = np.zeros(self.total_nodes + num_features)
-        self.observation_space = CustomObservationSpace(total_nodes,num_selected, num_features)
+        self.current_state = current_state = np.zeros((total_nodes, num_features+2)) # room for id and node accuracy
+        self.current_state[:, 0] = np.arange(total_nodes)  # Set node IDs
+
+        self.observation_space = CustomObservationSpace(total_nodes)
         self.action_space = CustomActionSpace(total_nodes, num_selected)
+        # setting the initial state
+        self.fl_accuracy = 0.0
+        self.rng = default_rng()
+        self.current_round=0
+
     
     def __reset__(self): #CALLED TO INITIATE NEW EPISODE
         #should return the observation of the initial state
@@ -43,51 +52,69 @@ class FLNodeSelectionEnv(gym.Env):
                     preprocessed_row.append(value)  # Keep other values unchanged
             current_state_preprocessed.append(preprocessed_row)
         # Convert the preprocessed rows to a NumPy array
-        current_state = np.array(current_state_preprocessed, dtype=np.float32)[:, :self.num_features]
-        # print(current_state)
+        new_current_state = np.array(current_state_preprocessed, dtype=np.float32)[:, :self.num_features+1]
+        new_column = np.zeros((new_current_state.shape[0], 1))
+        # Append the new column to the existing array
+        current_state = np.append(new_current_state, new_column, axis=1) #added the accuracy of local model column
+        self.current_state[:self.total_nodes] = current_state
         # Create initial values for other parts of the observation
-        initial_selected_previous = np.zeros((self.num_selected, self.num_features), dtype=np.float32)
-        initial_fl_accuracy = 0.0
-        initial_observation = {
+        current_observation = {
             "current_state": current_state,
-            "previous_state": {
-                "selected_nodes": initial_selected_previous,
-                "FL_accuracy": initial_fl_accuracy,
-            }
+            "FL_accuracy": 0.0
         }
-        self._observation = initial_observation
-        return initial_observation
+        self._observation = current_observation
+        return current_observation
     
-
     def step(self, action):
-        # Use self.current_state_availability as an internal attribute
-        current_observation= _get_obs()
-        # current_observation = self.env.step(action)  # Corrected line
+        #Adjusting action 
+        current_observation = _get_obs()
         self.current_state = current_observation["current_state"]  # Access the current_state attribute
-        selected_indices = np.where(action)[0]
-        unavailable_indices = []  # Collect indices of nodes with availability 0
-        current_state_availability = self.current_state[:self.total_nodes]
-        print("current state tout court")
-        print(current_state)
-        print("********************************************************")
-        print("current state availibility")
-        print(current_state_availability)
-        for node_index in selected_indices:
-            if current_state_availability[node_index] == 0:  # Use self.current_state_availability
-                unavailable_indices.append(node_index)
+        self.current_fl_accuracy = current_observation["FL_accuracy"]
+         # Perform DRL selection
+        self.send_selected_nodes_to_network(action) # action is the list of selected nodes
 
-        # Remove unavailable nodes from the selected_indices
-        selected_indices = np.setdiff1d(selected_indices, unavailable_indices)
+        # Wait for network to provide updates
+        updated_accuracies = self.receive_updated_accuracies_from_network()
+        updated_nodes = self.receive_updated_nodes_from_network()
+        updated_losses = self.receive_updated_losses_from_network()
+        updated_fl_accuracy = self.receive_updated_fl_accuracy_from_network()
 
-        # Adjust the action to only include available nodes
-        adjusted_action = np.zeros(self.total_nodes, dtype=np.int32)
-        adjusted_action[selected_indices] = 1
+        # Update the state of the environment with received updates
+        self.update_environment_state_with_network_updates(updated_nodes, updated_fl_accuracy, updated_accuracies)
 
-        # Proceed with the environment dynamics using the adjusted action
-        # Compute the next state, reward, done flag, and other information
-        next_state, reward, done, info = ...
+        # Simulate FL round and get rewards
+        node_rewards = self.calculate_reward(selected_nodes,updated_losses)
+        agent_reward = sum(node_rewards)# or agent_reward = self.agent_reward(node_rewards) in case we change the way we calcultae the agent reward
+        # Update the state of the environment
+        next_observation = self.update_environment_state()
+        self.current_round += 1
+        # Check if the maximum number of rounds is reached or the target accuracy is achieved
+        done = self.current_round >= self.max_rounds or self.target_accuracy_achieved(updated_fl_accuracy)
+        return next_observation, rewards, done, info
 
-        return next_state, reward, done, info
+    def send_selected_nodes_to_network(selected)
+        # Send the selected nodes to the network
+        selected_aggregators= np.random.choice(selected, size=self.num_aggregators, replace=False)
+        selected_trainers = np.setdiff1d(selected, selected_aggregators)
+        #communicate to aiHelperAct
+        accuracies = np.random.random(len(selected_trainers))
+        fl_accuracy = np.random.random()
+        return fl_accuracy , accuracies , selected_trainers
+    def update_environment_state_with_network_updates()
+        # Update the state of the environment with received updates
+        pass
+    
+    
+    def agent_reward(self, node_rewards):
+        return sum(node_rewards)
+
+    def calculate_reward(self, selected_nodes, updated_losses):
+        node_rewards = np.zeros(self.total_nodes)
+        for node_index, loss in zip(selected_nodes, updated_losses):
+            node_rewards[node_index] = -loss  # Use -loss as a simple example
+        return node_rewards
+    def target_accuracy_achieved(self, updated_accuracy):
+        return updated_accuracy >= self.target_accuracy
 
     def __render__(self, mode="human"):
         #should render the environment
@@ -102,7 +129,7 @@ class FLNodeSelectionEnv(gym.Env):
         pass
 
     def _get_obs(self):
-        return self._observation
+        return self.current_observation
 # Create a sample environment instance
 total_nodes = 15
 num_selected = 5
