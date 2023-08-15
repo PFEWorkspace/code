@@ -181,9 +181,11 @@ def extract_weights(model):
 
 
 def load_weights(model, weights):
+    # print("weight", weights)
     updated_state_dict = {}
-    for name, weight in weights:
+    for name, weight in weights.items():
         updated_state_dict[name] = weight
+        print(name)
 
     model.load_state_dict(updated_state_dict, strict=False)
 

@@ -468,7 +468,7 @@ BCNode::Evaluation(MLModel model, int nodeId){
     
 void
 BCNode::Aggregation(std::vector<MLModel> models, int nodeId, int type){
-        
+    NS_LOG_INFO("Aggregation in BCNODE"<<type);
     Blockchain* bc = Blockchain::getInstance();
     AggregatorsTasks task = AggregatorsTasks();
     task.nodeId = nodeId;

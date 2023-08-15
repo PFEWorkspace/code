@@ -133,8 +133,9 @@ class Node(object):
         if evaluation :
             aggModel = copy.deepcopy(self.model)
             FL_model.load_weights(aggModel,updated_weights)
-            return MLModel(), aggModel
+            return  aggModel
         else:
+            print("I am in else of aggregate node")
             FL_model.load_weights(self.model, updated_weights) #putting the new weights in the model for this node
             # Test global model accuracy
             print("model loaded next test it")

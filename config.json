@@ -1,8 +1,8 @@
 {
     "nodes": {
-        "total":100,
-        "participants_per_round": 25,
-        "aggregators_per_round":25,
+        "total":70,
+        "participants_per_round": 10,
+        "aggregators_per_round":20,
         "bc":10,
         "test_partition": 0.2,
         "selection": "score",

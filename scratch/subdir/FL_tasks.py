@@ -195,27 +195,33 @@ class FLManager(object):
         return model    
     
     def evaluateIntermediaire(self, nodeId, model:MLModel):
+        print("in evaluate intermediaire  1")
         allModels = self.modelsFileManager.retrieve_instances()
         modelToEval = self.nodes[model.nodeId].get_model(model)
         modelsToagg=[]
         for m in allModels:
             if m.aggregated and m.aggModelId==model.modelId :
-                modelsToagg.append(self.nodes[m.nodeId].get_report(model.modelId))
-
+                modelsToagg.append(self.nodes[m.nodeId].get_report(m.modelId))
+                print(modelsToagg)
+        print("in evaluate intermediaire 2")
         #aggregate them and compare it to self.nodes[model.nodeId].model and update the aggregations/evaluations accordingly        
         evaluationModel = self.nodes[nodeId].aggregate(modelsToagg, -1, self.round, self.modelsFileManager, True)
+        print("in evaluate intermediaire 5")
+
         evaluation = self.compare_model(modelToEval, evaluationModel)
+        print("in evaluate intermediaire 6")
+
         
         if model.evaluator1==-1:
             model.evaluator1 = nodeId
             self.modelsFileManager.modify_instance_field(model.modelId,"evaluator1",model.evaluator1)
             if evaluation:
-                model.positiveVote =+ 1
+                model.positiveVote += 1
                 self.modelsFileManager.modify_instance_field(model.modelId,"positiveVote",model.positiveVote)
                 self.nodes[nodeId].add_new_aggregation()
                 self.nodes[nodeId].add_true_aggregation()
             else :
-                model.negativeVote =+ 1
+                model.negativeVote += 1
                 self.modelsFileManager.modify_instance_field(model.modelId,"negativeVote",model.negativeVote)
                 self.nodes[nodeId].add_new_aggregation()
                 self.nodes[nodeId].add_true_aggregation() # the second evaluator will decide wich one will be to false
@@ -223,24 +229,28 @@ class FLManager(object):
             model.evaluator2 = nodeId
             self.modelsFileManager.modify_instance_field(model.modelId,"evaluator2",model.evaluator2)
             if evaluation:
-                model.positiveVote =+ 1
+                model.positiveVote += 1
                 self.modelsFileManager.modify_instance_field(model.modelId,"positiveVote",model.positiveVote)
                 self.nodes[nodeId].add_new_aggregation()
                 self.nodes[nodeId].add_true_aggregation()
                 self.nodes[model.evaluator1].add_false_aggregation()
             else:
-                model.negativeVote =+ 1
+                model.negativeVote += 1
                 self.modelsFileManager.modify_instance_field(model.modelId,"negativeVote",model.negativeVote)
                 self.nodes[nodeId].add_new_aggregation()
                 self.nodes[nodeId].add_true_aggregation()
                 self.nodes[model.nodeId].add_false_aggregation()
+        print("in evaluate intermediaire fin")
+        return model
 
     def aggregate(self, nodeId, models:MLModel, aggType):
         modelsReports = []
         for m in models:
             modelsReports.append(self.nodes[m.nodeId].get_report(m.modelId))
+        print("I am in aggregate machi tae node")
         mlmodel, self.model = self.nodes[nodeId].aggregate(modelsReports, aggType, self.round, self.modelsFileManager, False)
         self.modelsFileManager.write_instance(mlmodel)
+
         for m in models:
             self.modelsFileManager.modify_instance_field(m.modelId,"aggregated",True)
             self.modelsFileManager.modify_instance_field(m.modelId,"aggModelId",mlmodel.modelId)
@@ -278,7 +288,6 @@ class FLManager(object):
     def compare_model(self, model1, model2):
         model1.eval()
         model2.eval()
-
         # Iterate through corresponding parameters of both models
         for param1, param2 in zip(model1.parameters(), model2.parameters()):
             if not torch.allclose(param1.data, param2.data,atol=1e-6,rtol=1e-4):

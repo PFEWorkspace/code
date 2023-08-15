@@ -139,17 +139,17 @@ foreach(subdir ${scratch_subdirectories})
 endforeach()
 
 
-option(DOWNLOAD_MNIST "Download the MNIST dataset from the internet" ON)
-if (DOWNLOAD_MNIST)
-  message(STATUS "Downloading MNIST dataset")
-  execute_process(
-    COMMAND python ${CMAKE_CURRENT_LIST_DIR}/tools/download_mnist.py
-      -d ${CMAKE_BINARY_DIR}/data
-    ERROR_VARIABLE DOWNLOAD_ERROR)
-  if (DOWNLOAD_ERROR)
-    message(FATAL_ERROR "Error downloading MNIST dataset: ${DOWNLOAD_ERROR}")
-  endif()
-endif()
+# option(DOWNLOAD_MNIST "Download the MNIST dataset from the internet" ON)
+# if (DOWNLOAD_MNIST)
+#   message(STATUS "Downloading MNIST dataset")
+#   execute_process(
+#     COMMAND python ${CMAKE_CURRENT_LIST_DIR}/tools/download_mnist.py
+#       -d ${CMAKE_BINARY_DIR}/data
+#     ERROR_VARIABLE DOWNLOAD_ERROR)
+#   if (DOWNLOAD_ERROR)
+#     message(FATAL_ERROR "Error downloading MNIST dataset: ${DOWNLOAD_ERROR}")
+#   endif()
+# endif()
 
 
 # find_external_library(DEPENDENCY_NAME Torch
