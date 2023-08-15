@@ -103,7 +103,7 @@ void BCNode::Receive(Ptr<Socket> socket) {
                         break;
                         case MODEL: //MODEL
                         model = DocToMLModel(d);
-                        TreatModel(model,InetSocketAddress::ConvertFrom(from).GetIpv4());
+                        TreatModel(model,InetSocketAddress::ConvertFrom(from).GetIpv4(),false);
                         break;                    
                         default:
                         NS_LOG_INFO("default");
@@ -292,7 +292,7 @@ MLModel BCNode::DocToMLModel(rapidjson::Document &d) {
 }
 
 void
-BCNode::TreatModel(MLModel model, Ipv4Address source){
+BCNode::TreatModel(MLModel model, Ipv4Address source, bool reschedule){
     /* switch model type:
         case type 0 (local):
             if next step is evaluation:               
@@ -321,71 +321,83 @@ BCNode::TreatModel(MLModel model, Ipv4Address source){
     
     Blockchain* bc = Blockchain::getInstance();
     int aggId;
+    std::vector<MLModel> models;
     int sourceId= bc->getFLNodeId(source);
+    NS_LOG_INFO("treat model");
+    if(bc->hasPreviousTask(sourceId) && not reschedule){
+        bc->RemoveTask(sourceId);
+        NS_LOG_INFO("task removed");
+    }
     switch(model.type){
     case LOCAL:
-        if((model.positiveVote+model.negativeVote < 2) || (model.positiveVote - model.negativeVote == 0)){
-            if (bc->hasPreviousTask(sourceId, EVALUATE,&model)||model.positiveVote+model.negativeVote==0){  //never been evaluated before or already evaluated and the task wasn't token off from the list
-                aggId = bc->GetAggregatorNotBusy();
+     NS_LOG_INFO("it's local model");
+        if(model.positiveVote+model.negativeVote < 2 || model.positiveVote - model.negativeVote == 0){
+                aggId = bc->GetAggregatorNotBusy(model.evaluator1, model.evaluator2);
+                NS_LOG_INFO("node "<<aggId<<" will be evaluating the model "<< model.modelId);
                 if(aggId == -1){ //no available nodes
-                    Simulator::ScheduleWithContext(GetNode()->GetId(),MilliSeconds(100),[this, model,source](){TreatModel(model,source);});
+                    NS_LOG_INFO("reschedule treatmodel");
+                    Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(5),[this, model,source](){TreatModel(model,source,true);});
                     break;
                 }
                 else{
-                   if(model.positiveVote+model.negativeVote!=0) bc->RemoveTask(sourceId);
                     Evaluation(model,aggId);                   
                 }
-                
-            }
         }else{ //done with evaluation next is aggregation
-            if(model.positiveVote>model.negativeVote){
-                aggId = bc->GetAggregatorNotBusy();
-                if(aggId == -1){ //no available nodes
-                    Simulator::ScheduleWithContext(GetNode()->GetId(),MilliSeconds(100),[this, model,source](){TreatModel(model,source);});
-                    break;
-                }else{
-                    if(bc->hasPreviousTask(sourceId,EVALUATE,&model)){
-                        bc->RemoveTask(sourceId);
-                        bc->AddModelToAgg(model);
-                        if(bc->getModelsToAggSize()>=bc->GetModelsToAggAtOnce()){
-                            Aggregation(bc->getxModelsToAgg(bc->GetModelsToAggAtOnce()),aggId,INTERMEDIAIRE);
-                        }
-                    }                   
+            if(model.positiveVote>model.negativeVote){ 
+                NS_LOG_INFO("aggregation local");
+                if(!reschedule){
+                    bc->AddModelToAgg(model);
+                }
+                if(bc->GetModelsToAggAtOnce()<bc->getModelsToAggSize()){
+                    aggId = bc->GetAggregatorNotBusy(-1,-1); //doesn't matter if the aggregation is done by one of the evaluators
+                    if(aggId == -1){ //no available nodes
+                    
+                        Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(5),[this, model,source](){TreatModel(model,source,true);});
+                        break;
+                    }else{
+                        models =bc->getxModelsToAgg(bc->GetModelsToAggAtOnce());
+                        NS_LOG_INFO("models to agg size "<< models.size() << " first: "<< models[0].modelId << " second "<<models[1].modelId << " third "<<models[2].modelId);
+                        Aggregation(models,aggId,INTERMEDIAIRE);
+                    }                          
                 }  
             }
         }
     break;
     case INTERMEDIAIRE:   
         if(model.positiveVote+model.negativeVote==0){//not evaluated yet and came from an aggregation task
-            aggId = bc->GetAggregatorNotBusy();
+            if(!reschedule){
+                bc->AddModelToAgg(model);
+            }
+            aggId = bc->GetAggregatorNotBusy(-1,-1);
             if(aggId == -1){ //no available nodes
-                Simulator::ScheduleWithContext(GetNode()->GetId(),MilliSeconds(100),[this, model,source](){TreatModel(model,source);});
+                Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(5),[this, model,source](){TreatModel(model,source, true);});
                 break;
-            }else{
-                if(bc->hasPreviousTask(sourceId,EVALUATE,&model)){
-                    bc->RemoveTask(sourceId);
-                    bc->AddModelToAgg(model);        
-                    if(bc->getModelsToAggSize()>=bc->GetModelsToAggAtOnce() && bc->getNumAggTasksAwaiting()>0){
-                        Aggregation(bc->getxModelsToAgg(bc->GetModelsToAggAtOnce()),aggId,INTERMEDIAIRE);
-                    }else if(bc->getNumAggTasksAwaiting()==0){
-                        Aggregation(bc->getxModelsToAgg(bc->getModelsToAggSize()),aggId,GLOBAL);
-                    }
-                }    
+            }else{    
+                if(bc->GetModelsToAggAtOnce()<bc->getModelsToAggSize() && bc->getNumAggTasksAwaiting()>0){
+                        models =bc->getxModelsToAgg(bc->GetModelsToAggAtOnce());
+                        NS_LOG_INFO("models to agg size "<< models.size() << " first: "<< models[0].modelId);
+                        Aggregation(models,aggId,INTERMEDIAIRE);
+                }else if(bc->getNumAggTasksAwaiting()==0){
+                    models =bc->getxModelsToAgg(bc->GetModelsToAggAtOnce());
+                        NS_LOG_INFO("models to agg size "<< models.size() << " first: "<< models[0].modelId);
+                        Aggregation(models,aggId,GLOBAL);
+                }
+                   
             } 
             // send it for evaluation if there's some nodes available
-            aggId = bc->GetAggregatorNotBusy();
+            aggId = bc->GetAggregatorNotBusy(model.evaluator1, model.evaluator2);
             if(aggId != -1){ //no available nodes
                 Evaluation(model,aggId);                   
             }
 
         }else if(model.negativeVote == 1){ //evaluated once and they found it was wrong, evaluated again 
-            bc->RemoveTask(sourceId);
-            aggId = bc->GetAggregatorNotBusy();
-            if(aggId != -1){ //no available nodes
-                Evaluation(model,aggId);                   
-            }
-            //else : it's either evaluated once and its true or twice and the decision is 2vs1 (2 evals + the actual model)
-        } 
+            aggId = bc->GetAggregatorNotBusy(model.evaluator1,model.evaluator2);
+
+            if(aggId == -1){ //no available nodes
+                Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(5),[this, model,source](){TreatModel(model,source, true);});
+                break;           
+            }else Evaluation(model,aggId);   
+        }  //else : it's either evaluated once and its true or twice and the decision is 2vs1 (2 evals + the actual model)
     break;
     case GLOBAL:
         NewRound();
@@ -456,8 +468,8 @@ BCNode::Evaluation(MLModel model, int nodeId){
     
 void
 BCNode::Aggregation(std::vector<MLModel> models, int nodeId, int type){
-        // sendtask 
-        Blockchain* bc = Blockchain::getInstance();
+        
+    Blockchain* bc = Blockchain::getInstance();
     AggregatorsTasks task = AggregatorsTasks();
     task.nodeId = nodeId;
     task.task = AGGREGATE;
@@ -468,51 +480,53 @@ BCNode::Aggregation(std::vector<MLModel> models, int nodeId, int type){
     
     rapidjson::Document d;
     rapidjson::Value value;
+    rapidjson::Document::AllocatorType& allocator = d.GetAllocator();
     d.SetObject(); 
     value = AGGREGATION;
-    d.AddMember("message_type", value, d.GetAllocator());
+    d.AddMember("message_type", value, allocator);
     value = type ;
-    d.AddMember("aggregation_type",value,d.GetAllocator());
+    d.AddMember("aggregation_type",value,allocator);
     
     rapidjson::Value jsonModels(rapidjson::kArrayType);
-    rapidjson::Value m;
+    
     for(MLModel model : models){
+        rapidjson::Value m(rapidjson::kObjectType);
         value = model.modelId ;
-        m.AddMember("modelId", value, d.GetAllocator());
+        m.AddMember("modelId", value, allocator);
         value = model.nodeId;
-        m.AddMember("nodeId", value, d.GetAllocator());
+        m.AddMember("nodeId", value, allocator);
         value = model.taskId ;
-        m.AddMember("taskId", value, d.GetAllocator());
+        m.AddMember("taskId", value, allocator);
         value = model.round ;
-        m.AddMember("round", value, d.GetAllocator());
+        m.AddMember("round", value, allocator);
         value = model.type; //LOCAL 
-        m.AddMember("type", value, d.GetAllocator());
+        m.AddMember("type", value, allocator);
         value = model.positiveVote;
-        m.AddMember("positiveVote", value, d.GetAllocator());
+        m.AddMember("positiveVote", value, allocator);
         value = model.negativeVote ;
-        m.AddMember("negativeVote", value, d.GetAllocator());
+        m.AddMember("negativeVote", value, allocator);
         value = model.evaluator1 ;
-        m.AddMember("evaluator1", value, d.GetAllocator());
+        m.AddMember("evaluator1", value, allocator);
         value = model.evaluator2 ;
-        m.AddMember("evaluator2", value, d.GetAllocator());
+        m.AddMember("evaluator2", value, allocator);
         value = model.evaluator3 ;
-        m.AddMember("evaluator3", value, d.GetAllocator());
+        m.AddMember("evaluator3", value, allocator);
         value = model.aggregated ;
-        m.AddMember("aggregated", value, d.GetAllocator());
+        m.AddMember("aggregated", value, allocator);
         value = model.aggModelId ;
-        m.AddMember("aggModelId", value, d.GetAllocator());
+        m.AddMember("aggModelId", value, allocator);
         value = model.accuracy ; 
-        m.AddMember("accuracy", value, d.GetAllocator());
+        m.AddMember("accuracy", value, allocator);
         value = model.acc1;
-        m.AddMember("acc1", value, d.GetAllocator());
+        m.AddMember("acc1", value, allocator);
         value = model.acc2;
-        m.AddMember("acc2", value, d.GetAllocator());
+        m.AddMember("acc2", value, allocator);
         value = model.acc3;
-        m.AddMember("acc3", value, d.GetAllocator());
+        m.AddMember("acc3", value, allocator);
 
-        jsonModels.PushBack(m,d.GetAllocator());
+        jsonModels.PushBack(m,allocator);
     }
-    d.AddMember("models",jsonModels,d.GetAllocator());
+    d.AddMember("models",jsonModels,allocator);
     Ipv4Address nodeAdrs = bc->getFLAddress(nodeId);
     Send(d,nodeAdrs);
      //schedule a check if task is done or not (detect dropouts)

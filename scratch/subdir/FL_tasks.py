@@ -85,7 +85,7 @@ class FLManager(object):
 
     def make_nodes(self, nodes_info):
         nodes = []
-        [nodes.append(Node(node)) for node in nodes_info]
+        [nodes.append(Node(node, self.config)) for node in nodes_info]
         [self.set_node_data(node) for node in nodes]
         self.nodes = nodes
 
@@ -124,11 +124,12 @@ class FLManager(object):
     def evaluateLocal(self, nodeId, model:MLModel):
         #get the model from the source node
         m = self.nodes[model.nodeId].get_model(model)
-        acc = self.nodes[nodeId].evaluate(m)
+        loss, acc = self.nodes[nodeId].evaluate(m)
+        acc = round(acc,2)
         print("accuracy {} evaluator accuracy {}".format(model.accuracy,acc))
         #get the evaluation
         evaluation = False
-        if (abs(model.accuracy - acc) < 0.1 ):
+        if (abs(model.accuracy - acc) < 5 ):
             evaluation = True
 
         #update the model and nodes
@@ -136,29 +137,29 @@ class FLManager(object):
             model.evaluator1 = nodeId
             model.acc1 = acc
             self.modelsFileManager.modify_instance_field(model.modelId,"evaluator1",model.evaluator1)
-            self.modelsFileManager.modify_instance_field(model.modelId,"acc1",model.acc1)
+            self.modelsFileManager.modify_instance_field(model.modelId,"acc1",round(model.acc1,2))
             self.nodes[nodeId].add_new_evaluation()
             if evaluation:
-                model.positiveVote =+ 1
+                model.positiveVote = 1
                 self.modelsFileManager.modify_instance_field(model.modelId,"positiveVote",model.positiveVote)
             else :
-                model.negativeVote =+ 1
+                model.negativeVote = 1
                 self.modelsFileManager.modify_instance_field(model.modelId,"negativeVote",model.negativeVote) 
         elif model.evaluator2 == -1 :
             model.evaluator2 = nodeId
             model.acc2 = acc 
             self.modelsFileManager.modify_instance_field(model.modelId,"evaluator2",model.evaluator2)
-            self.modelsFileManager.modify_instance_field(model.modelId,"acc2",model.acc2)
+            self.modelsFileManager.modify_instance_field(model.modelId,"acc2",round(model.acc2,2))
             self.nodes[nodeId].add_new_evaluation()
             #check if its true or false                      
             if evaluation:
-                model.positiveVote =+ 1
+                model.positiveVote += 1
                 self.modelsFileManager.modify_instance_field(model.modelId,"positiveVote",model.positiveVote)
                 if model.positiveVote==2 :
                     self.nodes[nodeId].add_true_evaluation()
                     self.nodes[model.evaluator1].add_true_evaluation()
             else :
-                model.negativeVote =+ 1 
+                model.negativeVote += 1 
                 self.modelsFileManager.modify_instance_field(model.modelId,"negativeVote",model.negativeVote)
                 if model.negativeVote==2 :
                     self.nodes[nodeId].add_true_evaluation()
@@ -167,27 +168,27 @@ class FLManager(object):
             model.evaluator3 = nodeId
             model.acc3 = acc
             self.modelsFileManager.modify_instance_field(model.modelId,"evaluator3",model.evaluator3)
-            self.modelsFileManager.modify_instance_field(model.modelId,"acc3",model.acc3)
+            self.modelsFileManager.modify_instance_field(model.modelId,"acc3",round(model.acc3,2))
             self.nodes[nodeId].add_new_evaluation()
             if evaluation:
-                model.positiveVote =+ 1
+                model.positiveVote += 1
                 self.modelsFileManager.modify_instance_field(model.modelId,"positiveVote",model.positiveVote)
-                if abs(model.acc1 - model.accuracy)< 0.1 : #the first eval gave a positiveVote
+                if abs(model.acc1 - model.accuracy)< 5 : #the first eval gave a positiveVote
                     self.nodes[nodeId].add_true_evaluation()
                     self.nodes[model.evaluator1].add_true_evaluation()
                     self.nodes[model.evaluator2].add_false_evaluation()
-                elif abs(model.acc2 - model.accuracy) < 0.1 : #second one who gate the positivevote
+                elif abs(model.acc2 - model.accuracy) < 5 : #second one who gate the positivevote
                     self.nodes[nodeId].add_true_evaluation()
                     self.nodes[model.evaluator2].add_true_evaluation()
                     self.nodes[model.evaluator1].add_false_evaluation()
             else :
-                model.negativeVote =+ 1
+                model.negativeVote += 1
                 self.modelsFileManager.modify_instance_field(model.modelId,"negativeVote",model.negativeVote)
-                if abs(model.acc1 - model.accuracy)>= 0.1 : #the first eval gave a negativeVote
+                if abs(model.acc1 - model.accuracy)>= 5 : #the first eval gave a negativeVote
                     self.nodes[nodeId].add_true_evaluation()
                     self.nodes[model.evaluator1].add_true_evaluation()
                     self.nodes[model.evaluator2].add_false_evaluation()
-                elif abs(model.acc2 - model.accuracy)>= 0.1 : #second one who gate the positivevote
+                elif abs(model.acc2 - model.accuracy)>= 5 : #second one who gate the positivevote
                     self.nodes[nodeId].add_true_evaluation()
                     self.nodes[model.evaluator2].add_true_evaluation()
                     self.nodes[model.evaluator1].add_false_evaluation()  

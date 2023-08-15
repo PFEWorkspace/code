@@ -55,7 +55,7 @@ class BCNode : public Application
     void SendTo( rapidjson::Document &d, std::vector<Ipv4Address> &addresses);
     void TreatCandidature(rapidjson::Document &d);
     
-    void TreatModel(MLModel model, Ipv4Address source);
+    void TreatModel(MLModel model, Ipv4Address source, bool reschedule);
     void Selection();
     void WriteTransaction();
     void Evaluation(MLModel model, int nodeId);

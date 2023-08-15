@@ -203,6 +203,7 @@ void FLNode::Receive(Ptr<Socket> socket) {
             std::string data(reinterpret_cast<char*>(packetInfo), packet->GetSize()) ; 
             rapidjson::Document d;
             std::vector<MLModel> models;
+            MLModel m;
             int aggType ;
             if(ParseJSON(data,d)){
                 if(d.HasMember("message_type") && d["message_type"].IsInt()){
@@ -218,17 +219,21 @@ void FLNode::Receive(Ptr<Socket> socket) {
                             SetTask(Task(d["task"].GetInt()));
                             if(GetTask() == TRAIN) {
                               // Train();
-                               Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(GetLearningCost()+GetCommunicationCost()), [this]() { Train();});
+                               Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(GetLearningCost()+GetCommunicationCost()*100), [this]() { Train();});
                             } // the else being aggregate or evaluate
                          }
                       break;
                     case EVALUATION:
-                      models[0] = BCNode::DocToMLModel(d);
-                      Simulator::ScheduleWithContext(GetNode()->GetId(), Seconds(GetEvaluationCost()+GetCommunicationCost()),[this,models](){Evaluate(models[0]);});     
+                    NS_LOG_INFO("EVALUATION");
+                      m = BCNode::DocToMLModel(d);
+                      Simulator::ScheduleWithContext(GetNode()->GetId(), Seconds((GetEvaluationCost()+GetCommunicationCost())*100),[this,m](){Evaluate(m);});     
+                    break;
                     case AGGREGATION:
+                    NS_LOG_INFO("AGGREGATION");
                         aggType = d["aggregation_type"].GetInt(); // 1:INTERMEDIAIRE, 2:GLOBAL
                         models = docToModels(d);
-                        Aggregate(models,aggType);
+                        Simulator::ScheduleWithContext(GetNode()->GetId(), Seconds((GetLearningCost()+GetCommunicationCost())*100), [this, models,aggType](){Aggregate(models,aggType);});
+                    break;    
                     default:
                         break;
                     }
@@ -342,8 +347,9 @@ void FLNode::Train() {
 }
 void
 FLNode::Evaluate(MLModel model){
+  NS_LOG_INFO("fl node evaluation");
   AiHelper* ai = AiHelper::getInstance();
-  MLModel evaluatedmodel = ai->evaluate(model,  GetNode()->GetId());
+  MLModel evaluatedmodel = ai->evaluate(model, GetNode()->GetId());
 
   Blockchain* bc = Blockchain::getInstance();
   Ipv4Address adr = bc->getBCAddress();

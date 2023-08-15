@@ -9,7 +9,7 @@ from run import MLModel
 
 class Node(object):
 
-    def __init__(self, nodeinfo) -> None:
+    def __init__(self, nodeinfo, config) -> None:
         self.node = copy.copy(nodeinfo)
         self.loss = 10.0 # set intial loss big 
         self.reports = []
@@ -19,24 +19,26 @@ class Node(object):
         self.falseEvaluation = 0
         self.trueAggregation = 0
         self.falseAggregation = 0
+        self.epochs = config.fl.epochs
+        self.batch_size = config.fl.batch_size
 
     def add_new_evaluation(self):
-        self.numEvaluations =+1
+        self.numEvaluations +=1
 
     def add_true_evaluation(self):
-        self.trueEvaluation =+ 1
+        self.trueEvaluation += 1
 
     def add_false_evaluation(self):
-        self.falseEvaluation =+ 1
+        self.falseEvaluation += 1
     
     def add_new_aggregation(self):
-        self.numAggregations =+1
+        self.numAggregations +=1
 
     def add_true_aggregation(self):
-        self.trueAggregation =+ 1
+        self.trueAggregation += 1
 
     def add_false_aggregation(self):
-        self.falseAggregation =+ 1
+        self.falseAggregation += 1
         self.trueAggregation =- 1
 
     def download(self, argv):
@@ -66,8 +68,7 @@ class Node(object):
     def configure(self, config):
         # configure the node before a training, getting the last global model
         model_path = config.paths.model
-        self.epochs = config.fl.epochs
-        self.batch_size = config.fl.batch_size
+        
         # Download most recent global model
         path = model_path + '/global'
         self.model = FL_model.Net()

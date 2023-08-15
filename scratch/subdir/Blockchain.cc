@@ -34,24 +34,38 @@ Blockchain::getFLNodeId(Ipv4Address adrs){
     }
     return id;
 }
+
+void 
+Blockchain::AddModelToAgg( const MLModel& value) {
+        NS_LOG_FUNCTION_NOARGS();
+        NS_LOG_INFO("add model to agg: "<<value.modelId);
+        modelToAgreg.push_back(value);
+    }
+
+
 bool 
-Blockchain::hasPreviousTask(int id, int task, MLModel models[]){
+Blockchain::hasPreviousTask(int id){
     for(AggregatorsTasks t :tasks){
-        if(t.nodeId==id && t.task == task && t.models[0].modelId==models[0].modelId)return true;
+        if(t.nodeId==id)return true;
     }
     return false;
 }
-AggregatorsTasks 
+void
 Blockchain::RemoveTask(int id){
-    for(int i=0;i< tasks.size();i++){
-        if(tasks[i].nodeId==id){
-            tasks.erase(tasks.begin()+i);
-            break;
-        }
+    std::lock_guard<std::mutex> lock(mtx);
+    // NS_LOG_INFO("1.tasks.size "<<tasks.size());
+   for (std::list<AggregatorsTasks>::iterator it = tasks.begin(); it != tasks.end(); ++it) {
+    if( it->nodeId == id){
+        tasks.erase(it);
+        break;
     }
+    }
+    // NS_LOG_INFO("2.tasks.size "<<tasks.size());
 }
+
 void 
 Blockchain::AddTask(AggregatorsTasks task){
+    std::lock_guard<std::mutex> lock(mtx);
     tasks.push_back(task);
 }
 
@@ -220,19 +234,21 @@ std::string Blockchain::GetTimestamp(){
     return timeString;
 }
 int
-Blockchain::GetAggregatorNotBusy(){
+Blockchain::GetAggregatorNotBusy(int eval1, int eval2){
     int id=-1;
     bool busy;
     for(int agg : aggregators){
-        busy= false;
+        busy= false;       
         for(AggregatorsTasks task : tasks){
             if(agg == task.nodeId){
                 busy = true;
+                // NS_LOG_INFO("agg "<< agg << " busy");
                 break;
             }
         }
-        if(!busy){
+        if(!busy && agg!=eval1 && agg!=eval2){
             id = agg ;
+            NS_LOG_INFO("agg "<< agg << " not busy");
             break;
         } 
     }

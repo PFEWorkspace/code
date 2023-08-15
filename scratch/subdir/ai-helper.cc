@@ -51,49 +51,74 @@ AiHelper::GetModelReference(MLModel model){
 MLModelRefrence
 AiHelper::initializeFL(FLNodeStruct *nodes, int& numNodes){
     NS_LOG_FUNCTION_NOARGS();
-    
+     int versionBefore=0;
+    int versionAfter=0;
     //set input
+    
     auto env = EnvSetterCond();
     env->type = 0x01; 
     env->numNodes = numNodes ;
     for(int i=0; i<numNodes; i++){env->nodes[i] = nodes[i];}
     SetCompleted();
-    NS_LOG_INFO("Version: " << (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id)); // to get the momory version
+    versionBefore = (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id);
+    NS_LOG_INFO("Version before: " << versionBefore); // to get the momory version
 
     //get output
+    
     auto act = ActionGetter();
-    NS_LOG_INFO("Version: " << (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id));
-    MLModelRefrence initialModel = GetModelReference(act->model);
-    GetCompleted();
+    // restart:
+    versionAfter= (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id);
+    NS_LOG_INFO("Version after: " << versionAfter);
+    // if(versionBefore==versionAfter){
+    //     goto restart;
+    // }else{
+        MLModelRefrence initialModel = GetModelReference(act->model);
+        GetCompleted();
       
     return initialModel ;
+    // }
 }
 
 void AiHelper::Selection () 
 {
+     int versionBefore=0;
+    int versionAfter=0;
     NS_LOG_FUNCTION_NOARGS();
+    
     Blockchain* bc = Blockchain::getInstance() ; 
     //set input
+    
     auto env = EnvSetterCond();
     env->type = 0x02; 
     env->numNodes = bc->getNumFLNodes();
     for(int i=0; i<bc->getNumFLNodes(); i++){env->nodes[i] = bc->GetNodeInfo(i);}
     SetCompleted();
-    NS_LOG_INFO("Version: " << (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id)); // to get the momory version
+    versionBefore = (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id);
+    NS_LOG_INFO("Version before: " << versionBefore); // to get the momory version
 
-    //get output
+    // restart:
     auto act = ActionGetter();
-    NS_LOG_INFO("Version: " << (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id));
-    bc->SetAggregators(act->selectedAggregators, act->numAggregators);
-    bc->SetTrainers(act->selectedTrainers, act->numTrainers);
-    GetCompleted();
+    
+    versionAfter= (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id);
+    NS_LOG_INFO("Version after: " << versionAfter);
+    // if(versionBefore==versionAfter){
+    //     goto restart;
+    // }else{
+        bc->SetAggregators(act->selectedAggregators, act->numAggregators);
+        bc->SetTrainers(act->selectedTrainers, act->numTrainers);
+        GetCompleted();
+    // }
     
 }
 
 
 MLModel
 AiHelper::train(int nodeid){
-    NS_LOG_FUNCTION_NOARGS();    
+    std::lock_guard<std::mutex> lock(mtx);
+    NS_LOG_FUNCTION_NOARGS();   
+    int versionBefore=0;
+    int versionAfter=0;
+
     while(GetTraining()){ // the python side is training under anather node's request
         // while training wait till it finish
     }
@@ -101,22 +126,27 @@ AiHelper::train(int nodeid){
     if(numLocalModels==0 && !GetTraining()){ //first time calling train
         // launch training in pythonside
         SetTraining(true);
+        // restart:
         auto env = EnvSetterCond();
-        env->type = 0x03;  
-        SetCompleted();
-        NS_LOG_INFO("Version: " << (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id)); // to get the momory version
+        env->type = 0x03; 
+        SetCompleted(); 
+        versionBefore = (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id);
+        NS_LOG_INFO("Version before training: " << versionBefore); // to get the momory version
 
         //get output
-        auto act = ActionGetter();
-        NS_LOG_INFO("Version: " << (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id));
-        numLocalModels = act->numLocalModels;
-        for(int i=0;i<numLocalModels;i++){localModels[i] = act->localModels[i];}
-        GetCompleted();
-        SetTraining(false);   
+       
+        auto act = ActionGetter();        
+        versionAfter= (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id);
+        NS_LOG_INFO("Version after training: " << versionAfter);
+        // if(versionBefore==versionAfter){
+        //     goto restart;
+        // }else{
+            numLocalModels = act->numLocalModels;
+            for(int i=0;i<numLocalModels;i++){localModels[i] = act->localModels[i];}
+            GetCompleted();
+            SetTraining(false); 
+        // }  
     }
-    //training is done and models are saved in localmodels
-
-    //return the corresponding mlmodel
     
     return GetLocalModel(nodeid);
 }
@@ -137,25 +167,42 @@ AiHelper::GetLocalModel(int nodeid){
 
 MLModel
 AiHelper::evaluate(MLModel model, int aggId){
+    std::lock_guard<std::mutex> lock(mtx);
+
+    NS_LOG_FUNCTION_NOARGS();
+    int versionBefore=0;
+    int versionAfter=0;
     //set input
+//    restart:
     auto env = EnvSetterCond();
     env->type = 0x04; 
     env->nodeId = aggId;
     env->models[0] = model ;
     SetCompleted();
-    NS_LOG_INFO("Version: " << (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id)); // to get the momory version
+    versionBefore = (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id);
+    NS_LOG_INFO("Version: " << versionBefore); // to get the momory version
 
     //get output
+    
     auto act = ActionGetter();
-    NS_LOG_INFO("Version: " << (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id));
-    MLModel evalModel = act->model;
-    GetCompleted();
-    return evalModel;
+    versionAfter= (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id);
+    NS_LOG_INFO("Version: " << versionAfter);
+    //  if(versionBefore==versionAfter){
+    //     goto restart;
+    //  }else{
+        MLModel evalModel;
+        evalModel = act->model;
+        GetCompleted();
+        return evalModel;
+    //  }  
 }
 
 MLModel
 AiHelper::aggregate(std::vector<MLModel> models, int aggId, int aggType){
+    std::lock_guard<std::mutex> lock(mtx);
+    NS_LOG_FUNCTION_NOARGS();
     //set input
+    
     auto env = EnvSetterCond();
     env->type = 0x05; 
     env->nodeId = aggId ;

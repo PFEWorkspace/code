@@ -10,6 +10,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <mutex>
 
 #include "../../rapidjson/document.h"
 #include "../../rapidjson/error/en.h"
@@ -97,6 +98,8 @@ const int numMaxModelsToAgg = 20;
     class AiHelper: public Ns3AIRL<AiHelperEnv, AiHelperAct> 
     {
         public:
+        std::mutex mtx;
+
         static AiHelper* getInstance(){
             if (instance==nullptr){
                 instance = new AiHelper();
@@ -116,6 +119,7 @@ const int numMaxModelsToAgg = 20;
         double GetTraining() const{return training;};
 
         private:
+        
         bool training ;
         int numLocalModels ;
         MLModel localModels[numMaxTrainers];

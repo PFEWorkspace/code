@@ -11,6 +11,7 @@
 #include <ctime>
 #include <string>
 #include <mutex>
+#include <list>
 
 namespace ns3 {
 
@@ -39,7 +40,7 @@ class Blockchain {
     // MLModel modelToEval[numMaxNodes];
     std::vector<MLModel> modelToAgreg;
     FLNodeStruct m_nodesInfo[numMaxNodes];
-    std::vector<AggregatorsTasks> tasks;
+    std::list<AggregatorsTasks> tasks;
     Ipv4InterfaceContainer nodesFLAdrs;
     Ipv4InterfaceContainer nodesBCAdrs;
     int aggregators[numMaxAggregators];
@@ -52,8 +53,7 @@ class Blockchain {
     Blockchain(){
         // Initialize 
         receivedCandidatures = 0 ;
-        
-       
+               
         for (int i = 0; i < numMaxNodes; ++i) {
             m_nodesInfo[i] = FLNodeStruct(); // Initialize with default constructor.
         }
@@ -86,11 +86,11 @@ public:
     Ipv4Address getFLAddress(int nodeId);
     int getFLNodeId(Ipv4Address adrs);
     void AddTask(AggregatorsTasks task);
-    bool hasPreviousTask(int nodeid, int task, MLModel models[]);
-    AggregatorsTasks RemoveTask(int id);
+    bool hasPreviousTask(int nodeid);
+    void RemoveTask(int id);
 
     Ipv4Address getBCAddress();
-    int GetAggregatorNotBusy();
+    int GetAggregatorNotBusy(int eval1, int eval2);
     void SetFLAddressContainer(Ipv4InterfaceContainer container);
     void SetBCAddressContainer(Ipv4InterfaceContainer container);
 
@@ -126,9 +126,7 @@ public:
     //     }
     // }
 
-    void AddModelToAgg( const MLModel& value) {
-        modelToAgreg.push_back(value);
-    }
+    void AddModelToAgg( const MLModel& value); 
 
     void removeModelsToAgg(int start, int end){
         modelToAgreg.erase(modelToAgreg.begin()+start, modelToAgreg.begin()+end);

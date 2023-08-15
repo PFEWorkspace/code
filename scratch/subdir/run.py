@@ -179,11 +179,10 @@ class AiHelperContainer:
             print("model evaluation")
             nodeId = env.nodeId
             m = copy.copy(env.models[0])
-            print("nodeId {} fl_manager.nodes[nodeId].node.nodeId {}".format(nodeId,self.FL_manager.nodes[nodeId].node.nodeId))
             if m.type == 0 : #local
-                model = self.FL_manager.evaluateLocal(self,nodeId, m)
+                model = self.FL_manager.evaluateLocal(nodeId, m)
             elif m.type == 1 : #intermediaire
-                model = self.FL_manager.evaluateIntermediaire(self,nodeId, m)
+                model = self.FL_manager.evaluateIntermediaire(nodeId, m)
             act.model = MLModel(modelId=model.modelId,nodeId=model.nodeId,taskId=model.taskId,round=model.round,type=model.type, positiveVote=model.positiveVote, negativeVote=model.negativeVote,evaluator1=model.evaluator1, evaluator2=model.evaluator2,evaluator3=model.evaluator3,aggregated=model.aggregated, aggModelId=model.aggModelId, accuracy=model.accuracy, acc1=model.acc1, acc2=model.acc2, acc3=model.acc3)
         if env.type == 0x05 : #aggregation  
             print("model aggregation")
@@ -193,8 +192,7 @@ class AiHelperContainer:
             models = []
             for i in range(0,numModels):
                 models.append(copy.copy(env.models[i]))
-            print("nodeId {} fl_manager.nodes[nodeId].node.nodeId {}".format(nodeId,self.FL_manager.nodes[nodeId].node.nodeId))
-            model = self.FL_manager.aggregate(self,nodeId, models,aggType)
+            model = self.FL_manager.aggregate(nodeId, models,aggType)
             act.model = MLModel(modelId=model.modelId,nodeId=model.nodeId,taskId=model.taskId,round=model.round,type=model.type, positiveVote=model.positiveVote, negativeVote=model.negativeVote,evaluator1=model.evaluator1, evaluator2=model.evaluator2,evaluator3=model.evaluator3,aggregated=model.aggregated, aggModelId=model.aggModelId, accuracy=model.accuracy, acc1=model.acc1, acc2=model.acc2, acc3=model.acc3)
         return act
 
