@@ -45,7 +45,7 @@ total_nodes = 15
 num_selected = 10
 num_features = 6
 ########################reset function test#############################################
-csv_filename = "observations.csv"  # Replace with your CSV file name
+csv_filename = "environment/observations.csv"  # Replace with your CSV file name
 with open(csv_filename, "r") as csv_file:
     csv_reader = csv.reader(csv_file)
     rows = list(csv_reader)
