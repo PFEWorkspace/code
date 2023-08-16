@@ -214,7 +214,7 @@ if __name__ == '__main__':
     };
 
     mempool_key = 1000
-    mem_size = 1024 * 2 * 2 * 2 * 2 * 2 * 2 * 2 * 2
+    mem_size = 1024 * 2 * 2 * 2 * 2 * 2 * 2 
     exp = Experiment(mempool_key, mem_size, 'main', '../../', using_waf=False)
     exp.reset()
     try:

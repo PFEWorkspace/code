@@ -65,7 +65,7 @@ AiHelper::initializeFL(FLNodeStruct *nodes, int& numNodes){
 
     //get output
     
-    auto act = ActionGetter();
+    auto act = ActionGetterCond();
     // restart:
     versionAfter= (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id);
     NS_LOG_INFO("Version after: " << versionAfter);
@@ -97,7 +97,7 @@ void AiHelper::Selection ()
     NS_LOG_INFO("Version before: " << versionBefore); // to get the momory version
 
     // restart:
-    auto act = ActionGetter();
+    auto act = ActionGetterCond();
     
     versionAfter= (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id);
     NS_LOG_INFO("Version after: " << versionAfter);
@@ -135,7 +135,7 @@ AiHelper::train(int nodeid){
 
         //get output
        
-        auto act = ActionGetter();        
+        auto act = ActionGetterCond();        
         versionAfter= (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id);
         NS_LOG_INFO("Version after training: " << versionAfter);
         // if(versionBefore==versionAfter){
@@ -184,7 +184,7 @@ AiHelper::evaluate(MLModel model, int aggId){
 
     //get output
     
-    auto act = ActionGetter();
+    auto act = ActionGetterCond();
     versionAfter= (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id);
     NS_LOG_INFO("Version: " << versionAfter);
     //  if(versionBefore==versionAfter){
@@ -192,7 +192,9 @@ AiHelper::evaluate(MLModel model, int aggId){
     //  }else{
         MLModel evalModel;
         evalModel = act->model;
+        NS_LOG_INFO("before get completed");
         GetCompleted();
+        NS_LOG_INFO("after get completed");
         return evalModel;
     //  }  
 }
@@ -213,7 +215,7 @@ AiHelper::aggregate(std::vector<MLModel> models, int aggId, int aggType){
     NS_LOG_INFO("Version: " << (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id)); // to get the momory version
 
     //get output
-    auto act = ActionGetter();
+    auto act = ActionGetterCond();
     NS_LOG_INFO("Version: " << (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id));
     MLModel model = act->model;
     GetCompleted();

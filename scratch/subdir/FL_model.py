@@ -185,7 +185,7 @@ def load_weights(model, weights):
     updated_state_dict = {}
     for name, weight in weights.items():
         updated_state_dict[name] = weight
-        print(name)
+        
 
     model.load_state_dict(updated_state_dict, strict=False)
 

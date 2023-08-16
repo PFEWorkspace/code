@@ -336,7 +336,7 @@ BCNode::TreatModel(MLModel model, Ipv4Address source, bool reschedule){
                 NS_LOG_INFO("node "<<aggId<<" will be evaluating the model "<< model.modelId);
                 if(aggId == -1){ //no available nodes
                     NS_LOG_INFO("reschedule treatmodel");
-                    Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(5),[this, model,source](){TreatModel(model,source,true);});
+                    Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(50),[this, model,source](){TreatModel(model,source,true);});
                     break;
                 }
                 else{
@@ -352,7 +352,7 @@ BCNode::TreatModel(MLModel model, Ipv4Address source, bool reschedule){
                     aggId = bc->GetAggregatorNotBusy(-1,-1); //doesn't matter if the aggregation is done by one of the evaluators
                     if(aggId == -1){ //no available nodes
                     
-                        Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(5),[this, model,source](){TreatModel(model,source,true);});
+                        Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(50),[this, model,source](){TreatModel(model,source,true);});
                         break;
                     }else{
                         models =bc->getxModelsToAgg(bc->GetModelsToAggAtOnce());
@@ -370,7 +370,7 @@ BCNode::TreatModel(MLModel model, Ipv4Address source, bool reschedule){
             }
             aggId = bc->GetAggregatorNotBusy(-1,-1);
             if(aggId == -1){ //no available nodes
-                Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(5),[this, model,source](){TreatModel(model,source, true);});
+                Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(50),[this, model,source](){TreatModel(model,source, true);});
                 break;
             }else{    
                 if(bc->GetModelsToAggAtOnce()<bc->getModelsToAggSize() && bc->getNumAggTasksAwaiting()>0){
@@ -394,7 +394,7 @@ BCNode::TreatModel(MLModel model, Ipv4Address source, bool reschedule){
             aggId = bc->GetAggregatorNotBusy(model.evaluator1,model.evaluator2);
 
             if(aggId == -1){ //no available nodes
-                Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(5),[this, model,source](){TreatModel(model,source, true);});
+                Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(50),[this, model,source](){TreatModel(model,source, true);});
                 break;           
             }else Evaluation(model,aggId);   
         }  //else : it's either evaluated once and its true or twice and the decision is 2vs1 (2 evals + the actual model)
@@ -462,7 +462,7 @@ BCNode::Evaluation(MLModel model, int nodeId){
     Ipv4Address nodeAdrs = bc->getFLAddress(nodeId);
     Send(d,nodeAdrs);
     //schedule a check if task is done or not (detect dropouts)
-    Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(5),[this,task](){DetectDropOut(task);});
+    Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(50),[this,task](){DetectDropOut(task);});
 
 }
     
@@ -530,7 +530,7 @@ BCNode::Aggregation(std::vector<MLModel> models, int nodeId, int type){
     Ipv4Address nodeAdrs = bc->getFLAddress(nodeId);
     Send(d,nodeAdrs);
      //schedule a check if task is done or not (detect dropouts)
-    Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(5),[this,task](){DetectDropOut(task);});
+    Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(50),[this,task](){DetectDropOut(task);});
 }
 
 void BCNode::NewRound(){

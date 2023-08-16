@@ -4,6 +4,7 @@
 #include "ns3/network-module.h"
 #include "ns3/applications-module.h"
 #include "ns3/wifi-module.h"
+
 #include "ns3/netanim-module.h"
 #include "ns3/ascii-file.h"
 
@@ -100,23 +101,24 @@ main(int argc, char* argv[])
 
     NS_LOG_INFO("Installing WiFi and Internet stack.");
     
-    WifiHelper wifi;
-    wifi.SetStandard(WIFI_STANDARD_80211n);
+    // WifiHelper wifi;
+    // wifi.SetStandard(WIFI_STANDARD_80211n);
+    // wifi.SetRemoteStationManager("ns3::IdealWifiManager");
 
-    WifiMacHelper wifiMac;
-    wifiMac.SetType("ns3::AdhocWifiMac");
-    // wifiMac.SetType("ns3::StaWifiMac", "Ssid", SsidValue(ssid), "ActiveProbing", BooleanValue(false));
+    // WifiMacHelper wifiMac;
+    // wifiMac.SetType("ns3::AdhocWifiMac");
     
-    YansWifiPhyHelper wifiPhy;
+    // YansWifiPhyHelper wifiPhy;
 
-    YansWifiChannelHelper wifiChannel = YansWifiChannelHelper::Default();
+    // YansWifiChannelHelper wifiChannel = YansWifiChannelHelper::Default();
     
-    // wifiChannel.SetPropagationDelay("ns3::ConstantSpeedPropagationDelayModel");
-    // wifiChannel.AddPropagationLoss("ns3::LogDistancePropagationLossModel",
-    //                            "Exponent", DoubleValue(3.0));
+    // // wifiChannel.SetPropagationDelay("ns3::ConstantSpeedPropagationDelayModel");
+    // // wifiChannel.AddPropagationLoss("ns3::LogDistancePropagationLossModel",
+    // //                            "Exponent", DoubleValue(3.0));
     
-    wifiPhy.SetChannel(wifiChannel.Create());
+    // wifiPhy.SetChannel(wifiChannel.Create());
     
+
     // wifiPhy.Set("TxPowerStart", DoubleValue(20));
     // wifiPhy.Set("TxPowerEnd", DoubleValue(20));
     // wifiPhy.Set("ChannelSettings",StringValue("{155, 80, BAND_5GHZ, 0}"));
@@ -137,12 +139,30 @@ main(int argc, char* argv[])
     //                     "ShortGuardIntervalSupported",
     //                     BooleanValue(false));
 
+     WifiHelper wifi;
+  // wifi.SetRemoteStationManager ("ns3::AarfWifiManager");
+  wifi.SetStandard(WIFI_STANDARD_80211a);
+  wifi.SetRemoteStationManager("ns3::ConstantRateWifiManager", "DataMode",
+                               StringValue("OfdmRate24Mbps"));
 
-    NetDeviceContainer nodeDevices = wifi.Install(wifiPhy, wifiMac, nodes);
-    NetDeviceContainer BCnodeDevices= wifi.Install(wifiPhy, wifiMac, BCnodes);
+  YansWifiChannelHelper wifiChannel;
+  wifiChannel.SetPropagationDelay("ns3::ConstantSpeedPropagationDelayModel");
+  wifiChannel.AddPropagationLoss("ns3::ThreeLogDistancePropagationLossModel");
+  wifiChannel.AddPropagationLoss("ns3::NakagamiPropagationLossModel");
+
+  YansWifiPhyHelper wifiPhyHelper;
+  wifiPhyHelper.SetChannel(wifiChannel.Create());
+  wifiPhyHelper.Set("TxPowerStart", DoubleValue(5));
+  wifiPhyHelper.Set("TxPowerEnd", DoubleValue(5));
+
+  WifiMacHelper wifiMacHelper;
+  wifiMacHelper.SetType("ns3::AdhocWifiMac");
+   
+    NetDeviceContainer nodeDevices = wifi.Install(wifiPhyHelper, wifiMacHelper, nodes);
+    NetDeviceContainer BCnodeDevices= wifi.Install(wifiPhyHelper, wifiMacHelper,  BCnodes);
     
     // wifiMac.SetType("ns3::ApWifiMac", "Ssid", SsidValue(ssid));
-    NetDeviceContainer initiatorDevice = wifi.Install(wifiPhy,wifiMac,initiator);
+    NetDeviceContainer initiatorDevice = wifi.Install(wifiPhyHelper, wifiMacHelper, initiator);
 
     InternetStackHelper internet;
     internet.Install(nodes);
@@ -158,7 +178,6 @@ main(int argc, char* argv[])
     // ipAddrs.SetBase("192.168.1.0","255.255.255.0");
     Ipv4InterfaceContainer BCnodesIpIfaces = ipAddrs.Assign(BCnodeDevices);
 
-  
     //--------------------------------------------
     //-- Setup physical layout
     //--------------------------------------------
@@ -274,13 +293,13 @@ main(int argc, char* argv[])
     }
 
 
-     // Create the animation object and configure for specified output
-    // AnimationInterface anim(animFile);
-    // for(uint32_t i=0; i<BCnodes.GetN();i++){
-    //   anim.UpdateNodeColor(BCnodes.Get(i),0,0,255);
-    // }
-    // anim.UpdateNodeColor(initiator.Get(0),0,255,0);
-    // anim.SetMaxPktsPerTraceFile(50000000);
+    //  Create the animation object and configure for specified output
+    AnimationInterface anim(animFile);
+    for(uint32_t i=0; i<BCnodes.GetN();i++){
+      anim.UpdateNodeColor(BCnodes.Get(i),0,0,255);
+    }
+    anim.UpdateNodeColor(initiator.Get(0),0,255,0);
+    anim.SetMaxPktsPerTraceFile(50000000);
     //--------------------------------------------
     //-- Run the simulation
     //--------------------------------------------

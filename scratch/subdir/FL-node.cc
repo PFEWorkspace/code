@@ -121,19 +121,19 @@ void FLNode::SetLearningCost(double learningCost){
   this->learning_cost = learningCost;
 }
   double FLNode::GetLearningCost() const{
-    return learning_cost;
+    return learning_cost *10;
   }
 
   double
   FLNode:: GetEvaluationCost() const{
-      return evaluationCost;
+      return evaluationCost *10;
   }
 
   void FLNode::SetCommunicationCost(double communicationCost){
     this->communication_cost = communicationCost;
   }
   double FLNode::GetCommunicationCost() const{
-    return communication_cost;
+    return communication_cost*10;
   }
 
 void FLNode::Init(FLNodeStruct n, int modelsize, double testPartitionSize){
@@ -356,7 +356,7 @@ FLNode::Evaluate(MLModel model){
   Blockchain* bc = Blockchain::getInstance();
   Ipv4Address adr = bc->getBCAddress();
  
-  // NS_LOG_DEBUG("I'am " << id << " sending model to " << adr);
+   NS_LOG_INFO("I'am " << id << " sending evaluated model to " << adr);
   SendModel(evaluatedmodel, adr);
 }
 
