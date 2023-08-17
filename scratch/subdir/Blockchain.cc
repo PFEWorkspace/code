@@ -18,11 +18,28 @@ Blockchain* Blockchain::instance = nullptr;
 //        ;
 //    return tid;
 //}
+void
+Blockchain::ResetRound(){
+    //update round number
+    actualFLround++;
+    receivedCandidatures = 0 ;
+    modelToAgreg.clear();
+    m_nodesInfo.clear();
+    tasks.clear();
+    for (int i=0; i<numMaxAggregators;i++){
+        aggregators[i]=-1;
+    }
+    for(int i=0; i<numMaxTrainers;i++){
+        trainers[i]=-1;
+    }
+    SetCurrentBlockId();
+}
 
 Ipv4Address Blockchain::getFLAddress(int nodeId)
 {
     return nodesFLAdrs.GetAddress(nodeId);
 }
+
 int
 Blockchain::getFLNodeId(Ipv4Address adrs){
     int id = -1 ;

@@ -10,8 +10,8 @@ def generate_random_instance(instance_id):
     transmission_rate = random.randint(15, 100) * 10
     task = random.choices([0, 1], weights=[0.7, 0.3])[0]
     dropout = random.choices([True, False], weights=[0.1, 0.9])[0]
-
-    return [instance_id, availability, honesty, dataset_size, frequency, transmission_rate, task, dropout]
+    malicious = random.choices([True, False],weights=[0.05, 0.95])[0]
+    return [instance_id, availability, honesty, dataset_size, frequency, transmission_rate, task, dropout, malicious]
 
 # Number of instances to generate
 num_instances = 1000
@@ -24,7 +24,7 @@ with open(csv_file, "w", newline="") as file:
     writer = csv.writer(file)
 
     # Writing header row
-    header = ["ID", "Availability", "Honesty", "Dataset Size", "Frequency", "Transmission Rate", "Task", "Dropout"]
+    header = ["nodeId", "availability", "honesty", "datasetSize", "freq", "transRate", "task", "dropout", "malicious"]
     writer.writerow(header)
 
     # Generating and writing data for each instance

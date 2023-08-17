@@ -39,7 +39,7 @@ class Blockchain {
     int receivedCandidatures;
     // MLModel modelToEval[numMaxNodes];
     std::vector<MLModel> modelToAgreg;
-    FLNodeStruct m_nodesInfo[numMaxNodes];
+    std::vector<FLNodeStruct> m_nodesInfo;
     std::list<AggregatorsTasks> tasks;
     Ipv4InterfaceContainer nodesFLAdrs;
     Ipv4InterfaceContainer nodesBCAdrs;
@@ -53,10 +53,9 @@ class Blockchain {
     Blockchain(){
         // Initialize 
         receivedCandidatures = 0 ;
-               
-        for (int i = 0; i < numMaxNodes; ++i) {
-            m_nodesInfo[i] = FLNodeStruct(); // Initialize with default constructor.
-        }
+        actualFLround = 0 ;
+    
+        
     }
 
 
@@ -88,6 +87,7 @@ public:
     void AddTask(AggregatorsTasks task);
     bool hasPreviousTask(int nodeid);
     void RemoveTask(int id);
+    void ResetRound();
 
     Ipv4Address getBCAddress();
     int GetAggregatorNotBusy(int eval1, int eval2);
@@ -146,6 +146,9 @@ public:
         if (index >= 0 && index < numMaxNodes) {
             m_nodesInfo[index] = value;
         }
+    }
+    void AddNodeInfo(const FLNodeStruct& value){
+        m_nodesInfo.push_back(value);
     }
 
     void IncReceivedCandidatures(){receivedCandidatures++;}

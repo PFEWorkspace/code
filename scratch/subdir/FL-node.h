@@ -97,6 +97,7 @@ class FLNode : public Application
     void Evaluate(MLModel model);
     std::vector<MLModel> docToModels(rapidjson::Document& d);
     void Aggregate(std::vector<MLModel> models, int aggType);
+    
 
     Ptr<Socket> m_socket; // Receiving socket
     uint32_t m_port{8833};   // Listening port
@@ -114,6 +115,7 @@ class FLNode : public Application
     double learning_cost;
     double communication_cost;
     double evaluationCost;
+    double testPartitionSize;
 };
 
 }

@@ -53,6 +53,7 @@ class BCNode : public Application
     void Receive(Ptr<Socket> socket);
     void Send(rapidjson::Document& d, Ipv4Address adrs);
     void SendTo( rapidjson::Document &d, std::vector<Ipv4Address> &addresses);
+    void SendBroadCast(rapidjson::Document& d, Ipv4Address adrs);
     void TreatCandidature(rapidjson::Document &d);
     
     void TreatModel(MLModel model, Ipv4Address source, bool reschedule);

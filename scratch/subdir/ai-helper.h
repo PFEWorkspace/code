@@ -61,6 +61,7 @@ const int numMaxModelsToAgg = 20;
         int transRate;
         int task; // 0 : train , 1: aggregate , 2: evaluate, the enum TASK
         bool dropout; // true if the node will be droping out of its task
+        bool malicious;
     } Packed;
 
      struct BCNodeStruct
@@ -93,6 +94,8 @@ const int numMaxModelsToAgg = 20;
         int selectedAggregators[numMaxAggregators]; // list of the selected nodes for the evaluation and aggregation task
         int numTrainers;
         int numAggregators;
+        int numFLNodes;
+        FLNodeStruct FLNodesInfo[numMaxNodes];
     } Packed;
 
     class AiHelper: public Ns3AIRL<AiHelperEnv, AiHelperAct> 
@@ -114,16 +117,21 @@ const int numMaxModelsToAgg = 20;
         MLModel GetLocalModel(int nodeid);
         MLModel evaluate(MLModel model, int aggId);
         MLModel aggregate(std::vector<MLModel> models, int aggId, int aggType);
+        void ResetRound();
         //setters and getters
         void SetTraining(bool train){training=train;};
         double GetTraining() const{return training;};
 
+        void SetNumTotalNodes(int number){numTotalNodes = number;};
+        FLNodeStruct getNodeInfo(int index){return nodesInfo[index];};
         private:
         
         bool training ;
         int numLocalModels ;
         MLModel localModels[numMaxTrainers];
         static AiHelper* instance;
+        int numTotalNodes;
+        std::vector<FLNodeStruct> nodesInfo;
         AiHelper();
         // FLNodeStruct* GetNodesFromFile(const std::string& filename,  int& numNodes);
         MLModelRefrence GetModelReference(MLModel model);      

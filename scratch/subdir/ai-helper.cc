@@ -81,7 +81,7 @@ AiHelper::initializeFL(FLNodeStruct *nodes, int& numNodes){
 
 void AiHelper::Selection () 
 {
-     int versionBefore=0;
+    int versionBefore=0;
     int versionAfter=0;
     NS_LOG_FUNCTION_NOARGS();
     
@@ -90,8 +90,8 @@ void AiHelper::Selection ()
     
     auto env = EnvSetterCond();
     env->type = 0x02; 
-    env->numNodes = bc->getNumFLNodes();
-    for(int i=0; i<bc->getNumFLNodes(); i++){env->nodes[i] = bc->GetNodeInfo(i);}
+    env->numNodes = bc->GetReceivedCandidatures();
+    for(int i=0; i<bc->GetReceivedCandidatures(); i++){env->nodes[i] = bc->GetNodeInfo(i);}
     SetCompleted();
     versionBefore = (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id);
     NS_LOG_INFO("Version before: " << versionBefore); // to get the momory version
@@ -220,5 +220,31 @@ AiHelper::aggregate(std::vector<MLModel> models, int aggId, int aggType){
     MLModel model = act->model;
     GetCompleted();
     return model;
+}
+
+void
+AiHelper::ResetRound(){
+    //reset the aihelper instance
+    NS_LOG_INFO("reset round aihelper");
+    SetTraining(false);
+    for(int i=0; i<numLocalModels;i++){
+        localModels[i]= MLModel();
+    }
+    numLocalModels=0;
+
+    // reset on the python side
+    auto env = EnvSetterCond();
+    env->type = 0x06; 
+    SetCompleted();
+    NS_LOG_INFO("Version: " << (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id)); // to get the momory version
+
+    //get output
+    auto act = ActionGetterCond();
+    NS_LOG_INFO("Version: " << (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id));
+    numTotalNodes = act->numFLNodes;
+    for(int i=0; i<numTotalNodes; i++){
+        nodesInfo.push_back(act->FLNodesInfo[i]);
+    }
+    GetCompleted();
 }
 }

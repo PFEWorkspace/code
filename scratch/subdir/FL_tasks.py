@@ -4,7 +4,7 @@ import torch
 import copy
 import numpy as np
 from utils.CSVManager import CSVFileManager
-from run import MLModel, MLModelRefrence
+from run import MLModel, FLNodeStruct
 from FL_model import Generator, Loader, Net, extract_weights
 from FL_node import Node, Report
 
@@ -207,11 +207,8 @@ class FLManager(object):
         #aggregate them and compare it to self.nodes[model.nodeId].model and update the aggregations/evaluations accordingly        
         evaluationModel = self.nodes[nodeId].aggregate(modelsToagg, -1, self.round, self.modelsFileManager, True)
         
-
         evaluation = self.compare_model(modelToEval, evaluationModel)
-        
-
-        
+                
         if model.evaluator1==-1:
             model.evaluator1 = nodeId
             self.modelsFileManager.modify_instance_field(model.modelId,"evaluator1",model.evaluator1)
@@ -270,6 +267,19 @@ class FLManager(object):
 
         return mlmodel
     
+    def resetRound(self, trainers, aggregators):
+        self.nodesFileManager = CSVFileManager(self.config.nodes.source, FLNodeStruct._fields_)
+        self.round += 1
+        #calculate honesty
+        #update the nodes on csv       
+        for index in trainers:
+            honesty = self.nodes[index].updateHonestyTrainer()
+            self.nodesFileManager.modify_instance_field(index,"honesty",honesty)
+        for index in aggregators:
+            self.nodes[index].updateHonestyAggregator()
+            self.nodesFileManager.modify_instance_field(index,"honesty",honesty)
+       
+        #generate random availabilty and dropout 
 
     @staticmethod
     def flatten_weights(weights):
@@ -290,11 +300,14 @@ class FLManager(object):
         model2.eval()
         # Iterate through corresponding parameters of both models
         for param1, param2 in zip(model1.parameters(), model2.parameters()):
-            print("param1 : ",param1)
-            print("param2: ", param2)
-            if not torch.allclose(param1.data, param2.data,atol=1e-4):
+           
+            # if not torch.allclose(param1.data, param2.data,atol=1e-8, rtol=1e-5):
+            diff = torch.abs(param1 - param2)
+            if torch.max(diff) > 0.05 :
+               
                 return False
         return True
+
 
     # def save_reports(self, round, reports):
     #     if reports:

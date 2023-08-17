@@ -136,7 +136,7 @@ void FLNode::SetLearningCost(double learningCost){
     return communication_cost*10;
   }
 
-void FLNode::Init(FLNodeStruct n, int modelsize, double testPartitionSize){
+void FLNode::Init(FLNodeStruct n, int modelsize, double testSize){
   id = n.nodeId ;
   availability = n.availability ;
   honesty = n.honesty ;
@@ -145,15 +145,19 @@ void FLNode::Init(FLNodeStruct n, int modelsize, double testPartitionSize){
   trans_rate = n.transRate ;
   task = Task(n.task);
   dropout = n.dropout ;
+  malicious = n.malicious;
   model_size = modelsize;
   learning_cost = n.datasetSize / n.freq ;
   communication_cost = model_size / n.transRate ;
-  evaluationCost = testPartitionSize * n.datasetSize / n.freq ;
-  // malicious = n.malicious;
+  testPartitionSize = testSize ;
+  evaluationCost = testSize * n.datasetSize / n.freq ;
+ 
 }
 
 void FLNode::ResetRound(){
-
+  AiHelper* ai = AiHelper::getInstance();
+  FLNodeStruct info = ai->getNodeInfo(GetNode()->GetId());
+  Init(info, model_size, testPartitionSize);
 }
 
 void FLNode::DoDispose() {
@@ -233,7 +237,11 @@ void FLNode::Receive(Ptr<Socket> socket) {
                         aggType = d["aggregation_type"].GetInt(); // 1:INTERMEDIAIRE, 2:GLOBAL
                         models = docToModels(d);
                         Simulator::ScheduleWithContext(GetNode()->GetId(), Seconds((GetLearningCost()+GetCommunicationCost())), [this, models,aggType](){Aggregate(models,aggType);});
-                    break;    
+                    break; 
+                    case NEWROUND:
+                    ResetRound();
+                    Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(120/trans_rate ), [this]() { Candidater(); });
+                    break;   
                     default:
                         break;
                     }

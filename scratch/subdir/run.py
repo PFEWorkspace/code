@@ -67,7 +67,8 @@ class FLNodeStruct(ctypes.Structure):
         ("freq", ctypes.c_int),
         ("transRate", ctypes.c_int),
         ("task", ctypes.c_int),
-        ("dropout", ctypes.c_bool)
+        ("dropout", ctypes.c_bool),
+        ("malicious", ctypes.c_bool)
     ]
 
     def learning_cost(self,datasetSize,freq):
@@ -111,7 +112,9 @@ class AiHelperAct(ctypes.Structure):
         ("selectedTrainers", ctypes.c_int * numMaxTrainers),
         ("selectedAggregators", ctypes.c_int * numMaxAggregators),
         ("numTrainers", ctypes.c_int),
-        ("numAggregators", ctypes.c_int)
+        ("numAggregators", ctypes.c_int),
+        ("numFLNodes", ctypes.c_int),
+        ("FLNodesInfo", FLNodeStruct * numMaxNodes)
     ]
 
 class AiHelperContainer:
@@ -157,6 +160,9 @@ class AiHelperContainer:
             self.numNodes = env.numNodes
             act.model = MLModel(modelId=m.modelId,nodeId=m.nodeId,taskId=m.taskId,round=m.round)                      
         if env.type == 0x02 : # selection
+            #get the candidated nodes
+            self.numNodes = env.numNodes
+            [self.nodes.append(copy.copy(env.nodes[i])) for i in range(env.numNodes)]            
             print('select trainers and aggregators')
             if config.nodes.selection == "score" :
                 self.exactSelection(act,config)
@@ -194,6 +200,15 @@ class AiHelperContainer:
                 models.append(copy.copy(env.models[i]))
             model = self.FL_manager.aggregate(nodeId, models,aggType)
             act.model = MLModel(modelId=model.modelId,nodeId=model.nodeId,taskId=model.taskId,round=model.round,type=model.type, positiveVote=model.positiveVote, negativeVote=model.negativeVote,evaluator1=model.evaluator1, evaluator2=model.evaluator2,evaluator3=model.evaluator3,aggregated=model.aggregated, aggModelId=model.aggModelId, accuracy=model.accuracy, acc1=model.acc1, acc2=model.acc2, acc3=model.acc3)
+        if env.type == 0x06: #restround
+            print("***********  NEW ROUND ***************")
+            
+            updatedNodes = self.FL_manager.resetRound(self.selectedAggregators,self.selectedTrainers)
+            self.selectedAggregators = []
+            self.selectedTrainers = []
+
+            
+        
         return act
 
 if __name__ == '__main__':

@@ -156,6 +156,25 @@ void BCNode::SendTo( rapidjson::Document &d, std::vector<Ipv4Address> &addresses
 }
 
 
+void
+BCNode::SendBroadCast(rapidjson::Document &d, Ipv4Address adrs) {
+ 
+ if (!m_socket){
+    Ptr<SocketFactory> socketFactory = GetNode()->GetObject<SocketFactory>(UdpSocketFactory::GetTypeId());
+    m_socket = socketFactory->CreateSocket();
+    m_socket->SetAllowBroadcast(true);
+    m_socket->Bind();
+ }
+    rapidjson::StringBuffer packetInfo;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(packetInfo);
+    d.Accept(writer);
+
+    Ptr<Packet> packet = Create<Packet>(reinterpret_cast<const uint8_t*>(packetInfo.GetString()),packetInfo.GetSize());
+    m_socket->SendTo(packet,0,InetSocketAddress(adrs, m_port));
+    
+}
+
+
 FLNodeStruct 
 BCNode::docToFLNodeStruct(rapidjson::Document &d){
     FLNodeStruct node = FLNodeStruct();
@@ -534,6 +553,22 @@ BCNode::Aggregation(std::vector<MLModel> models, int nodeId, int type){
 }
 
 void BCNode::NewRound(){
+    //reset blockchain
+    Blockchain* bc = Blockchain::getInstance();
+    bc->ResetRound();
+
+    //reset Aihelper and reset pythonside (generating new env: update node's infos)
+    AiHelper* ai = AiHelper::getInstance();
+    ai->ResetRound();
+
+    //send the newround message
+    rapidjson::Document d;
+    rapidjson::Value value;
+    d.SetObject(); 
+    value = NEWROUND;
+    d.AddMember("message_type", value, d.GetAllocator());
+   
+    SendBroadCast(d,Ipv4Address("192.168.255.255"));
 
 }
 

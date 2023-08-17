@@ -164,7 +164,7 @@ class Node(object):
             )
             # fileManager.write_instance(mlmodel)
             self.reports.append(Report(report_id, self.node.nodeId, len(self.data),self.loss, updated_weights,accuracy, mlmodel, self.model))
-           
+
             return mlmodel, self.model 
         
 
@@ -187,6 +187,13 @@ class Node(object):
 
         return weights_avg
     
+    def updateHonestyTrainer(self):
+        pass
+
+
+    def updateHonestyAggregator(self):
+        pass
+
     def save_model(self, model, path):
         path += '/global'
         torch.save(model.state_dict(), path)
@@ -204,6 +211,8 @@ class Node(object):
         for r in self.reports:
             if r.id == id :
                 return r
+            
+
 class Report(object):
     """Federated learning client report."""
 

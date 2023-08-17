@@ -220,6 +220,10 @@ main(int argc, char* argv[])
     blockchain->setNumTrainers(numParticipants);
     blockchain->SetModelsToAggAtOnce(x);
     blockchain->SetRandomBCStream();
+  
+    for(uint i =0; i< numFlNodes; i++){
+      blockchain->AddNodeInfo(nodesInfo[i]);
+    }
 
     Ptr<Node> bcnode;
     Ptr<BCNode> BC ;
@@ -358,6 +362,9 @@ FLNodeStruct* GetNodesFromFile(const std::string& filename,  int& numNodes){
 
         std::getline(ss, field); // Read the Dropout field
         node.dropout = (field == "True");
+
+        std::getline(ss, field); // Read the malicious field
+        node.malicious = (field == "True");
 
         // Resize the array for each new node
         nodeList = (FLNodeStruct*)realloc(nodeList, (count + 1) * sizeof(FLNodeStruct));
