@@ -7,13 +7,14 @@ class CustomActionSpace(spaces.Space):
     def __init__(self, total_nodes, num_selected):
         self.total_nodes = total_nodes
         self.num_selected = num_selected
+        self.high = np.ones(self.num_selected)  
 
     @property
     def shape(self):
         return (self.num_selected,)
 
     def sample(self):
-        action = np.random.choice(total_nodes, size=num_selected, replace=False)
+        action = np.random.choice(self.total_nodes, size=self.num_selected, replace=False)
         return action
 
 # Create the custom action space
@@ -32,9 +33,9 @@ class CustomActionSpace(spaces.Space):
 #     action = custom_action_space.sample()
 #     print("Selected nodes:", np.where(action)[0])
 
-import numpy as np
+# import numpy as np
 
-num_selected = 5  # Replace with the desired length
+# num_selected = 5  # Replace with the desired length
 
-random_array = np.random.random(num_selected)
-print(random_array)
+# random_array = np.random.random(num_selected)
+# print(random_array)
