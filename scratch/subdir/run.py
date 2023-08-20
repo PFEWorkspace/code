@@ -8,11 +8,11 @@ import config
 import copy
 from typing import List
 
-numMaxNodes = 100
-numMaxTrainers = 50  
-numMaxAggregators = 50
+numMaxNodes = 300
+numMaxTrainers = 150  
+numMaxAggregators = 150
 numMaxBCNodes = 100
-numMaxModelsToAgg= 10
+numMaxModelsToAgg= 20
 
 
 # Set up parser
@@ -80,6 +80,7 @@ class FLNodeStruct(ctypes.Structure):
         
 
     def get_cost(self,datasetSize,freq,transRate, w):
+        
         return self.learning_cost(datasetSize,freq) + self.communication_cost(w,transRate)
 
 class BCNodeStruct(ctypes.Structure):
@@ -131,6 +132,7 @@ class AiHelperContainer:
         nodes_scores = []
         
         for node in self.nodes:
+
             if node.availability: 
                 score = alpha * node.honesty - (1 - alpha) * node.get_cost(node.datasetSize, node.freq, node.transRate, config.model.size)
                 nodes_scores.append({"nodeId":node.nodeId , "score": score})
@@ -167,7 +169,7 @@ class AiHelperContainer:
             print("numNodes", self.numNodes)
             self.nodes = []
             [self.nodes.append(copy.copy(env.nodes[i])) for i in range(0,env.numNodes)]   
-            print(len(self.nodes))
+            
             print('select trainers and aggregators')
             if config.nodes.selection == "score" :
                 self.exactSelection(act,config)
@@ -213,7 +215,7 @@ class AiHelperContainer:
             n = self.FL_manager.resetRound(self.selectedTrainers,self.selectedAggregators)
             act.numFLNodes = config.nodes.total
             # act.FLNodesInfo = []
-            print("updating all nodes")
+            # print("updating all nodes")
             for i in range(0,act.numFLNodes):
                 act.FLNodesInfo[i] = FLNodeStruct(
                     nodeId = n[i].nodeId,

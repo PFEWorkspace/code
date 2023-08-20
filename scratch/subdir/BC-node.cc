@@ -75,9 +75,9 @@ void BCNode::Receive(Ptr<Socket> socket) {
         if (InetSocketAddress::IsMatchingType(from))
         {
             packet->CopyData(packetInfo, packet->GetSize ());
-            NS_LOG_INFO("I'm a bc node id: "<< GetNode()->GetId() << " received " << packet->GetSize() << " bytes from "
-                                    << InetSocketAddress::ConvertFrom(from).GetIpv4()
-                                    << " content: "<< packetInfo) ;
+            // NS_LOG_INFO("I'm a bc node id: "<< GetNode()->GetId() << " received " << packet->GetSize() << " bytes from "
+            //                         << InetSocketAddress::ConvertFrom(from).GetIpv4()
+            //                         << " content: "<< packetInfo) ;
             
             std::string data(reinterpret_cast<char*>(packetInfo), packet->GetSize()) ;
             rapidjson::Document d;
@@ -89,6 +89,10 @@ void BCNode::Receive(Ptr<Socket> socket) {
                     switch (d["message_type"].GetInt())
                     {
                         case NEWTASK : //NEWTASK
+                         NS_LOG_INFO("I'm a bc node id: "<< GetNode()->GetId() << " received " << packet->GetSize() << " bytes from "
+                                    << InetSocketAddress::ConvertFrom(from).GetIpv4()
+                                    << " content: "<< packetInfo) ;
+            
                         if(d.HasMember("task_id") && d["task_id"].IsInt()){
                             bc->setTaskId( d["task_id"].GetInt());
                             bc->SetActualFLRound(0);
@@ -102,11 +106,15 @@ void BCNode::Receive(Ptr<Socket> socket) {
                         TreatCandidature(d);
                         break;
                         case MODEL: //MODEL
+                             NS_LOG_INFO("I'm a bc node id: "<< GetNode()->GetId() << " received " << packet->GetSize() << " bytes from "
+                                    << InetSocketAddress::ConvertFrom(from).GetIpv4()
+                                    << " content: "<< packetInfo) ;
+            
                             model = DocToMLModel(d);
                             TreatModel(model,InetSocketAddress::ConvertFrom(from).GetIpv4(),false);
                             break;                    
                         default:
-                        NS_LOG_INFO("default");
+                        // NS_LOG_INFO("default");
                         break;
                     }
                 
@@ -190,11 +198,11 @@ BCNode::docToFLNodeStruct(rapidjson::Document &d){
     if(d.HasMember("datasetSize")&& d["datasetSize"].IsInt()){
         node.datasetSize = d["datasetSize"].GetInt();
     }
-    if(d.HasMember("freq") && d["freq"].IsInt()){
-        node.freq = d["freq"].GetInt();
+    if(d.HasMember("freq") && d["freq"].IsDouble()){
+        node.freq = (int)d["freq"].GetDouble();
     }
-    if(d.HasMember("transRate") && d["transRate"].IsInt()){
-        node.transRate = d["transRate"].GetInt();
+    if(d.HasMember("transRate") && d["transRate"].IsDouble()){
+        node.transRate = (int)d["transRate"].GetDouble();
     }
     if(d.HasMember("task") && d["task"].IsInt()){
         node.task = d["task"].GetInt();
@@ -344,20 +352,20 @@ BCNode::TreatModel(MLModel model, Ipv4Address source, bool reschedule){
     int aggId;
     std::vector<MLModel> models;
     int sourceId= bc->getFLNodeId(source);
-    NS_LOG_INFO("treat model");
+    // NS_LOG_INFO("treat model");
     if(bc->hasPreviousTask(sourceId) && not reschedule){
         bc->RemoveTask(sourceId);
-        NS_LOG_INFO("task removed");
+        // NS_LOG_INFO("task removed");
     }
     
     switch(model.type){
     case LOCAL:
-     NS_LOG_INFO("it's local model");
+    //  NS_LOG_INFO("it's local model");
         if(model.positiveVote+model.negativeVote < 2 || model.positiveVote - model.negativeVote == 0){
                 aggId = bc->GetAggregatorNotBusy(model.evaluator1, model.evaluator2);
-                NS_LOG_INFO("node "<<aggId<<" will be evaluating the model "<< model.modelId);
+                // NS_LOG_INFO("node "<<aggId<<" will be evaluating the model "<< model.modelId);
                 if(aggId == -1){ //no available nodes
-                    NS_LOG_INFO("reschedule treatmodel");
+                    // NS_LOG_INFO("reschedule treatmodel");
                     Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(10),[this, model,source](){TreatModel(model,source,true);});
                     break;
                 }
@@ -386,20 +394,20 @@ BCNode::TreatModel(MLModel model, Ipv4Address source, bool reschedule){
                     Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(10),[this, model,source](){TreatModel(model,source, true);});
                     break;
                 }else{  
-                    NS_LOG_INFO("max delay "<<bc->MaxDelayPassed());  
+                    // NS_LOG_INFO("max delay "<<bc->MaxDelayPassed());  
                     if(bc->GetModelsToAggAtOnce()<= bc->getModelsToAggSize() && (bc->getNumAggTasksAwaiting()>0 || (bc->getNumAggTasksAwaiting()==0 && bc->firstagg))){
                             if(bc->firstagg){bc->firstagg=false;}
                             models =bc->getxModelsToAgg(bc->GetModelsToAggAtOnce());
-                            NS_LOG_INFO("aggregation intermediaire");
+                             NS_LOG_INFO("AGGREGATION INTERMEDIAIRE");
                             Aggregation(models,aggId,INTERMEDIAIRE);
                     }else{
-                        NS_LOG_INFO("models size" <<bc->getModelsToAggSize() << " tasks awaiting "<< bc->getNumAggTasksAwaiting());
+                        // NS_LOG_INFO("models size" <<bc->getModelsToAggSize() << " tasks awaiting "<< bc->getNumAggTasksAwaiting());
                         if(bc->GetModelsToAggAtOnce()>= bc->getModelsToAggSize() && bc->getNumAggTasksAwaiting()==0 && bc->MaxDelayPassed() && !bc->lastagg){
                                 models =bc->getxModelsToAgg(bc->GetModelsToAggAtOnce());
                                 NS_LOG_INFO("AGGREGATION GLOBAL ");
                                 Aggregation(models,aggId,GLOBAL);
                         }else if(bc->lastagg){
-                            NS_LOG_INFO("reschedule local");
+                            // NS_LOG_INFO("reschedule local");
                             Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(bc->GetStillDelay()),[this, model,source](){TreatModel(model,source, true);});
                         }
                     }
@@ -420,14 +428,14 @@ BCNode::TreatModel(MLModel model, Ipv4Address source, bool reschedule){
                 if(bc->GetModelsToAggAtOnce()<=bc->getModelsToAggSize() && bc->getNumAggTasksAwaiting()>0){
                         models =bc->getxModelsToAgg(bc->GetModelsToAggAtOnce());
                         // NS_LOG_INFO("models to agg size "<< models.size() << " first: "<< models[0].modelId);
-                        NS_LOG_INFO("aggregation intermediaire");
+                        NS_LOG_INFO("AGGREGATION INTERMEDIAIRE");
                         Aggregation(models,aggId,INTERMEDIAIRE);
                 }else if(bc->getNumAggTasksAwaiting()==0 && bc->MaxDelayPassed()){
                         models =bc->getxModelsToAgg(bc->GetModelsToAggAtOnce());
                         NS_LOG_INFO("AGGREGATION GLOBAL ");
                         Aggregation(models,aggId,GLOBAL);
                 }else{
-                    NS_LOG_INFO("reschedule inter");
+                    // NS_LOG_INFO("reschedule inter");
                     Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(bc->GetStillDelay()+10),[this, model,source](){TreatModel(model,source, true);});
                 }
                    
@@ -517,7 +525,7 @@ BCNode::Evaluation(MLModel model, int nodeId){
     
 void
 BCNode::Aggregation(std::vector<MLModel> models, int nodeId, int type){
-    NS_LOG_INFO("Aggregation in BCNODE "<<type);
+    // NS_LOG_INFO("Aggregation in BCNODE "<<type);
     Blockchain* bc = Blockchain::getInstance();
     AggregatorsTasks task = AggregatorsTasks();
     if(type==GLOBAL) bc->lastagg = true;
@@ -587,12 +595,11 @@ void BCNode::NewRound(MLModel globalModel){
     //reset blockchain
     Blockchain* bc = Blockchain::getInstance();
     bool finished = bc->ResetRound(globalModel);
+    //reset Aihelper and reset pythonside (generating new env: update node's infos)
+    AiHelper* ai = AiHelper::getInstance();
+    ai->ResetRound();
     if( not finished ){
-        //reset Aihelper and reset pythonside (generating new env: update node's infos)
-        AiHelper* ai = AiHelper::getInstance();
-        ai->ResetRound();
-        NS_LOG_INFO("round reseted, next sending message");
-        //send the newround message
+       //send the newround message
         rapidjson::Document d;
         rapidjson::Value value;
         d.SetObject(); 
@@ -607,7 +614,7 @@ void BCNode::NewRound(MLModel globalModel){
         SendTo(d,adrs);
         Simulator::ScheduleWithContext(GetNode()->GetId(), Seconds(120/150 + 2),[this](){ Selection();});
     }else{
-        NS_LOG_INFO("else du not finished blockchain");
+        NS_LOG_INFO("******** FL Task done**************");
     }
 
     

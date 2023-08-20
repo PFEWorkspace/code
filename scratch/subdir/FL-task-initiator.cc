@@ -55,7 +55,7 @@ Initiator::StartApplication()
     /* send a soket containing all the data related to the fl task using rapidjson
      to all the subnetwork using a broadcase adress
     */
-   NS_LOG_INFO("starting app");
+//    NS_LOG_INFO("starting app");
 
    rapidjson::Document Info; 
    rapidjson::Value value;
@@ -67,7 +67,7 @@ Initiator::StartApplication()
     //initialize model and task fl in python side
     AiHelper* ai = AiHelper::getInstance();
     MLModelRefrence model = ai->initializeFL(m_nodesInfo, m_numNodes);
-    NS_LOG_INFO("task id " << model.taskId);
+    // NS_LOG_INFO("task id " << model.taskId);
     value = model.taskId;
     Info.AddMember("task_id", value, Info.GetAllocator());
     value = model.modelId ;
@@ -86,7 +86,7 @@ Initiator::StartApplication()
     rapidjson::StringBuffer packetInfo;
     rapidjson::Writer<rapidjson::StringBuffer> writer(packetInfo);
     Info.Accept(writer);
-    NS_LOG_INFO(packetInfo.GetString());
+    // NS_LOG_INFO(packetInfo.GetString());
 
     Ptr<SocketFactory> socketFactory = GetNode()->GetObject<SocketFactory>(UdpSocketFactory::GetTypeId());
     m_socket = socketFactory->CreateSocket();

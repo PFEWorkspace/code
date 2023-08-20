@@ -91,7 +91,9 @@ void AiHelper::Selection ()
     auto env = EnvSetterCond();
     env->type = 0x02; 
     env->numNodes = bc->GetReceivedCandidatures();
-    for(int i=0; i<bc->GetReceivedCandidatures(); i++){env->nodes[i] = bc->GetNodeInfo(i);}
+    for(int i=0; i<bc->GetReceivedCandidatures(); i++){
+        env->nodes[i] = bc->GetNodeInfo(i);
+        }
     SetCompleted();
     versionBefore = (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id);
     NS_LOG_INFO("Version before: " << versionBefore); // to get the momory version
@@ -131,13 +133,13 @@ AiHelper::train(int nodeid){
         env->type = 0x03; 
         SetCompleted(); 
         versionBefore = (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id);
-        NS_LOG_INFO("Version before training: " << versionBefore); // to get the momory version
+        NS_LOG_INFO("Version before : " << versionBefore); // to get the momory version
 
         //get output
        
         auto act = ActionGetterCond();        
         versionAfter= (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id);
-        NS_LOG_INFO("Version after training: " << versionAfter);
+        NS_LOG_INFO("Version after : " << versionAfter);
         // if(versionBefore==versionAfter){
         //     goto restart;
         // }else{
@@ -180,13 +182,13 @@ AiHelper::evaluate(MLModel model, int aggId){
     env->models[0] = model ;
     SetCompleted();
     versionBefore = (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id);
-    NS_LOG_INFO("Version: " << versionBefore); // to get the momory version
+    NS_LOG_INFO("Version before: " << versionBefore); // to get the momory version
 
     //get output
     
     auto act = ActionGetterCond();
     versionAfter= (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id);
-    NS_LOG_INFO("Version: " << versionAfter);
+    NS_LOG_INFO("Version after: " << versionAfter);
     //  if(versionBefore==versionAfter){
     //     goto restart;
     //  }else{
@@ -212,11 +214,11 @@ AiHelper::aggregate(std::vector<MLModel> models, int aggId, int aggType){
     env->numRounds = aggType; //used the numRounds for the type cus its empty
     for(uint i=0; i<models.size(); i++){env->models[i] = models[i];}
     SetCompleted();
-    NS_LOG_INFO("Version: " << (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id)); // to get the momory version
+    NS_LOG_INFO("Version before: " << (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id)); // to get the momory version
 
     //get output
     auto act = ActionGetterCond();
-    NS_LOG_INFO("Version: " << (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id));
+    NS_LOG_INFO("Version after: " << (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id));
     MLModel model = act->model;
     GetCompleted();
     return model;
@@ -236,11 +238,11 @@ AiHelper::ResetRound(){
     auto env = EnvSetterCond();
     env->type = 0x06; 
     SetCompleted();
-    NS_LOG_INFO("Version: " << (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id)); // to get the momory version
+    NS_LOG_INFO("Version before: " << (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id)); // to get the momory version
 
     //get output
     auto act = ActionGetterCond();
-    NS_LOG_INFO("Version: " << (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id));
+    NS_LOG_INFO("Version after: " << (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id));
     numTotalNodes = act->numFLNodes;
     for(int i=0; i<numTotalNodes; i++){
         nodesInfo.push_back(act->FLNodesInfo[i]);

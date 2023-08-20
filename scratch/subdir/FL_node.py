@@ -215,7 +215,7 @@ class Node(object):
         
         # Calculate the contribution as the square of the cosine similarity
         contribution = cosine_similarity ** 2
-        print("node {} contribution {}".format(self.node.nodeId, contribution))
+        # print("node {} contribution {}".format(self.node.nodeId, contribution))
         return contribution.item()
 
     def updateHonestyAggregator(self, numEvals, numAgg, config:Config):

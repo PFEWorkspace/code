@@ -200,10 +200,7 @@ void FLNode::Receive(Ptr<Socket> socket) {
         if (InetSocketAddress::IsMatchingType(from))
         {
             packet->CopyData(packetInfo, packet->GetSize () );
-            NS_LOG_DEBUG("I'm "<< GetNode()->GetId() << "received " << packet->GetSize() << " bytes from "
-                                    << InetSocketAddress::ConvertFrom(from).GetIpv4()
-                                    << " content: "<< packetInfo) ;
-
+            
             std::string data(reinterpret_cast<char*>(packetInfo), packet->GetSize()) ; 
             rapidjson::Document d;
             std::vector<MLModel> models;
@@ -219,21 +216,33 @@ void FLNode::Receive(Ptr<Socket> socket) {
                        Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(120/trans_rate ), [this]() { Candidater(); });
                         break;
                     case SELECTION :
+                    NS_LOG_DEBUG("I'm "<< GetNode()->GetId() << "received " << packet->GetSize() << " bytes from "
+                                    << InetSocketAddress::ConvertFrom(from).GetIpv4()
+                                    << " content: "<< packetInfo) ;
+
                          if(d.HasMember("task") && d["task"].IsInt()){
                             SetTask(Task(d["task"].GetInt()));
                             if(GetTask() == TRAIN) {
-                              // Train();
+                              
                                 Train();
                             } // the else being aggregate or evaluate
                          }
                       break;
                     case EVALUATION:
                     NS_LOG_INFO("EVALUATION");
+                    NS_LOG_DEBUG("I'm "<< GetNode()->GetId() << "received " << packet->GetSize() << " bytes from "
+                                    << InetSocketAddress::ConvertFrom(from).GetIpv4()
+                                    << " content: "<< packetInfo) ;
+
                       m = BCNode::DocToMLModel(d);
                       Simulator::ScheduleWithContext(GetNode()->GetId(), Seconds((GetEvaluationCost()+GetCommunicationCost())),[this,m](){Evaluate(m);});     
                     break;
                     case AGGREGATION:
-                    NS_LOG_INFO("AGGREGATION");
+                    // NS_LOG_INFO("AGGREGATION");
+                    NS_LOG_DEBUG("I'm "<< GetNode()->GetId() << "received " << packet->GetSize() << " bytes from "
+                                    << InetSocketAddress::ConvertFrom(from).GetIpv4()
+                                    << " content: "<< packetInfo) ;
+
                         aggType = d["aggregation_type"].GetInt(); // 1:INTERMEDIAIRE, 2:GLOBAL
                         models = docToModels(d);
                         Simulator::ScheduleWithContext(GetNode()->GetId(), Seconds((GetLearningCost()+GetCommunicationCost())), [this, models,aggType](){Aggregate(models,aggType);});
@@ -357,14 +366,14 @@ void FLNode::Train() {
 }
 void
 FLNode::Evaluate(MLModel model){
-  NS_LOG_INFO("fl node evaluation");
+  
   AiHelper* ai = AiHelper::getInstance();
   MLModel evaluatedmodel = ai->evaluate(model, GetNode()->GetId());
 
   Blockchain* bc = Blockchain::getInstance();
   Ipv4Address adr = bc->getBCAddress();
  
-   NS_LOG_INFO("I'am " << id << " sending evaluated model to " << adr);
+  //  NS_LOG_INFO("I'am " << id << " sending evaluated model to " << adr);
   SendModel(evaluatedmodel, adr);
 }
 
@@ -412,7 +421,7 @@ FLNode::Aggregate(std::vector<MLModel> models, int aggType){
   Blockchain* bc = Blockchain::getInstance();
   Ipv4Address adr = bc->getBCAddress();
  
-  NS_LOG_DEBUG("I'am " << id << " sending aggregated model " << model.modelId);
+  // NS_LOG_DEBUG("I'am " << id << " sending aggregated model " << model.modelId);
   SendModel(model, adr);
 }
 }

@@ -22,10 +22,10 @@ bool
 Blockchain::ResetRound(MLModel globalModel){
     //update round number
     actualFLround++;
-    NS_LOG_INFO("actual FL round " <<actualFLround<<" maxFLRound "<<maxFLround);
+    // NS_LOG_INFO("actual FL round " <<actualFLround<<" maxFLRound "<<maxFLround);
     
     if(globalModel.accuracy >= GetTargetAcc()){
-        NS_LOG_INFO("inside accuracy condition "<< globalModel.accuracy << "  " << GetTargetAcc());
+        // NS_LOG_INFO("inside accuracy condition "<< globalModel.accuracy << "  " << GetTargetAcc());
         return true;
     }else if(actualFLround < maxFLround ){
         receivedCandidatures = 0 ;
@@ -66,7 +66,7 @@ Blockchain::getFLNodeId(Ipv4Address adrs){
 void 
 Blockchain::AddModelToAgg( const MLModel& value) {
         NS_LOG_FUNCTION_NOARGS();
-        NS_LOG_INFO("add model to agg: "<<value.modelId);
+        // NS_LOG_INFO("add model to agg: "<<value.modelId);
         modelToAgreg.push_back(value);
     }
 
@@ -142,9 +142,7 @@ Blockchain::GetMaxTrainingDelay(){
 
 bool
 Blockchain::MaxDelayPassed(){
-    
     if(GetStillDelay()<= 0 ){
-        NS_LOG_INFO("returning true: time to aggregate");
         return true;
     }else return false;
 }
@@ -317,7 +315,7 @@ Blockchain::GetAggregatorNotBusy(int eval1, int eval2){
         }
         if(!busy && agg!=eval1 && agg!=eval2){
             id = agg ;
-            NS_LOG_INFO("agg "<< agg << " not busy");
+            // NS_LOG_INFO("agg "<< agg << " not busy");
             break;
         } 
     }

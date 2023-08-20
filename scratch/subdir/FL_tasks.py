@@ -279,25 +279,34 @@ class FLManager(object):
     
     def resetRound(self, trainers:list, aggregators:list):
         self.round += 1
-        print("round number: ",self.round)
+        # print("round number: ",self.round)
         #calculate honesty
         #update the nodes on csv   
         for index in trainers:
-            print("calculating honesty of node ",index)
+            # print("calculating honesty of node ",index)
             honesty = self.nodes[index].updateHonestyTrainer(self.model, self.globalModel.accuracy, self.config)
             self.nodesFileManager.modify_instance_field(index,"honesty",round(honesty,3))
             self.nodesFileManager.modify_instance_field(index,"task",0)
-            print("node {} honesty {}".format(index,honesty))
+            print("node {} honesty {}".format(index,round(honesty,3)))
+
+            dropout = random.choices(["true", "false"], weights=[0.1, 0.9])[0]
+            malicious = random.choices(["true", "false"],weights=[0.05, 0.95])[0]
+            self.nodesFileManager.modify_instance_field(index,"dropout",dropout)
+            self.nodesFileManager.modify_instance_field(index,"malicious",malicious)
 
         numEvals = sum(self.nodes[index].numEvaluations for index in aggregators)
         numAggs= sum(self.nodes[index].numAggregations for index in aggregators) 
 
         for index in aggregators:
             honesty = self.nodes[index].updateHonestyAggregator(numEvals, numAggs, self.config)
-            self.nodesFileManager.modify_instance_field(index,"honesty",honesty)
+            self.nodesFileManager.modify_instance_field(index,"honesty",round(honesty,3))
             self.nodesFileManager.modify_instance_field(index,"task",1)
-            print("node {} honesty {}".format(index,honesty))
-        #TODO generate random availabilty and dropout and malicious
+            print("node {} honesty {}".format(index,round(honesty,3)))
+            
+            dropout = random.choices(["true", "false"], weights=[0.1, 0.9])[0]
+            malicious = random.choices(["true", "false"],weights=[0.05, 0.95])[0]
+            self.nodesFileManager.modify_instance_field(index,"dropout",dropout)
+            self.nodesFileManager.modify_instance_field(index,"malicious",malicious)
 
         instances = self.nodesFileManager.retrieve_instances()  
         for i in range(0,self.config.nodes.total):
