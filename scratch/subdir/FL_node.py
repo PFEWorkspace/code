@@ -2,9 +2,11 @@ import FL_model
 import torch
 import copy
 import logging
-from typing import List, Dict, Any
+import numpy as np
+from typing import List, Dict
 from utils.CSVManager import CSVFileManager
 from run import MLModel
+from config import Config
 
 
 class Node(object):
@@ -72,17 +74,14 @@ class Node(object):
         # Download most recent global model
         path = model_path + '/global'
         self.model = FL_model.Net()
+        # print(self.model.parameters())
         self.model.load_state_dict(torch.load(path))
         self.model.eval()
 
         # Create optimizer
         self.optimizer = FL_model.get_optimizer(self.model, config)
     
-    def get_model(self,model:MLModel):
-        for report in self.reports :
-            if report.id == model.modelId :
-                return report.net
-        return self.model  
+    
       
     def train(self, numRound, fileManager:CSVFileManager):
         logging.info('training on node #{}'.format(self.node.nodeId))
@@ -118,7 +117,7 @@ class Node(object):
             acc3=0.0
         )
         fileManager.write_instance(mlmodel)
-        self.reports.append(Report(report_id, self.node.nodeId, len(self.data),self.loss, weights,accuracy, mlmodel, self.model))
+        self.reports.append(Report(report_id, self.node.nodeId, len(self.data),self.loss, weights,accuracy, mlmodel, copy.deepcopy(self.model)))
         return self.reports[-1]
     
     def evaluate(self, model):
@@ -126,6 +125,7 @@ class Node(object):
         loss, accuracy = FL_model.test(model, testloader)
         return loss, accuracy
 
+    
     def aggregate(self, reports, aggType, numRound, fileManager:CSVFileManager, evaluation=False):
 
         updated_weights = self.federated_averaging(reports)
@@ -163,7 +163,7 @@ class Node(object):
             acc3=0.0
             )
             # fileManager.write_instance(mlmodel)
-            self.reports.append(Report(report_id, self.node.nodeId, len(self.data),self.loss, updated_weights,accuracy, mlmodel, self.model))
+            self.reports.append(Report(report_id, self.node.nodeId, len(self.data),self.loss, updated_weights,accuracy, mlmodel, copy.deepcopy(self.model)))
 
             return mlmodel, self.model 
         
@@ -187,12 +187,42 @@ class Node(object):
 
         return weights_avg
     
-    def updateHonestyTrainer(self):
-        pass
+    def updateHonestyTrainer(self,globalModel, globalAcc,config:Config):
+        if self.node.dropout: 
+            contrib = config.fl.malus
+        else:
 
+            mlmodel = self.get_last_model()
+            net = self.get_net(mlmodel.modelId)           
+            if mlmodel.positiveVote > mlmodel.negativeVote: #the model was valid 
+                contrib = self.contribution(net, globalModel)
+            else:
+                contrib = - config.fl.honesty_beta * abs(globalAcc - mlmodel.accuracy)
+        self.node.honesty = self.node.honesty + config.fl.honesty_alpha * contrib
+        return self.node.honesty            
 
-    def updateHonestyAggregator(self):
-        pass
+    def contribution(self, local, globalModel):
+        local.eval()
+        globalModel.eval()
+        
+        # Convert model parameters to tensors if they are not already
+        local_model_params = torch.cat([param.view(-1) for param in local.parameters()])#torch.tensor(local.parameters(), requires_grad=True)
+        global_model_params = torch.cat([param.view(-1) for param in globalModel.parameters()])#torch.tensor(globalModel.parameters(), requires_grad=False)
+        # print("local: ", local_model_params)
+        # print("global: ", global_model_params)
+        # Calculate the cosine similarity
+        cosine_similarity = torch.nn.functional.cosine_similarity(local_model_params, global_model_params, dim=0)
+        
+        # Calculate the contribution as the square of the cosine similarity
+        contribution = cosine_similarity ** 2
+        print("node {} contribution {}".format(self.node.nodeId, contribution))
+        return contribution.item()
+
+    def updateHonestyAggregator(self, numEvals, numAgg, config:Config):
+        contrib = (config.fl.honesty_phi* self.trueEvaluation + self.trueAggregation - config.fl.honesty_gamma*(self.falseEvaluation+self.falseAggregation))/(numEvals+numAgg)
+        self.node.honesty = self.node.honesty + config.fl.honesty_alpha * contrib
+        return self.node.honesty 
+    
 
     def save_model(self, model, path):
         path += '/global'
@@ -211,8 +241,17 @@ class Node(object):
         for r in self.reports:
             if r.id == id :
                 return r
-            
 
+    def get_last_model(self):
+        return self.reports[-1].model  
+    
+    def get_net(self, id):    
+        return self.get_report(id).net
+
+    def resetModel(self,id, model):
+        report = self.get_report(id)
+        report.model = model
+        
 class Report(object):
     """Federated learning client report."""
 

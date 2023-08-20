@@ -8,11 +8,11 @@ import config
 import copy
 from typing import List
 
-numMaxNodes = 1000 
-numMaxTrainers = 200  
-numMaxAggregators = 100
+numMaxNodes = 100
+numMaxTrainers = 50  
+numMaxAggregators = 50
 numMaxBCNodes = 100
-numMaxModelsToAgg= 20
+numMaxModelsToAgg= 10
 
 
 # Set up parser
@@ -129,10 +129,11 @@ class AiHelperContainer:
     def exactSelection(self, act,config):
         alpha = config.fl.alpha 
         nodes_scores = []
-       
+        
         for node in self.nodes:
             if node.availability: 
-                nodes_scores.append({"nodeId":node.nodeId , "score": alpha * node.honesty - (1 - alpha) * node.get_cost(node.datasetSize, node.freq, node.transRate, config.model.size)})
+                score = alpha * node.honesty - (1 - alpha) * node.get_cost(node.datasetSize, node.freq, node.transRate, config.model.size)
+                nodes_scores.append({"nodeId":node.nodeId , "score": score})
         sorted_indexes =sorted(nodes_scores, key=lambda x: x["score"], reverse=True) # np.argsort([score for _, score in node_scores])[::-1]
         # print(str(sorted_indexes))
         # act.selectedAggregators= sorted_indexes[0:config.nodes.aggregators_per_round]
@@ -143,6 +144,7 @@ class AiHelperContainer:
             act.selectedTrainers[i] = sorted_indexes[i+config.nodes.aggregators_per_round]["nodeId"]   
         act.numAggregators = config.nodes.aggregators_per_round
         act.numTrainers = config.nodes.participants_per_round
+        
 
     def DRLSelection(self, act):
         pass
@@ -162,7 +164,10 @@ class AiHelperContainer:
         if env.type == 0x02 : # selection
             #get the candidated nodes
             self.numNodes = env.numNodes
-            [self.nodes.append(copy.copy(env.nodes[i])) for i in range(env.numNodes)]            
+            print("numNodes", self.numNodes)
+            self.nodes = []
+            [self.nodes.append(copy.copy(env.nodes[i])) for i in range(0,env.numNodes)]   
+            print(len(self.nodes))
             print('select trainers and aggregators')
             if config.nodes.selection == "score" :
                 self.exactSelection(act,config)
@@ -171,9 +176,12 @@ class AiHelperContainer:
             else : # "hybrid" 
                 self.hybridSelection(act)
 
-            self.selectedAggregators = act.selectedAggregators
-            self.selectedTrainers = act.selectedTrainers
-
+            # self.selectedAggregators = copy.deepcopy(act.selectedAggregators)
+            # self.selectedTrainers = copy.deepcopy(act.selectedTrainers)
+            self.selectedAggregators = []
+            self.selectedTrainers = []
+            [self.selectedAggregators.append(act.selectedAggregators[index]) for index in range(0,act.numAggregators) ]
+            [self.selectedTrainers.append(act.selectedTrainers[index]) for index in range(0, act.numTrainers)]
         if env.type == 0x03 : #training
             print('local training')
             lm = self.FL_manager.start_round(self.selectedTrainers, config.nodes.participants_per_round)
@@ -201,14 +209,24 @@ class AiHelperContainer:
             model = self.FL_manager.aggregate(nodeId, models,aggType)
             act.model = MLModel(modelId=model.modelId,nodeId=model.nodeId,taskId=model.taskId,round=model.round,type=model.type, positiveVote=model.positiveVote, negativeVote=model.negativeVote,evaluator1=model.evaluator1, evaluator2=model.evaluator2,evaluator3=model.evaluator3,aggregated=model.aggregated, aggModelId=model.aggModelId, accuracy=model.accuracy, acc1=model.acc1, acc2=model.acc2, acc3=model.acc3)
         if env.type == 0x06: #restround
-            print("***********  NEW ROUND ***************")
-            
-            updatedNodes = self.FL_manager.resetRound(self.selectedAggregators,self.selectedTrainers)
-            self.selectedAggregators = []
-            self.selectedTrainers = []
-
-            
-        
+            print("***********  NEW ROUND ***************")   
+            n = self.FL_manager.resetRound(self.selectedTrainers,self.selectedAggregators)
+            act.numFLNodes = config.nodes.total
+            # act.FLNodesInfo = []
+            print("updating all nodes")
+            for i in range(0,act.numFLNodes):
+                act.FLNodesInfo[i] = FLNodeStruct(
+                    nodeId = n[i].nodeId,
+                    availability = n[i].availability,
+                    honesty = n[i].honesty,
+                    datasetSize = n[i].datasetSize,
+                    freq = n[i].freq,
+                    transRate = n[i].transRate,
+                    task = n[i].task,
+                    dropout = n[i].dropout,
+                    malicious = n[i].malicious
+                ) 
+       
         return act
 
 if __name__ == '__main__':
@@ -229,7 +247,7 @@ if __name__ == '__main__':
     };
 
     mempool_key = 1000
-    mem_size = 1024 * 2 * 2 * 2 * 2 * 2 * 2 
+    mem_size = 1024 * 2 * 2 * 2 * 2 * 2 * 2 * 2
     exp = Experiment(mempool_key, mem_size, 'main', '../../', using_waf=False)
     exp.reset()
     try:

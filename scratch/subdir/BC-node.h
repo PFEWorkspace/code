@@ -62,7 +62,7 @@ class BCNode : public Application
     void Evaluation(MLModel model, int nodeId);
     void Aggregation(std::vector<MLModel> models, int nodeId, int type);
     void DetectDropOut(AggregatorsTasks task);
-    void NewRound();
+    void NewRound(MLModel globalModel);
     
     
     FLNodeStruct docToFLNodeStruct(rapidjson::Document &d);

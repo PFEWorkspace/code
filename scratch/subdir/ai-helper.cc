@@ -192,9 +192,9 @@ AiHelper::evaluate(MLModel model, int aggId){
     //  }else{
         MLModel evalModel;
         evalModel = act->model;
-        NS_LOG_INFO("before get completed");
+      
         GetCompleted();
-        NS_LOG_INFO("after get completed");
+       
         return evalModel;
     //  }  
 }
@@ -225,7 +225,7 @@ AiHelper::aggregate(std::vector<MLModel> models, int aggId, int aggType){
 void
 AiHelper::ResetRound(){
     //reset the aihelper instance
-    NS_LOG_INFO("reset round aihelper");
+    // NS_LOG_INFO("reset round aihelper");
     SetTraining(false);
     for(int i=0; i<numLocalModels;i++){
         localModels[i]= MLModel();

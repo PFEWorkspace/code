@@ -18,21 +18,32 @@ Blockchain* Blockchain::instance = nullptr;
 //        ;
 //    return tid;
 //}
-void
-Blockchain::ResetRound(){
+bool
+Blockchain::ResetRound(MLModel globalModel){
     //update round number
     actualFLround++;
-    receivedCandidatures = 0 ;
-    modelToAgreg.clear();
-    m_nodesInfo.clear();
-    tasks.clear();
-    for (int i=0; i<numMaxAggregators;i++){
-        aggregators[i]=-1;
-    }
-    for(int i=0; i<numMaxTrainers;i++){
-        trainers[i]=-1;
-    }
-    SetCurrentBlockId();
+    NS_LOG_INFO("actual FL round " <<actualFLround<<" maxFLRound "<<maxFLround);
+    
+    if(globalModel.accuracy >= GetTargetAcc()){
+        NS_LOG_INFO("inside accuracy condition "<< globalModel.accuracy << "  " << GetTargetAcc());
+        return true;
+    }else if(actualFLround < maxFLround ){
+        receivedCandidatures = 0 ;
+        modelToAgreg.clear();
+        m_nodesInfo.clear();
+        tasks.clear();
+        firstagg = true;
+        lastagg = false;
+        for (int i=0; i<numMaxAggregators;i++){
+            aggregators[i]=-1;
+        }
+        for(int i=0; i<numMaxTrainers;i++){
+            trainers[i]=-1;
+        }
+        SetCurrentBlockId();
+        return false;
+    }else return true;
+   
 }
 
 Ipv4Address Blockchain::getFLAddress(int nodeId)
@@ -105,10 +116,51 @@ void Blockchain::SetRandomBCStream(){
         randomBCAdrsStream->SetAttribute("Max", DoubleValue(numBCNodes-1)); // and max is the sum of both group of nodes size
 }
 
+double
+Blockchain:: GetTrainingDelay(int nodeId){
+    for(FLNodeStruct n : m_nodesInfo){
+        if(n.nodeId==nodeId){
+            return (n.datasetSize / n.freq) + (modelSize / n.transRate) ;
+        }
+    }
+}
+
+double
+Blockchain::GetMaxTrainingDelay(){
+    // double maxdelay = 0;
+    // for( int i=0; i<numTrainers; i++){
+    //     double cost = GetTrainingDelay(trainers[i]);
+    //     if(maxdelay<cost) maxdelay=cost;
+    // }
+    // NS_LOG_INFO("max training delay "<< maxdelay);
+    // return maxdelay;
+
+    // the max is the max of the training cost plus 3 times the max of evaluation cost plus 4 times the max of communication cost
+    // (1+3*0.2)*1000/50 + 4*1600/150
+    return 75;
+}
+
+bool
+Blockchain::MaxDelayPassed(){
+    
+    if(GetStillDelay()<= 0 ){
+        NS_LOG_INFO("returning true: time to aggregate");
+        return true;
+    }else return false;
+}
+    
+double
+Blockchain::GetStillDelay(){
+    Time now = Simulator::Now();
+    Time passed = now - startTrainingTime;
+    // NS_LOG_INFO("passed time "<< passed.GetSeconds());
+    return GetMaxTrainingDelay() - passed.GetSeconds();
+}
+
 int Blockchain::getNumAggTasksAwaiting(){
     int count = 0;
     for(AggregatorsTasks task : tasks){
-        if(task.task == AGGREGATE){count++;}
+        if(task.task == AGGREGATE || (task.task == EVALUATE && task.models[0].type==0)){count++;}
     }
     return count;
 }

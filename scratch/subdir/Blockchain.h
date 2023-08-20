@@ -29,6 +29,7 @@ class Blockchain {
     static Blockchain* instance;
     // Private attributes
     std::string m_filename;
+    double targetAcc;
     int maxFLround;
     int actualFLround;
     int numFLNodes;
@@ -37,6 +38,8 @@ class Blockchain {
     int numTrainers;
     int modelsToAggAtOnce;
     int receivedCandidatures;
+    int modelSize;
+
     // MLModel modelToEval[numMaxNodes];
     std::vector<MLModel> modelToAgreg;
     std::vector<FLNodeStruct> m_nodesInfo;
@@ -48,13 +51,16 @@ class Blockchain {
     Ptr<UniformRandomVariable> randomBCAdrsStream;
     std::string currentblockId;
     int taskId;
+    Time startTrainingTime;
+   
     
     // Private constructor and destructor to ensure singleton.
     Blockchain(){
         // Initialize 
         receivedCandidatures = 0 ;
         actualFLround = 0 ;
-    
+        firstagg = true;
+        lastagg = false;
         
     }
 
@@ -80,6 +86,9 @@ public:
     
     Blockchain(const Blockchain& obj)= delete;
    
+    bool firstagg;
+    bool lastagg;
+
     void WriteTransaction(std::string blockId, int nodeId, const rapidjson::Document& message);
     void PrintBlockchain() const;
     Ipv4Address getFLAddress(int nodeId);
@@ -87,15 +96,24 @@ public:
     void AddTask(AggregatorsTasks task);
     bool hasPreviousTask(int nodeid);
     void RemoveTask(int id);
-    void ResetRound();
-
+    bool ResetRound(MLModel globalModel);
+    
     Ipv4Address getBCAddress();
     int GetAggregatorNotBusy(int eval1, int eval2);
     void SetFLAddressContainer(Ipv4InterfaceContainer container);
     void SetBCAddressContainer(Ipv4InterfaceContainer container);
 
+    void SetTargetAcc(double acc){ targetAcc = acc;};
+    double GetTargetAcc(){return targetAcc;};
     void SetRandomBCStream();
 
+    void StartTraining(){
+        startTrainingTime = Simulator::Now();
+    }
+    double GetMaxTrainingDelay();
+    double GetTrainingDelay(int nodeId);
+    bool MaxDelayPassed();
+    double GetStillDelay();
      // Setters
     void SetModelsToAggAtOnce(int x){modelsToAggAtOnce=x;}
     int GetModelsToAggAtOnce(){return modelsToAggAtOnce;}
@@ -120,6 +138,11 @@ public:
         actualFLround = value;
     }
 
+    void SetModelSize(int size){
+        modelSize = size;
+    }
+
+    
     // void SetModelToEval(int index,  const MLModel& value) {
     //     if (index >= 0 && index < numMaxNodes) {
     //         modelToEval[index] = value;

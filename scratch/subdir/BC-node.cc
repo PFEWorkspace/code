@@ -102,9 +102,9 @@ void BCNode::Receive(Ptr<Socket> socket) {
                         TreatCandidature(d);
                         break;
                         case MODEL: //MODEL
-                        model = DocToMLModel(d);
-                        TreatModel(model,InetSocketAddress::ConvertFrom(from).GetIpv4(),false);
-                        break;                    
+                            model = DocToMLModel(d);
+                            TreatModel(model,InetSocketAddress::ConvertFrom(from).GetIpv4(),false);
+                            break;                    
                         default:
                         NS_LOG_INFO("default");
                         break;
@@ -158,7 +158,7 @@ void BCNode::SendTo( rapidjson::Document &d, std::vector<Ipv4Address> &addresses
 
 void
 BCNode::SendBroadCast(rapidjson::Document &d, Ipv4Address adrs) {
- 
+ NS_LOG_INFO("inside send broadcast");
  if (!m_socket){
     Ptr<SocketFactory> socketFactory = GetNode()->GetObject<SocketFactory>(UdpSocketFactory::GetTypeId());
     m_socket = socketFactory->CreateSocket();
@@ -207,7 +207,8 @@ BCNode::TreatCandidature(rapidjson::Document &d){
     
     Blockchain* bc = Blockchain::getInstance();
     //save the candidature in the blockchain
-    bc->SetNodeInfo(bc->GetReceivedCandidatures(), docToFLNodeStruct(d));
+    bc->AddNodeInfo( docToFLNodeStruct(d));
+    FLNodeStruct node = bc->GetNodeInfo(bc->GetReceivedCandidatures());
     bc->IncReceivedCandidatures(); 
    
 }
@@ -238,6 +239,7 @@ BCNode::Selection(){
         
     //sending the message to all selected trainers
     SendTo(d,adrs);
+    bc->StartTraining();
 }
 
 MLModel BCNode::DocToMLModel(rapidjson::Document &d) {
@@ -347,6 +349,7 @@ BCNode::TreatModel(MLModel model, Ipv4Address source, bool reschedule){
         bc->RemoveTask(sourceId);
         NS_LOG_INFO("task removed");
     }
+    
     switch(model.type){
     case LOCAL:
      NS_LOG_INFO("it's local model");
@@ -355,7 +358,7 @@ BCNode::TreatModel(MLModel model, Ipv4Address source, bool reschedule){
                 NS_LOG_INFO("node "<<aggId<<" will be evaluating the model "<< model.modelId);
                 if(aggId == -1){ //no available nodes
                     NS_LOG_INFO("reschedule treatmodel");
-                    Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(50),[this, model,source](){TreatModel(model,source,true);});
+                    Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(10),[this, model,source](){TreatModel(model,source,true);});
                     break;
                 }
                 else{
@@ -363,23 +366,45 @@ BCNode::TreatModel(MLModel model, Ipv4Address source, bool reschedule){
                 }
         }else{ //done with evaluation next is aggregation
             if(model.positiveVote>model.negativeVote){ 
-                NS_LOG_INFO("aggregation local");
                 if(!reschedule){
                     bc->AddModelToAgg(model);
                 }
-                if(bc->GetModelsToAggAtOnce()<bc->getModelsToAggSize()){
-                    aggId = bc->GetAggregatorNotBusy(-1,-1); //doesn't matter if the aggregation is done by one of the evaluators
-                    if(aggId == -1){ //no available nodes
+                // if(bc->GetModelsToAggAtOnce()<bc->getModelsToAggSize() ){ //les aggregation local parmi les premier, certain it's not a global agg
+                //     aggId = bc->GetAggregatorNotBusy(-1,-1); //doesn't matter if the aggregation is done by one of the evaluators
+                //     if(aggId == -1){ //no available nodes
                     
-                        Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(50),[this, model,source](){TreatModel(model,source,true);});
-                        break;
+                //         Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(10),[this, model,source](){TreatModel(model,source,true);});
+                //         break;
+                //     }else{
+                //         models =bc->getxModelsToAgg(bc->GetModelsToAggAtOnce());
+                //         // NS_LOG_INFO("models to agg size "<< models.size() << " first: "<< models[0].modelId << " second "<<models[1].modelId << " third "<<models[2].modelId);
+                //         Aggregation(models,aggId,INTERMEDIAIRE);
+                //     }                          
+               
+                aggId = bc->GetAggregatorNotBusy(-1,-1);
+                if(aggId == -1){ //no available nodes
+                    Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(10),[this, model,source](){TreatModel(model,source, true);});
+                    break;
+                }else{  
+                    NS_LOG_INFO("max delay "<<bc->MaxDelayPassed());  
+                    if(bc->GetModelsToAggAtOnce()<= bc->getModelsToAggSize() && (bc->getNumAggTasksAwaiting()>0 || (bc->getNumAggTasksAwaiting()==0 && bc->firstagg))){
+                            if(bc->firstagg){bc->firstagg=false;}
+                            models =bc->getxModelsToAgg(bc->GetModelsToAggAtOnce());
+                            NS_LOG_INFO("aggregation intermediaire");
+                            Aggregation(models,aggId,INTERMEDIAIRE);
                     }else{
-                        models =bc->getxModelsToAgg(bc->GetModelsToAggAtOnce());
-                        NS_LOG_INFO("models to agg size "<< models.size() << " first: "<< models[0].modelId << " second "<<models[1].modelId << " third "<<models[2].modelId);
-                        Aggregation(models,aggId,INTERMEDIAIRE);
-                    }                          
-                }  
-            }
+                        NS_LOG_INFO("models size" <<bc->getModelsToAggSize() << " tasks awaiting "<< bc->getNumAggTasksAwaiting());
+                        if(bc->GetModelsToAggAtOnce()>= bc->getModelsToAggSize() && bc->getNumAggTasksAwaiting()==0 && bc->MaxDelayPassed() && !bc->lastagg){
+                                models =bc->getxModelsToAgg(bc->GetModelsToAggAtOnce());
+                                NS_LOG_INFO("AGGREGATION GLOBAL ");
+                                Aggregation(models,aggId,GLOBAL);
+                        }else if(bc->lastagg){
+                            NS_LOG_INFO("reschedule local");
+                            Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(bc->GetStillDelay()),[this, model,source](){TreatModel(model,source, true);});
+                        }
+                    }
+                }    
+            }    
         }
     break;
     case INTERMEDIAIRE:   
@@ -389,17 +414,21 @@ BCNode::TreatModel(MLModel model, Ipv4Address source, bool reschedule){
             }
             aggId = bc->GetAggregatorNotBusy(-1,-1);
             if(aggId == -1){ //no available nodes
-                Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(50),[this, model,source](){TreatModel(model,source, true);});
+                Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(10),[this, model,source](){TreatModel(model,source, true);});
                 break;
             }else{    
-                if(bc->GetModelsToAggAtOnce()<bc->getModelsToAggSize() && bc->getNumAggTasksAwaiting()>0){
+                if(bc->GetModelsToAggAtOnce()<=bc->getModelsToAggSize() && bc->getNumAggTasksAwaiting()>0){
                         models =bc->getxModelsToAgg(bc->GetModelsToAggAtOnce());
-                        NS_LOG_INFO("models to agg size "<< models.size() << " first: "<< models[0].modelId);
+                        // NS_LOG_INFO("models to agg size "<< models.size() << " first: "<< models[0].modelId);
+                        NS_LOG_INFO("aggregation intermediaire");
                         Aggregation(models,aggId,INTERMEDIAIRE);
-                }else if(bc->getNumAggTasksAwaiting()==0){
-                    models =bc->getxModelsToAgg(bc->GetModelsToAggAtOnce());
-                        NS_LOG_INFO("models to agg size "<< models.size() << " first: "<< models[0].modelId);
+                }else if(bc->getNumAggTasksAwaiting()==0 && bc->MaxDelayPassed()){
+                        models =bc->getxModelsToAgg(bc->GetModelsToAggAtOnce());
+                        NS_LOG_INFO("AGGREGATION GLOBAL ");
                         Aggregation(models,aggId,GLOBAL);
+                }else{
+                    NS_LOG_INFO("reschedule inter");
+                    Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(bc->GetStillDelay()+10),[this, model,source](){TreatModel(model,source, true);});
                 }
                    
             } 
@@ -413,18 +442,19 @@ BCNode::TreatModel(MLModel model, Ipv4Address source, bool reschedule){
             aggId = bc->GetAggregatorNotBusy(model.evaluator1,model.evaluator2);
 
             if(aggId == -1){ //no available nodes
-                Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(50),[this, model,source](){TreatModel(model,source, true);});
+                Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(10),[this, model,source](){TreatModel(model,source, true);});
                 break;           
             }else Evaluation(model,aggId);   
         }  //else : it's either evaluated once and its true or twice and the decision is 2vs1 (2 evals + the actual model)
     break;
     case GLOBAL:
-        NewRound();
+    NewRound(model);
+    //    Simulator::ScheduleWithContext(GetNode()->GetId(), Seconds(30),[this,model](){ NewRound(model);});
     break;
     default:
     break;
  }
-    
+
    
 
 }
@@ -487,9 +517,10 @@ BCNode::Evaluation(MLModel model, int nodeId){
     
 void
 BCNode::Aggregation(std::vector<MLModel> models, int nodeId, int type){
-    NS_LOG_INFO("Aggregation in BCNODE"<<type);
+    NS_LOG_INFO("Aggregation in BCNODE "<<type);
     Blockchain* bc = Blockchain::getInstance();
     AggregatorsTasks task = AggregatorsTasks();
+    if(type==GLOBAL) bc->lastagg = true;
     task.nodeId = nodeId;
     task.task = AGGREGATE;
     for(uint i=0;i<models.size();i++){
@@ -552,23 +583,34 @@ BCNode::Aggregation(std::vector<MLModel> models, int nodeId, int type){
     Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(50),[this,task](){DetectDropOut(task);});
 }
 
-void BCNode::NewRound(){
+void BCNode::NewRound(MLModel globalModel){
     //reset blockchain
     Blockchain* bc = Blockchain::getInstance();
-    bc->ResetRound();
-
-    //reset Aihelper and reset pythonside (generating new env: update node's infos)
-    AiHelper* ai = AiHelper::getInstance();
-    ai->ResetRound();
-
-    //send the newround message
-    rapidjson::Document d;
-    rapidjson::Value value;
-    d.SetObject(); 
-    value = NEWROUND;
-    d.AddMember("message_type", value, d.GetAllocator());
+    bool finished = bc->ResetRound(globalModel);
+    if( not finished ){
+        //reset Aihelper and reset pythonside (generating new env: update node's infos)
+        AiHelper* ai = AiHelper::getInstance();
+        ai->ResetRound();
+        NS_LOG_INFO("round reseted, next sending message");
+        //send the newround message
+        rapidjson::Document d;
+        rapidjson::Value value;
+        d.SetObject(); 
+        value = NEWROUND;
+        d.AddMember("message_type", value, d.GetAllocator());
+    
+        std::vector<Ipv4Address> adrs;
    
-    SendBroadCast(d,Ipv4Address("192.168.255.255"));
+        for(int i=0; i<bc->getNumFLNodes(); i++){
+        adrs.push_back(bc->getFLAddress(i));
+        }
+        SendTo(d,adrs);
+        Simulator::ScheduleWithContext(GetNode()->GetId(), Seconds(120/150 + 2),[this](){ Selection();});
+    }else{
+        NS_LOG_INFO("else du not finished blockchain");
+    }
+
+    
 
 }
 

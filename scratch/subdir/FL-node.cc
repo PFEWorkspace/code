@@ -121,19 +121,19 @@ void FLNode::SetLearningCost(double learningCost){
   this->learning_cost = learningCost;
 }
   double FLNode::GetLearningCost() const{
-    return learning_cost *10;
+    return learning_cost ;
   }
 
   double
   FLNode:: GetEvaluationCost() const{
-      return evaluationCost *10;
+      return evaluationCost ;
   }
 
   void FLNode::SetCommunicationCost(double communicationCost){
     this->communication_cost = communicationCost;
   }
   double FLNode::GetCommunicationCost() const{
-    return communication_cost*10;
+    return communication_cost;
   }
 
 void FLNode::Init(FLNodeStruct n, int modelsize, double testSize){
@@ -223,7 +223,7 @@ void FLNode::Receive(Ptr<Socket> socket) {
                             SetTask(Task(d["task"].GetInt()));
                             if(GetTask() == TRAIN) {
                               // Train();
-                               Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(GetLearningCost()+GetCommunicationCost()), [this]() { Train();});
+                                Train();
                             } // the else being aggregate or evaluate
                          }
                       break;
@@ -352,7 +352,7 @@ void FLNode::Train() {
   Ipv4Address adr = bc->getBCAddress();
  
   // NS_LOG_DEBUG("I'am " << id << " sending model to " << adr);
-  SendModel(model, adr);
+  Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(GetLearningCost()+GetCommunicationCost()), [this, model,adr]() {SendModel(model, adr);});
   }
 }
 void

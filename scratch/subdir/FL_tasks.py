@@ -15,12 +15,13 @@ class FLManager(object):
 
     def __init__(self, config):
         self.config = config
+        self.nodesFileManager = CSVFileManager(self.config.nodes.source, FLNodeStruct._fields_)
+        models_path = self.config.paths.FLmodels
+        self.modelsFileManager = CSVFileManager(models_path, MLModel._fields_)
 
     def setUp(self, nodesList):
         logging.info('setting up nodes, datasets and initial model for a new FL task')    
-        self.round = 0 
-        models_path = self.config.paths.FLmodels
-        self.modelsFileManager = CSVFileManager(models_path, MLModel._fields_)
+        self.round = 0        
         initial_model = MLModel(
             modelId=self.modelsFileManager.get_instance_id("modelId") + 1,
             nodeId=-1,
@@ -43,6 +44,7 @@ class FLManager(object):
         self.make_nodes(nodesList)
         for node in self.nodes: #passing the global model
             node.model = node.download(self.model)
+        self.globalModel = initial_model
         return initial_model
 
     def load_data(self):
@@ -112,9 +114,11 @@ class FLManager(object):
             if not self.nodes[selectedTrainers[i]].node.dropout :    
                 if loading == 'dynamic' and self.round > 0 :
                     self.set_node_data(self.nodes[selectedTrainers[i]])
+
                 self.nodes[selectedTrainers[i]].configure(self.config)
                 report = self.nodes[selectedTrainers[i]].train(self.round, self.modelsFileManager)
                 localmodels.append(report.model)
+                
                 # # Extract flattened weights (if applicable)
                 # if self.config.paths.reports:
                 #     self.save_reports(self.round, report)
@@ -123,13 +127,13 @@ class FLManager(object):
         
     def evaluateLocal(self, nodeId, model:MLModel):
         #get the model from the source node
-        m = self.nodes[model.nodeId].get_model(model)
+        m = self.nodes[model.nodeId].get_net(model.modelId)
         loss, acc = self.nodes[nodeId].evaluate(m)
         acc = round(acc,2)
         print("accuracy {} evaluator accuracy {}".format(model.accuracy,acc))
         #get the evaluation
         evaluation = False
-        if (abs(model.accuracy - acc) < 5 ):
+        if (abs(model.accuracy - acc) < self.config.fl.local_validation_threshold):
             evaluation = True
 
         #update the model and nodes
@@ -173,31 +177,33 @@ class FLManager(object):
             if evaluation:
                 model.positiveVote += 1
                 self.modelsFileManager.modify_instance_field(model.modelId,"positiveVote",model.positiveVote)
-                if abs(model.acc1 - model.accuracy)< 5 : #the first eval gave a positiveVote
+                if abs(model.acc1 - model.accuracy)< self.config.fl.local_validation_threshold : #the first eval gave a positiveVote
                     self.nodes[nodeId].add_true_evaluation()
                     self.nodes[model.evaluator1].add_true_evaluation()
                     self.nodes[model.evaluator2].add_false_evaluation()
-                elif abs(model.acc2 - model.accuracy) < 5 : #second one who gate the positivevote
+                elif abs(model.acc2 - model.accuracy) < self.config.fl.local_validation_threshold : #second one who gate the positivevote
                     self.nodes[nodeId].add_true_evaluation()
                     self.nodes[model.evaluator2].add_true_evaluation()
                     self.nodes[model.evaluator1].add_false_evaluation()
             else :
                 model.negativeVote += 1
                 self.modelsFileManager.modify_instance_field(model.modelId,"negativeVote",model.negativeVote)
-                if abs(model.acc1 - model.accuracy)>= 5 : #the first eval gave a negativeVote
+                if abs(model.acc1 - model.accuracy)>= self.config.fl.local_validation_threshold : #the first eval gave a negativeVote
                     self.nodes[nodeId].add_true_evaluation()
                     self.nodes[model.evaluator1].add_true_evaluation()
                     self.nodes[model.evaluator2].add_false_evaluation()
-                elif abs(model.acc2 - model.accuracy)>= 5 : #second one who gate the positivevote
+                elif abs(model.acc2 - model.accuracy)>= self.config.fl.local_validation_threshold : #second one who gate the positivevote
                     self.nodes[nodeId].add_true_evaluation()
                     self.nodes[model.evaluator2].add_true_evaluation()
                     self.nodes[model.evaluator1].add_false_evaluation()  
+        #reset mlmodel
+        self.nodes[model.nodeId].resetModel(model.modelId, model)
         return model    
     
     def evaluateIntermediaire(self, nodeId, model:MLModel):
        
         allModels = self.modelsFileManager.retrieve_instances()
-        modelToEval = self.nodes[model.nodeId].get_model(model)
+        modelToEval = self.nodes[model.nodeId].get_net(model.modelId)
         modelsToagg=[]
         for m in allModels:
             if m.aggregated and m.aggModelId==model.modelId :
@@ -237,7 +243,8 @@ class FLManager(object):
                 self.nodes[nodeId].add_new_aggregation()
                 self.nodes[nodeId].add_true_aggregation()
                 self.nodes[model.nodeId].add_false_aggregation()
-        
+        #reset mlmodel
+        self.nodes[model.nodeId].resetModel(model.modelId, model)
         return model
 
     def aggregate(self, nodeId, models:MLModel, aggType):
@@ -251,9 +258,12 @@ class FLManager(object):
         for m in models:
             self.modelsFileManager.modify_instance_field(m.modelId,"aggregated",True)
             self.modelsFileManager.modify_instance_field(m.modelId,"aggModelId",mlmodel.modelId)
-
+            m.aggregated = True
+            m.aggModelId = mlmodel.modelId
+            self.nodes[m.nodeId].resetModel(m.modelId, m)
         if aggType==2 : #global model
             self.save_model(self.model, self.config.paths.model)
+            self.globalModel = mlmodel
             # for node in self.nodes:
             #     node.model = node.download(self.model) #set the global model
             
@@ -267,19 +277,32 @@ class FLManager(object):
 
         return mlmodel
     
-    def resetRound(self, trainers, aggregators):
-        self.nodesFileManager = CSVFileManager(self.config.nodes.source, FLNodeStruct._fields_)
+    def resetRound(self, trainers:list, aggregators:list):
         self.round += 1
+        print("round number: ",self.round)
         #calculate honesty
-        #update the nodes on csv       
+        #update the nodes on csv   
         for index in trainers:
-            honesty = self.nodes[index].updateHonestyTrainer()
-            self.nodesFileManager.modify_instance_field(index,"honesty",honesty)
+            print("calculating honesty of node ",index)
+            honesty = self.nodes[index].updateHonestyTrainer(self.model, self.globalModel.accuracy, self.config)
+            self.nodesFileManager.modify_instance_field(index,"honesty",round(honesty,3))
+            self.nodesFileManager.modify_instance_field(index,"task",0)
+            print("node {} honesty {}".format(index,honesty))
+
+        numEvals = sum(self.nodes[index].numEvaluations for index in aggregators)
+        numAggs= sum(self.nodes[index].numAggregations for index in aggregators) 
+
         for index in aggregators:
-            self.nodes[index].updateHonestyAggregator()
+            honesty = self.nodes[index].updateHonestyAggregator(numEvals, numAggs, self.config)
             self.nodesFileManager.modify_instance_field(index,"honesty",honesty)
-       
-        #generate random availabilty and dropout 
+            self.nodesFileManager.modify_instance_field(index,"task",1)
+            print("node {} honesty {}".format(index,honesty))
+        #TODO generate random availabilty and dropout and malicious
+
+        instances = self.nodesFileManager.retrieve_instances()  
+        for i in range(0,self.config.nodes.total):
+            self.nodes[i].node = instances[i]    
+        return instances[0:self.config.nodes.total]
 
     @staticmethod
     def flatten_weights(weights):
@@ -303,7 +326,7 @@ class FLManager(object):
            
             # if not torch.allclose(param1.data, param2.data,atol=1e-8, rtol=1e-5):
             diff = torch.abs(param1 - param2)
-            if torch.max(diff) > 0.05 :
+            if torch.max(diff) > self.config.fl.intermediaire_validation_threshold :
                
                 return False
         return True

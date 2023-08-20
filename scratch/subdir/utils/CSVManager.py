@@ -50,7 +50,7 @@ class CSVFileManager:
     def modify_instance_field(self, instance_id, field_name, new_value):
         instances = self.retrieve_instances()
         for instance in instances:
-            if instance.modelId == instance_id:
+            if getattr(instance, self.field_names[0]) == instance_id:
                 setattr(instance, field_name, new_value)
                 self._rewrite_csv_file(instances)
                 return True
@@ -58,7 +58,7 @@ class CSVFileManager:
 
     def delete_instance(self, instance_id):
         instances = self.retrieve_instances()
-        updated_instances = [instance for instance in instances if instance.modelId != instance_id]
+        updated_instances = [instance for instance in instances if getattr(instance, self.field_names[0]) != instance_id]
         if len(updated_instances) < len(instances):
             self._rewrite_csv_file(updated_instances)
             return True

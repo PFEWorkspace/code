@@ -1,7 +1,7 @@
 {
     "nodes": {
-        "total":30,
-        "participants_per_round": 6,
+        "total":20,
+        "participants_per_round": 5,
         "aggregators_per_round":7,
         "bc":10,
         "test_partition": 0.2,
@@ -21,11 +21,18 @@
     },
     "federated_learning": {
         "rounds": 10,
-        "target_accuracy": 0.999,
+        "target_accuracy": 99.9,
         "epochs": 5,
         "batch_size": 64,
         "x" : 3,
-        "alpha":0.7
+        "alpha":0.7,
+        "honesty_alpha":1,
+        "honesty_beta":5,
+        "honesty_gamma":5,
+        "honesty_phi":2,
+        "local_validation_threshold":10,
+        "intermediaire_validation_threshold": 0.05,
+        "malus": 10
     },
     "model": {
         "name": "MNIST",

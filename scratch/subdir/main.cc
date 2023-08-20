@@ -87,7 +87,7 @@ main(int argc, char* argv[])
 
     //getting nodes data from file 
 
-    FLNodeStruct* nodesInfo = GetNodesFromFile(nodes_source, numFlNodes);   
+    FLNodeStruct* nodesInfo = GetNodesFromFile("scratch/subdir/"+nodes_source, numFlNodes);   
 
     NS_LOG_INFO("Creating nodes.");
     NodeContainer nodes;
@@ -213,6 +213,7 @@ main(int argc, char* argv[])
     Blockchain* blockchain = Blockchain::getInstance();
     blockchain->SetBCAddressContainer(BCnodesIpIfaces);
     blockchain->SetFLAddressContainer(nodesIpIfaces);
+    blockchain->SetTargetAcc(targetAccuracy);
     blockchain->setNumFLNodes(numFlNodes);
     blockchain->setNumBCNodes(numBCNodes);
     blockchain->SetMaxFLRound(flrounds);
@@ -220,6 +221,7 @@ main(int argc, char* argv[])
     blockchain->setNumTrainers(numParticipants);
     blockchain->SetModelsToAggAtOnce(x);
     blockchain->SetRandomBCStream();
+    blockchain->SetModelSize(modelSize);
   
     for(uint i =0; i< numFlNodes; i++){
       blockchain->AddNodeInfo(nodesInfo[i]);
@@ -303,7 +305,7 @@ main(int argc, char* argv[])
       anim.UpdateNodeColor(BCnodes.Get(i),0,0,255);
     }
     anim.UpdateNodeColor(initiator.Get(0),0,255,0);
-    anim.SetMaxPktsPerTraceFile(50000000);
+    anim.SetMaxPktsPerTraceFile(100000000000);
     //--------------------------------------------
     //-- Run the simulation
     //--------------------------------------------
@@ -343,7 +345,7 @@ FLNodeStruct* GetNodesFromFile(const std::string& filename,  int& numNodes){
         node.nodeId = std::stoi(field);
 
         std::getline(ss, field, ','); // Read the Availability field
-        node.availability = (field == "True");
+        node.availability = (field == "true");
 
         std::getline(ss, field, ','); // Read the Honesty field
         node.honesty = std::stod(field);
@@ -361,10 +363,10 @@ FLNodeStruct* GetNodesFromFile(const std::string& filename,  int& numNodes){
         node.task = std::stoi(field);
 
         std::getline(ss, field); // Read the Dropout field
-        node.dropout = (field == "True");
+        node.dropout = (field == "true");
 
         std::getline(ss, field); // Read the malicious field
-        node.malicious = (field == "True");
+        node.malicious = (field == "true");
 
         // Resize the array for each new node
         nodeList = (FLNodeStruct*)realloc(nodeList, (count + 1) * sizeof(FLNodeStruct));
