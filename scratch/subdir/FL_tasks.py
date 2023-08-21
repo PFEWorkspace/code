@@ -303,7 +303,13 @@ class FLManager(object):
             self.nodesFileManager.modify_instance_field(index,"honesty",round(honesty,3))
             self.nodesFileManager.modify_instance_field(index,"task",1)
             print("node {} honesty {}".format(index,round(honesty,3)))
-            
+
+            self.nodes[index].numEvaluations = 0
+            self.nodes[index].numAggregations = 0
+            self.nodes[index].trueEvaluation = 0
+            self.nodes[index].falseEvaluation = 0
+            self.nodes[index].trueAggregation = 0
+            self.nodes[index].falseAggregation = 0
             # dropout = random.choices(["true", "false"], weights=[0.1, 0.9])[0]
             # malicious = random.choices(["true", "false"],weights=[0.05, 0.95])[0]
             # self.nodesFileManager.modify_instance_field(index,"dropout",dropout)

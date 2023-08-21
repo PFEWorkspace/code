@@ -244,9 +244,11 @@ AiHelper::ResetRound(){
     auto act = ActionGetterCond();
     NS_LOG_INFO("Version after: " << (int)SharedMemoryPool::Get()->GetMemoryVersion(m_ns3ai_id));
     numTotalNodes = act->numFLNodes;
+    nodesInfo.clear();
     for(int i=0; i<numTotalNodes; i++){
         nodesInfo.push_back(act->FLNodesInfo[i]);
     }
+
     GetCompleted();
 }
 }

@@ -20,14 +20,14 @@
         }
     },
     "federated_learning": {
-        "rounds": 10,
+        "rounds": 20,
         "target_accuracy": 99.9,
         "epochs": 5,
         "batch_size": 64,
         "x" : 7,
         "alpha":0.5,
         "honesty_alpha":1,
-        "honesty_beta":5,
+        "honesty_beta":1.5,
         "honesty_gamma":5,
         "honesty_phi":2,
         "local_validation_threshold":10,
