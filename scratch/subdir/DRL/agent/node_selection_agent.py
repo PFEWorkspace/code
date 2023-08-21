@@ -6,8 +6,7 @@ from agent.node_selection_buffer import ReplayBuffer
 from agent.node_selection_networks import ActorNetwork, CriticNetwork, ValueNetwork
 
 class Agent ():
-    def __init__(self,alpha=0.003,beta=0.0003,input_shape=[8],
-    env=None,gamma = 0.99,n_actions=2,max_size=1000000,tau=0.005,
+    def __init__(self,env,alpha=0.003,beta=0.0003,input_shape=[8],gamma = 0.99,n_actions=2,max_size=1000000,tau=0.005,
     layer1_size=256,layer2_size=256,batch_size=256,reward_scale=2):
         os.makedirs('tmp/sac', exist_ok=True)
         self.gamma = gamma
@@ -17,7 +16,7 @@ class Agent ():
         self.n_actions = n_actions
         self.scale = reward_scale
         self.actor = ActorNetwork(alpha,input_shape,n_actions=n_actions,name='actor',max_actions=env.action_space.high) #type: ignore
-        self.actor = ActorNetwork(alpha, input_shape,  n_actions=n_actions, name='actor', max_actions=env.action_space.high)
+        self.actor = ActorNetwork(alpha, input_shape,  n_actions=n_actions, name='actor', max_actions=env.action_space.high.shape[0])
         self.critic_1 = CriticNetwork(beta, input_shape , n_actions=n_actions, name='critic_1')
         self.critic_2 = CriticNetwork(beta, input_shape, n_actions=n_actions, name='critic_2')
         self.value = ValueNetwork(beta, input_shape, name='value')
@@ -89,7 +88,7 @@ class Agent ():
         value_ = self.target_value(state_).view(-1)
         value_[done] = 0.0
 
-        actions, log_probs = self.actor.sample_normal(state,reparameterize=False)
+        actions, log_probs = self.actor.sample_normal(state,self.n_actions)
         log_probs = log_probs.view(-1)
         q1_new_policy = self.critic_1.forward(state,actions)
         q2_new_policy = self.critic_2.forward(state,actions)
@@ -102,7 +101,7 @@ class Agent ():
         value_loss.backward (retain_graph=True)
         self.value_optimizer.step() # type: ignore 
 
-        actions ,log_probs = self.actor.sample_normal (state,reparameterize=True)
+        actions ,log_probs = self.actor.sample_normal (state,self.n_actions)
         log_probs = log_probs.view(-1)
         q1_new_policy = self.critic_1.forward(state,actions)
         q2_new_policy = self.critic_2.forward(state,actions)

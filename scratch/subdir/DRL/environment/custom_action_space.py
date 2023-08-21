@@ -18,10 +18,11 @@ class CustomActionSpace(spaces.Space):
         return action
 
 # Create the custom action space
-# total_nodes = 15
-# num_selected = 5
-# custom_action_space = CustomActionSpace(total_nodes, num_selected)
-
+total_nodes = 15
+num_selected = 5
+custom_action_space = CustomActionSpace(total_nodes, num_selected)
+print("action space high",custom_action_space.high.shape[0])
+print("sample",custom_action_space.sample() )
 
 # # Initialize self.current_state with zeros for the availability column and specific values for the rest of the columns
 # current_state = np.zeros((total_nodes, num_selected + 1))

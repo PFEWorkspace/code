@@ -98,7 +98,7 @@ def main():
     # print("shape of the obs sample",obs_shape)
     # agent = Agent(input_shape=(total_nodes * num_features,),input_dims=total_nodes*num_features, n_actions=env.action_space.shape[0], env=env)
     
-    agent = Agent(input_shape=obs_shape ,n_actions=env.action_space.shape[0], env=env)   
+    agent = Agent(input_shape=obs_shape ,n_actions=env.action_space.high.shape[0], env=env)   
     n_games = 200
     filename = 'node_selection.png'
     figure_file = 'plots/' + filename

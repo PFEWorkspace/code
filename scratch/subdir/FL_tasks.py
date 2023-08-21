@@ -249,13 +249,13 @@ class FLManager(object):
 
     def aggregate(self, nodeId, models:MLModel, aggType):
         modelsReports = []
-        for m in models:
+        for m in models: # type: ignore
             modelsReports.append(self.nodes[m.nodeId].get_report(m.modelId))
         
         mlmodel, self.model = self.nodes[nodeId].aggregate(modelsReports, aggType, self.round, self.modelsFileManager, False)
         self.modelsFileManager.write_instance(mlmodel)
 
-        for m in models:
+        for m in models: # type: ignore
             self.modelsFileManager.modify_instance_field(m.modelId,"aggregated",True)
             self.modelsFileManager.modify_instance_field(m.modelId,"aggModelId",mlmodel.modelId)
             m.aggregated = True
