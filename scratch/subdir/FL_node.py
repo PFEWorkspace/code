@@ -222,7 +222,7 @@ class Node(object):
         return contribution.item()
 
     def updateHonestyAggregator(self, numEvals, numAgg, config:Config):
-        print(" true eval ", self.trueEvaluation," true agg ", self.trueAggregation, " fasle eval ", self.falseEvaluation, "false agg ", self.falseAggregation, " total eval ", numEvals," total agg", numAgg)
+        # print(" true eval ", self.trueEvaluation," true agg ", self.trueAggregation, " fasle eval ", self.falseEvaluation, "false agg ", self.falseAggregation, " total eval ", numEvals," total agg", numAgg)
         contrib = (config.fl.honesty_phi * self.trueEvaluation + self.trueAggregation - config.fl.honesty_gamma*(self.falseEvaluation+self.falseAggregation))/(numEvals+numAgg)
         self.node.honesty = self.node.honesty + 3 * config.fl.honesty_alpha * contrib
         return self.node.honesty 

@@ -299,13 +299,13 @@ main(int argc, char* argv[])
     }
 
 
-    //  Create the animation object and configure for specified output
-    AnimationInterface anim(animFile);
-    for(uint32_t i=0; i<BCnodes.GetN();i++){
-      anim.UpdateNodeColor(BCnodes.Get(i),0,0,255);
-    }
-    anim.UpdateNodeColor(initiator.Get(0),0,255,0);
-    anim.SetMaxPktsPerTraceFile(100000000000);
+    // //  Create the animation object and configure for specified output
+    // AnimationInterface anim(animFile);
+    // for(uint32_t i=0; i<BCnodes.GetN();i++){
+    //   anim.UpdateNodeColor(BCnodes.Get(i),0,0,255);
+    // }
+    // anim.UpdateNodeColor(initiator.Get(0),0,255,0);
+    // anim.SetMaxPktsPerTraceFile(100000000000);
     //--------------------------------------------
     //-- Run the simulation
     //--------------------------------------------

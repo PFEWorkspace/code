@@ -357,7 +357,7 @@ BCNode::TreatModel(MLModel model, Ipv4Address source, bool reschedule){
         bc->RemoveTask(sourceId);
         // NS_LOG_INFO("task removed");
     }
-    NS_LOG_INFO("model type "<< model.type << " positive vote "<< model.positiveVote<< " negative vote "<< model.negativeVote);
+    // NS_LOG_INFO("model type "<< model.type << " positive vote "<< model.positiveVote<< " negative vote "<< model.negativeVote);
     
     switch(model.type){
     case LOCAL:
@@ -432,7 +432,7 @@ BCNode::TreatModel(MLModel model, Ipv4Address source, bool reschedule){
                         NS_LOG_INFO("AGGREGATION INTERMEDIAIRE");
                         Aggregation(models,aggId,INTERMEDIAIRE);
                 }else {
-                    NS_LOG_INFO("models size " <<bc->getModelsToAggSize() << " tasks awaiting "<< bc->getNumAggTasksAwaiting() <<" "<< bc->MaxDelayPassed() << bc->lastagg);
+                    // NS_LOG_INFO("models size " <<bc->getModelsToAggSize() << " tasks awaiting "<< bc->getNumAggTasksAwaiting() <<" "<< bc->MaxDelayPassed() << bc->lastagg);
 
                     if(bc->getModelsToAggSize()>0 && bc->GetModelsToAggAtOnce()>= bc->getModelsToAggSize() && bc->getNumAggTasksAwaiting()==0 && bc->MaxDelayPassed() && !bc->lastagg){
                         models =bc->getxModelsToAgg(bc->GetModelsToAggAtOnce());
