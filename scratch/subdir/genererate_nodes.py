@@ -3,7 +3,7 @@ import random
 
 # Function to generate random data for each field
 def generate_random_instance(instance_id):
-    availability = random.choices([True, False], weights=[0.8, 0.2])[0]
+    availability = random.choices(["true", "false"], weights=[0.8, 0.2])[0]
     honesty = 0
     dataset_size = random.randint(10, 100) * 10
     frequency = random.randint(5, 30) * 10

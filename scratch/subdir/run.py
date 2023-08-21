@@ -248,7 +248,7 @@ if __name__ == '__main__':
         'x' : fl_config.fl.x
     };
 
-    mempool_key = 1000
+    mempool_key = 1001
     mem_size = 1024 * 2 * 2 * 2 * 2 * 2 * 2 * 2
     exp = Experiment(mempool_key, mem_size, 'main', '../../', using_waf=False)
     exp.reset()

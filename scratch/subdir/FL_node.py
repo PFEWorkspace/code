@@ -197,7 +197,10 @@ class Node(object):
             if mlmodel.positiveVote > mlmodel.negativeVote: #the model was valid 
                 contrib = self.contribution(net, globalModel)
             else:
-                contrib = - config.fl.honesty_beta * abs(globalAcc - mlmodel.accuracy)
+                acc = np.mean(mlmodel.acc1, mlmodel.acc2)
+                if(mlmodel.evaluator3 != -1):
+                    acc = np.mean(acc, mlmodel.acc3)
+                contrib = - config.fl.honesty_beta * abs(acc - mlmodel.accuracy)
         self.node.honesty = self.node.honesty + config.fl.honesty_alpha * contrib
         return self.node.honesty            
 
@@ -219,8 +222,9 @@ class Node(object):
         return contribution.item()
 
     def updateHonestyAggregator(self, numEvals, numAgg, config:Config):
-        contrib = (config.fl.honesty_phi* self.trueEvaluation + self.trueAggregation - config.fl.honesty_gamma*(self.falseEvaluation+self.falseAggregation))/(numEvals+numAgg)
-        self.node.honesty = self.node.honesty + config.fl.honesty_alpha * contrib
+        print(" true eval ", self.trueEvaluation," true agg ", self.trueAggregation, " fasle eval ", self.falseEvaluation, "false agg ", self.falseAggregation, " total eval ", numEvals," total agg", numAgg)
+        contrib = (config.fl.honesty_phi * self.trueEvaluation + self.trueAggregation - config.fl.honesty_gamma*(self.falseEvaluation+self.falseAggregation))/(numEvals+numAgg)
+        self.node.honesty = self.node.honesty + 3 * config.fl.honesty_alpha * contrib
         return self.node.honesty 
     
 
