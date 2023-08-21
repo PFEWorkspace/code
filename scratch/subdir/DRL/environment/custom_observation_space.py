@@ -18,7 +18,7 @@ class CustomObservationSpace(spaces.Dict):
         min_data = 100.0
         max_data = 1000.0
         feature_min_values = np.array([0,0.0, min_honesty, min_data, low_freq, low_rate, 0.0], dtype=np.float32)
-        feature_max_values = np.array([total_nodes,1.0, max_honesty, max_data, high_freq, high_rate, 1.0], dtype=np.float32)
+        feature_max_values = np.array([total_nodes,1.0, max_honesty, max_data, high_freq, high_rate, 100.0], dtype=np.float32)
         #[availability,honesty,datasize,frequency,transmissionrate,modelaccuracy]
         # Create arrays for the low and high values for each node's features
         observation_low = np.tile(feature_min_values, (total_nodes, 1))

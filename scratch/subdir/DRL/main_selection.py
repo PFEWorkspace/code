@@ -116,7 +116,7 @@ def main():
         flat_obs= observation["current_state"]
         flat = flatten_nodes(flat_obs) # array or arrays becomes array 
         while not done:
-            action = agent.choose_action(flat)
+            action = agent.choose_action(observation=flat)
             print("in main selection checking action" , action)
             mock_act = MockAct(all_accuracies, nodes, all_losses, fl_accuracy)
 

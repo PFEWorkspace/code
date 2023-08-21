@@ -2,8 +2,8 @@ import csv
 import gym
 from gym.spaces import Box, Dict
 import numpy as np
-from environment.custom_observation_space import CustomObservationSpace
-from environment.custom_action_space import CustomActionSpace
+from .custom_observation_space import CustomObservationSpace
+from .custom_action_space import CustomActionSpace
 from numpy.random import default_rng
 
 

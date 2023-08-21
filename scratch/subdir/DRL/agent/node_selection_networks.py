@@ -99,6 +99,7 @@ class ValueNetwork(nn.Module):
 class ActorNetwork(nn.Module):
     def __init__(self,alpha,input_shape,max_actions,fc1_dims=256,fc2_dims=256,n_actions=2,name='actor',chkpt_dir='tmp/sac'):
         super(ActorNetwork,self).__init__()
+        print("started init actor")
         self.input_dims = np.prod(input_shape)
         self.input_shape = input_shape
         self.max_actions = max_actions
@@ -110,12 +111,15 @@ class ActorNetwork(nn.Module):
         self.checkpoint_file = os.path.join(self.checkpoint_dir,self.name+'_sac')
         self.reparam_noise = 1e-6
         #layer 1
-        # print("input dims for FC1 in Actor",self.input_dims)
+        print("input dims for FC1 in Actor",self.input_dims)
         self.fc1 = nn.Linear(self.input_dims, self.fc1_dims) 
         # self.fc1 = nn.Linear(*self.input_dims,out_features=self.fc1_dims)
+        print("fc1 passed actor")
         #layer 2
         self.fc2 = nn.Linear(self.fc1_dims,self.fc2_dims)
         #layer 3
+        print("fc2 passed actor")
+
         self.mu = nn.Linear(self.fc2_dims,self.n_actions)
         #layer 4
         self.sigma = nn.Linear(self.fc2_dims,self.n_actions)
@@ -130,9 +134,13 @@ class ActorNetwork(nn.Module):
     
     def forward(self,state):
         #layer 1
+        print("in forward printing state", state.shape)
         prob = self.fc1(state)
+        print ("passef actor forward fc1", prob)
+
         prob = F.relu(prob)
         #layer 2
+        print ("passef actor forward RELU")
         prob = self.fc2(prob)
         prob = F.relu(prob)
         #layer 3
@@ -140,6 +148,7 @@ class ActorNetwork(nn.Module):
         #layer 4
         sigma = self.sigma(prob)
         sigma = T.clamp(sigma,min=self.reparam_noise,max=1)
+        print("mu and sigma in forward",mu,sigma)
         return mu,sigma
     
     # def sample_normal(self,state,reparameterize=True):
@@ -233,9 +242,10 @@ class ActorNetwork(nn.Module):
         return selected_indices
 
     def sample_normal(self, state, num_selected_nodes):
+        print("debut of sample normal")
         action_mean, action_log_std = self.forward(state)  # Output of the actor network
         action_std = action_log_std.exp()
-
+        print ("in sample normal got mean",action_mean)
         # Sample actions from the Gaussian distribution
         normal_distribution = Normal(action_mean, action_std)
         sampled_actions = normal_distribution.rsample()
@@ -243,11 +253,11 @@ class ActorNetwork(nn.Module):
 
         # Apply tanh activation to actions to ensure they are between -1 and 1
         transformed_actions = T.tanh(sampled_actions)
-        # print("transformed_actions", transformed_actions)
+        print("transformed_actions sample normal", transformed_actions)
 
         # Scale the transformed actions to the range [0, total_nodes) for node selection
         scaled_actions = (transformed_actions + 1.0) * (total_nodes - 1) / 2.0
-        # print("scaled_actions", scaled_actions)
+        print("scaled_actions sample normal", scaled_actions)
 
         # Convert scaled actions to integer indices
         selected_indices = scaled_actions.type(T.int64)

@@ -5,7 +5,7 @@
         "aggregators_per_round":5,
         "bc":20,
         "test_partition": 0.2,
-        "selection": "score",
+        "selection": "DRL",
         "source": "generated_nodes.csv" 
     },
     "data": {

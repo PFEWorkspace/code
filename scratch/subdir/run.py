@@ -7,6 +7,9 @@ import numpy as np
 import config
 import copy
 from typing import List
+from drl_utils import get_observation,flatten_nodes,flatten_observation
+from DRL.environment import node_selection_env as nds
+from DRL.agent import node_selection_agent as ag
 
 numMaxNodes = 300
 numMaxTrainers = 150  
@@ -125,6 +128,14 @@ class AiHelperContainer:
     def __init__(self, config:config.Config, uid: int = 2333) -> None:
         self.rl = Ns3AIRL(uid, AiHelperEnv, AiHelperAct)
         self.FL_manager = fl.FLManager(config)
+        self.envNodeSelect = nds.FLNodeSelectionEnv(total_nodes= config.nodes.total, num_selected=config.nodes.participants_per_round + config.nodes.aggregators_per_round, num_features=7, target=config.fl.target_accuracy, max_rounds=config.fl.rounds)
+        self.observation, _= self.envNodeSelect.reset()
+        obs_shape = self.observation["current_state"].shape
+        print("obs_shape in init aicontainer", obs_shape)
+        self.agent = ag.Agent(input_shape=obs_shape ,n_actions=self.envNodeSelect.action_space.high.shape[0], env=self.envNodeSelect) 
+        self.done = False
+        self.cumulatedReward = 0
+        
         pass
 
     def exactSelection(self, act,config):
@@ -147,9 +158,30 @@ class AiHelperContainer:
         act.numAggregators = config.nodes.aggregators_per_round
         act.numTrainers = config.nodes.participants_per_round
         
+    def DRLSelection(self, act, config):
+        load_checkpoint = False
+        if (load_checkpoint):
+            self.agent.load_models()
+        # print("nodes in DRL selection", self.nodes)
+        flat_obs= get_observation(self.nodes)
+        # print("flat_obs in DRLselection", flat_obs)
+        flat = flatten_nodes(flat_obs)
+        print ("flat in DRL selection shape", flat.shape)
+        action = self.agent.choose_action(flat)
+        print ("action in DRL selection", action)
+        
+        num_aggregators = config.nodes.aggregators_per_round
+        selected_aggregators = action[:num_aggregators]
+        selected_trainers = action[num_aggregators:]
 
-    def DRLSelection(self, act):
-        pass
+        print("Selected Aggregators:", selected_aggregators)
+        print("Selected Trainers:", selected_trainers)
+        for i in range (len(selected_aggregators)) :
+            act.selectedAggregators[i] = selected_aggregators[i]
+        for i in range(len(selected_trainers)):
+            act.selectedTrainers[i] = selected_trainers[i]
+        act.numAggregators = config.nodes.aggregators_per_round
+        act.numTrainers = config.nodes.participants_per_round
 
     def hybridSelection(self, act):
         pass
@@ -174,7 +206,7 @@ class AiHelperContainer:
             if config.nodes.selection == "score" :
                 self.exactSelection(act,config)
             elif config.nodes.selection == "DRL":
-                self.DRLSelection(act)
+                self.DRLSelection(act, config)
             else : # "hybrid" 
                 self.hybridSelection(act)
 

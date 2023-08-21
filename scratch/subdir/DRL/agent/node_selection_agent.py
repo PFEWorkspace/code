@@ -2,8 +2,8 @@ import os
 import torch as T
 import torch.nn.functional as F
 import numpy as np
-from agent.node_selection_buffer import ReplayBuffer
-from agent.node_selection_networks import ActorNetwork, CriticNetwork, ValueNetwork
+from .node_selection_buffer import ReplayBuffer
+from .node_selection_networks import ActorNetwork, CriticNetwork, ValueNetwork
 
 class Agent ():
     def __init__(self,env,alpha=0.003,beta=0.0003,input_shape=[8],gamma = 0.99,n_actions=2,max_size=1000000,tau=0.005,
@@ -12,16 +12,22 @@ class Agent ():
         self.gamma = gamma
         self.tau = tau
         self.memory = ReplayBuffer(max_size, input_shape=input_shape, n_actions=n_actions)
+        # print ("replay buffer passed")
         self.batch_size = batch_size
         self.n_actions = n_actions
         self.scale = reward_scale
-        self.actor = ActorNetwork(alpha,input_shape,n_actions=n_actions,name='actor',max_actions=env.action_space.high) #type: ignore
+        # self.actor = ActorNetwork(alpha,input_shape,n_actions=n_actions,name='actor',max_actions=env.action_space.high) #type: ignore
+        
         self.actor = ActorNetwork(alpha, input_shape,  n_actions=n_actions, name='actor', max_actions=env.action_space.high.shape[0])
+        # print ("actor passed")
         self.critic_1 = CriticNetwork(beta, input_shape , n_actions=n_actions, name='critic_1')
+        # print ("critic 1 passed")
         self.critic_2 = CriticNetwork(beta, input_shape, n_actions=n_actions, name='critic_2')
+        # print ("critic2 passed")
         self.value = ValueNetwork(beta, input_shape, name='value')
+        # print ("value passed")
         self.target_value = ValueNetwork(beta, input_shape, name='target_value')
-
+        # print ("target value passed")
         self.update_network_parameters(tau=1)
 
     def get_selected(self ,input_list):
@@ -29,10 +35,10 @@ class Agent ():
         return indices_of_ones
     def choose_action(self,observation):
         # print("in choose action printing observation",observation)
-        state = T.tensor([observation],dtype=T.float).to(self.actor.device)
-        # print("state in choose action", state)
+        state = T.tensor(observation,dtype=T.float).to(self.actor.device)
+        print("state in choose action", state.shape)
         actions = self.actor.sample_normal(state,self.n_actions)
-        # print("got the action passe sample_normal :",actions)
+        print("got the action passe sample_normal :",actions)
 
         return actions
 
