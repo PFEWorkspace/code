@@ -126,14 +126,14 @@ void FLNode::SetLearningCost(double learningCost){
 
   double
   FLNode:: GetEvaluationCost() const{
-      return evaluationCost ;
+      return evaluationCost * 5;
   }
 
   void FLNode::SetCommunicationCost(double communicationCost){
-    this->communication_cost = communicationCost;
+    this->communication_cost = communicationCost ;
   }
   double FLNode::GetCommunicationCost() const{
-    return communication_cost;
+    return communication_cost ;
   }
 
 void FLNode::Init(FLNodeStruct n, int modelsize, double testSize){
@@ -355,13 +355,13 @@ FLNode::SendModel(MLModel model, Ipv4Address adrs){
 void FLNode::Train() {
   if(!dropout){
      AiHelper* ai = AiHelper::getInstance();
-  MLModel model = ai->train(id);
+    MLModel model = ai->train(id);
 
-  Blockchain* bc = Blockchain::getInstance();
-  Ipv4Address adr = bc->getBCAddress();
- 
-  // NS_LOG_DEBUG("I'am " << id << " sending model to " << adr);
-  Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(GetLearningCost()+GetCommunicationCost()), [this, model,adr]() {SendModel(model, adr);});
+    Blockchain* bc = Blockchain::getInstance();
+    Ipv4Address adr = bc->getBCAddress();
+  
+    // NS_LOG_DEBUG("I'am " << id << " sending model to " << adr);
+    Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(GetLearningCost()+GetCommunicationCost()), [this, model,adr]() {SendModel(model, adr);});
   }
 }
 void
