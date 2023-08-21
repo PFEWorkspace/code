@@ -34,6 +34,7 @@ Blockchain::ResetRound(MLModel globalModel){
         tasks.clear();
         firstagg = true;
         lastagg = false;
+        interagg = 0 ;
         for (int i=0; i<numMaxAggregators;i++){
             aggregators[i]=-1;
         }
@@ -45,6 +46,26 @@ Blockchain::ResetRound(MLModel globalModel){
     }else return true;
    
 }
+bool
+Blockchain::evaluate(){
+    if(interagg < numTrainers/modelsToAggAtOnce*2){
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_real_distribution<> dis(0.0, 1.0); // Range [0.0, 1.0)
+
+        // Generate a random number between 0.0 and 1.0
+        double randomValue = dis(gen);
+
+        if (randomValue < 0.3) { // Adjust this threshold as needed
+            interagg++;
+            return true;
+        } else {
+           return false;
+        }
+
+    }else return false;
+}
+
 
 Ipv4Address Blockchain::getFLAddress(int nodeId)
 {
@@ -137,7 +158,7 @@ Blockchain::GetMaxTrainingDelay(){
 
     // the max is the max of the training cost plus 3 times the max of evaluation cost plus 4 times the max of communication cost
     // (1+3*0.2)*1000/50 + 4*1600/150
-    return 75;
+    return 75 + 10;
 }
 
 bool

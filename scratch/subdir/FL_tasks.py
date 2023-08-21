@@ -128,76 +128,77 @@ class FLManager(object):
     def evaluateLocal(self, nodeId, model:MLModel):
         #get the model from the source node
         m = self.nodes[model.nodeId].get_net(model.modelId)
-        loss, acc = self.nodes[nodeId].evaluate(m)
-        acc = round(acc,2)
-        print("accuracy {} evaluator accuracy {}".format(model.accuracy,acc))
-        #get the evaluation
-        evaluation = False
-        if (abs(model.accuracy - acc) < self.config.fl.local_validation_threshold):
-            evaluation = True
+        if m:
+            loss, acc = self.nodes[nodeId].evaluate(m)
+            acc = round(acc,2)
+            print("accuracy {} evaluator accuracy {}".format(model.accuracy,acc))
+            #get the evaluation
+            evaluation = False
+            if (abs(model.accuracy - acc) < self.config.fl.local_validation_threshold):
+                evaluation = True
 
-        #update the model and nodes
-        if model.evaluator1==-1: #first evaluation
-            model.evaluator1 = nodeId
-            model.acc1 = acc
-            self.modelsFileManager.modify_instance_field(model.modelId,"evaluator1",model.evaluator1)
-            self.modelsFileManager.modify_instance_field(model.modelId,"acc1",round(model.acc1,2))
-            self.nodes[nodeId].add_new_evaluation()
-            if evaluation:
-                model.positiveVote = 1
-                self.modelsFileManager.modify_instance_field(model.modelId,"positiveVote",model.positiveVote)
-            else :
-                model.negativeVote = 1
-                self.modelsFileManager.modify_instance_field(model.modelId,"negativeVote",model.negativeVote) 
-        elif model.evaluator2 == -1 :
-            model.evaluator2 = nodeId
-            model.acc2 = acc 
-            self.modelsFileManager.modify_instance_field(model.modelId,"evaluator2",model.evaluator2)
-            self.modelsFileManager.modify_instance_field(model.modelId,"acc2",round(model.acc2,2))
-            self.nodes[nodeId].add_new_evaluation()
-            #check if its true or false                      
-            if evaluation:
-                model.positiveVote += 1
-                self.modelsFileManager.modify_instance_field(model.modelId,"positiveVote",model.positiveVote)
-                if model.positiveVote==2 :
-                    self.nodes[nodeId].add_true_evaluation()
-                    self.nodes[model.evaluator1].add_true_evaluation()
-            else :
-                model.negativeVote += 1 
-                self.modelsFileManager.modify_instance_field(model.modelId,"negativeVote",model.negativeVote)
-                if model.negativeVote==2 :
-                    self.nodes[nodeId].add_true_evaluation()
-                    self.nodes[model.evaluator1].add_true_evaluation()
-        else: # third evaluation
-            model.evaluator3 = nodeId
-            model.acc3 = acc
-            self.modelsFileManager.modify_instance_field(model.modelId,"evaluator3",model.evaluator3)
-            self.modelsFileManager.modify_instance_field(model.modelId,"acc3",round(model.acc3,2))
-            self.nodes[nodeId].add_new_evaluation()
-            if evaluation:
-                model.positiveVote += 1
-                self.modelsFileManager.modify_instance_field(model.modelId,"positiveVote",model.positiveVote)
-                if abs(model.acc1 - model.accuracy)< self.config.fl.local_validation_threshold : #the first eval gave a positiveVote
-                    self.nodes[nodeId].add_true_evaluation()
-                    self.nodes[model.evaluator1].add_true_evaluation()
-                    self.nodes[model.evaluator2].add_false_evaluation()
-                elif abs(model.acc2 - model.accuracy) < self.config.fl.local_validation_threshold : #second one who gate the positivevote
-                    self.nodes[nodeId].add_true_evaluation()
-                    self.nodes[model.evaluator2].add_true_evaluation()
-                    self.nodes[model.evaluator1].add_false_evaluation()
-            else :
-                model.negativeVote += 1
-                self.modelsFileManager.modify_instance_field(model.modelId,"negativeVote",model.negativeVote)
-                if abs(model.acc1 - model.accuracy)>= self.config.fl.local_validation_threshold : #the first eval gave a negativeVote
-                    self.nodes[nodeId].add_true_evaluation()
-                    self.nodes[model.evaluator1].add_true_evaluation()
-                    self.nodes[model.evaluator2].add_false_evaluation()
-                elif abs(model.acc2 - model.accuracy)>= self.config.fl.local_validation_threshold : #second one who gate the positivevote
-                    self.nodes[nodeId].add_true_evaluation()
-                    self.nodes[model.evaluator2].add_true_evaluation()
-                    self.nodes[model.evaluator1].add_false_evaluation()  
-        #reset mlmodel
-        self.nodes[model.nodeId].resetModel(model.modelId, model)
+            #update the model and nodes
+            if model.evaluator1==-1: #first evaluation
+                model.evaluator1 = nodeId
+                model.acc1 = acc
+                self.modelsFileManager.modify_instance_field(model.modelId,"evaluator1",model.evaluator1)
+                self.modelsFileManager.modify_instance_field(model.modelId,"acc1",round(model.acc1,2))
+                self.nodes[nodeId].add_new_evaluation()
+                if evaluation:
+                    model.positiveVote = 1
+                    self.modelsFileManager.modify_instance_field(model.modelId,"positiveVote",model.positiveVote)
+                else :
+                    model.negativeVote = 1
+                    self.modelsFileManager.modify_instance_field(model.modelId,"negativeVote",model.negativeVote) 
+            elif model.evaluator2 == -1 :
+                model.evaluator2 = nodeId
+                model.acc2 = acc 
+                self.modelsFileManager.modify_instance_field(model.modelId,"evaluator2",model.evaluator2)
+                self.modelsFileManager.modify_instance_field(model.modelId,"acc2",round(model.acc2,2))
+                self.nodes[nodeId].add_new_evaluation()
+                #check if its true or false                      
+                if evaluation:
+                    model.positiveVote += 1
+                    self.modelsFileManager.modify_instance_field(model.modelId,"positiveVote",model.positiveVote)
+                    if model.positiveVote==2 :
+                        self.nodes[nodeId].add_true_evaluation()
+                        self.nodes[model.evaluator1].add_true_evaluation()
+                else :
+                    model.negativeVote += 1 
+                    self.modelsFileManager.modify_instance_field(model.modelId,"negativeVote",model.negativeVote)
+                    if model.negativeVote==2 :
+                        self.nodes[nodeId].add_true_evaluation()
+                        self.nodes[model.evaluator1].add_true_evaluation()
+            else: # third evaluation
+                model.evaluator3 = nodeId
+                model.acc3 = acc
+                self.modelsFileManager.modify_instance_field(model.modelId,"evaluator3",model.evaluator3)
+                self.modelsFileManager.modify_instance_field(model.modelId,"acc3",round(model.acc3,2))
+                self.nodes[nodeId].add_new_evaluation()
+                if evaluation:
+                    model.positiveVote += 1
+                    self.modelsFileManager.modify_instance_field(model.modelId,"positiveVote",model.positiveVote)
+                    if abs(model.acc1 - model.accuracy)< self.config.fl.local_validation_threshold : #the first eval gave a positiveVote
+                        self.nodes[nodeId].add_true_evaluation()
+                        self.nodes[model.evaluator1].add_true_evaluation()
+                        self.nodes[model.evaluator2].add_false_evaluation()
+                    elif abs(model.acc2 - model.accuracy) < self.config.fl.local_validation_threshold : #second one who gate the positivevote
+                        self.nodes[nodeId].add_true_evaluation()
+                        self.nodes[model.evaluator2].add_true_evaluation()
+                        self.nodes[model.evaluator1].add_false_evaluation()
+                else :
+                    model.negativeVote += 1
+                    self.modelsFileManager.modify_instance_field(model.modelId,"negativeVote",model.negativeVote)
+                    if abs(model.acc1 - model.accuracy)>= self.config.fl.local_validation_threshold : #the first eval gave a negativeVote
+                        self.nodes[nodeId].add_true_evaluation()
+                        self.nodes[model.evaluator1].add_true_evaluation()
+                        self.nodes[model.evaluator2].add_false_evaluation()
+                    elif abs(model.acc2 - model.accuracy)>= self.config.fl.local_validation_threshold : #second one who gate the positivevote
+                        self.nodes[nodeId].add_true_evaluation()
+                        self.nodes[model.evaluator2].add_true_evaluation()
+                        self.nodes[model.evaluator1].add_false_evaluation()  
+            #reset mlmodel
+            self.nodes[model.nodeId].resetModel(model.modelId, model)
         return model    
     
     def evaluateIntermediaire(self, nodeId, model:MLModel):
@@ -279,7 +280,7 @@ class FLManager(object):
     
     def resetRound(self, trainers:list, aggregators:list):
         self.round += 1
-        # print("round number: ",self.round)
+        print("round number: ",self.round)
         #calculate honesty
         #update the nodes on csv   
         for index in trainers:
@@ -289,10 +290,10 @@ class FLManager(object):
             self.nodesFileManager.modify_instance_field(index,"task",0)
             print("node {} honesty {}".format(index,round(honesty,3)))
 
-            dropout = random.choices(["true", "false"], weights=[0.1, 0.9])[0]
-            malicious = random.choices(["true", "false"],weights=[0.05, 0.95])[0]
-            self.nodesFileManager.modify_instance_field(index,"dropout",dropout)
-            self.nodesFileManager.modify_instance_field(index,"malicious",malicious)
+            # dropout = random.choices(["true", "false"], weights=[0.1, 0.9])[0]
+            # malicious = random.choices(["true", "false"],weights=[0.05, 0.95])[0]
+            # self.nodesFileManager.modify_instance_field(index,"dropout",dropout)
+            # self.nodesFileManager.modify_instance_field(index,"malicious",malicious)
 
         numEvals = sum(self.nodes[index].numEvaluations for index in aggregators)
         numAggs= sum(self.nodes[index].numAggregations for index in aggregators) 
@@ -303,10 +304,10 @@ class FLManager(object):
             self.nodesFileManager.modify_instance_field(index,"task",1)
             print("node {} honesty {}".format(index,round(honesty,3)))
             
-            dropout = random.choices(["true", "false"], weights=[0.1, 0.9])[0]
-            malicious = random.choices(["true", "false"],weights=[0.05, 0.95])[0]
-            self.nodesFileManager.modify_instance_field(index,"dropout",dropout)
-            self.nodesFileManager.modify_instance_field(index,"malicious",malicious)
+            # dropout = random.choices(["true", "false"], weights=[0.1, 0.9])[0]
+            # malicious = random.choices(["true", "false"],weights=[0.05, 0.95])[0]
+            # self.nodesFileManager.modify_instance_field(index,"dropout",dropout)
+            # self.nodesFileManager.modify_instance_field(index,"malicious",malicious)
 
         instances = self.nodesFileManager.retrieve_instances()  
         for i in range(0,self.config.nodes.total):

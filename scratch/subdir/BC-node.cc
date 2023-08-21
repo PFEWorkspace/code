@@ -111,7 +111,7 @@ void BCNode::Receive(Ptr<Socket> socket) {
                                     << " content: "<< packetInfo) ;
             
                             model = DocToMLModel(d);
-                            TreatModel(model,InetSocketAddress::ConvertFrom(from).GetIpv4(),false);
+                            if(model.modelId!=0) TreatModel(model,InetSocketAddress::ConvertFrom(from).GetIpv4(),false);
                             break;                    
                         default:
                         // NS_LOG_INFO("default");
@@ -357,6 +357,7 @@ BCNode::TreatModel(MLModel model, Ipv4Address source, bool reschedule){
         bc->RemoveTask(sourceId);
         // NS_LOG_INFO("task removed");
     }
+    NS_LOG_INFO("model type "<< model.type << " positive vote "<< model.positiveVote<< " negative vote "<< model.negativeVote);
     
     switch(model.type){
     case LOCAL:
@@ -402,12 +403,12 @@ BCNode::TreatModel(MLModel model, Ipv4Address source, bool reschedule){
                             Aggregation(models,aggId,INTERMEDIAIRE);
                     }else{
                         // NS_LOG_INFO("models size" <<bc->getModelsToAggSize() << " tasks awaiting "<< bc->getNumAggTasksAwaiting());
-                        if(bc->GetModelsToAggAtOnce()>= bc->getModelsToAggSize() && bc->getNumAggTasksAwaiting()==0 && bc->MaxDelayPassed() && !bc->lastagg){
+                        if(bc->getModelsToAggSize()>0 && bc->GetModelsToAggAtOnce()>= bc->getModelsToAggSize() && bc->getNumAggTasksAwaiting()==0 && bc->MaxDelayPassed() && !bc->lastagg){
                                 models =bc->getxModelsToAgg(bc->GetModelsToAggAtOnce());
                                 NS_LOG_INFO("AGGREGATION GLOBAL ");
                                 Aggregation(models,aggId,GLOBAL);
-                        }else if(bc->lastagg){
-                            // NS_LOG_INFO("reschedule local");
+                        }else if(bc->getModelsToAggSize()+ bc->getNumAggTasksAwaiting()>0 && !bc->lastagg){
+                             NS_LOG_INFO("reschedule local");
                             Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(bc->GetStillDelay()),[this, model,source](){TreatModel(model,source, true);});
                         }
                     }
@@ -430,23 +431,34 @@ BCNode::TreatModel(MLModel model, Ipv4Address source, bool reschedule){
                         // NS_LOG_INFO("models to agg size "<< models.size() << " first: "<< models[0].modelId);
                         NS_LOG_INFO("AGGREGATION INTERMEDIAIRE");
                         Aggregation(models,aggId,INTERMEDIAIRE);
-                }else if(bc->getNumAggTasksAwaiting()==0 && bc->MaxDelayPassed()){
+                }else {
+                    NS_LOG_INFO("models size " <<bc->getModelsToAggSize() << " tasks awaiting "<< bc->getNumAggTasksAwaiting() <<" "<< bc->MaxDelayPassed() << bc->lastagg);
+
+                    if(bc->getModelsToAggSize()>0 && bc->GetModelsToAggAtOnce()>= bc->getModelsToAggSize() && bc->getNumAggTasksAwaiting()==0 && bc->MaxDelayPassed() && !bc->lastagg){
                         models =bc->getxModelsToAgg(bc->GetModelsToAggAtOnce());
-                        NS_LOG_INFO("AGGREGATION GLOBAL ");
+                        NS_LOG_INFO("AGGREGATION GLOBAL");
                         Aggregation(models,aggId,GLOBAL);
-                }else{
-                    // NS_LOG_INFO("reschedule inter");
-                    Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(bc->GetStillDelay()+10),[this, model,source](){TreatModel(model,source, true);});
+                    }else {
+                        if(bc->getModelsToAggSize()+ bc->getNumAggTasksAwaiting()>0 && !bc->lastagg){
+                        NS_LOG_INFO("reschedule inter");
+                        Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(bc->GetStillDelay()+10),[this, model,source](){TreatModel(model,source, true);});
+                        }
+                    }
                 }
+                
                    
             } 
             // send it for evaluation if there's some nodes available
-            aggId = bc->GetAggregatorNotBusy(model.evaluator1, model.evaluator2);
-            if(aggId != -1){ //no available nodes
-                Evaluation(model,aggId);                   
+            if(bc->evaluate()){
+                aggId = bc->GetAggregatorNotBusy(model.evaluator1, model.evaluator2);
+                if(aggId != -1){ //no available nodes
+                    //  Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(2), [this, model, aggId](){ Evaluation(model,aggId);});                   
+                    Evaluation(model,aggId);
+                }
             }
 
-        }else if(model.negativeVote == 1){ //evaluated once and they found it was wrong, evaluated again 
+        }else{
+         if(model.negativeVote == 1){ //evaluated once and they found it was wrong, evaluated again 
             aggId = bc->GetAggregatorNotBusy(model.evaluator1,model.evaluator2);
 
             if(aggId == -1){ //no available nodes
@@ -454,6 +466,7 @@ BCNode::TreatModel(MLModel model, Ipv4Address source, bool reschedule){
                 break;           
             }else Evaluation(model,aggId);   
         }  //else : it's either evaluated once and its true or twice and the decision is 2vs1 (2 evals + the actual model)
+        }
     break;
     case GLOBAL:
     NewRound(model);
@@ -466,6 +479,7 @@ BCNode::TreatModel(MLModel model, Ipv4Address source, bool reschedule){
    
 
 }
+
 void
 BCNode::Evaluation(MLModel model, int nodeId){
     // save task in tasks         
@@ -528,13 +542,17 @@ BCNode::Aggregation(std::vector<MLModel> models, int nodeId, int type){
     // NS_LOG_INFO("Aggregation in BCNODE "<<type);
     Blockchain* bc = Blockchain::getInstance();
     AggregatorsTasks task = AggregatorsTasks();
-    if(type==GLOBAL) bc->lastagg = true;
-    task.nodeId = nodeId;
-    task.task = AGGREGATE;
-    for(uint i=0;i<models.size();i++){
-        task.models[i] = models[i];
-    }    
-    bc->AddTask(task);
+    if(type==GLOBAL) {
+        bc->lastagg = true;
+    } else{
+        task.nodeId = nodeId;
+        task.task = AGGREGATE;
+        for(uint i=0;i<models.size();i++){
+            task.models[i] = models[i];
+        }    
+        bc->AddTask(task);
+    }   
+    
     
     rapidjson::Document d;
     rapidjson::Value value;

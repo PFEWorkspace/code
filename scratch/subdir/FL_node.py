@@ -197,9 +197,9 @@ class Node(object):
             if mlmodel.positiveVote > mlmodel.negativeVote: #the model was valid 
                 contrib = self.contribution(net, globalModel)
             else:
-                acc = np.mean(mlmodel.acc1, mlmodel.acc2)
+                acc = (mlmodel.acc1+ mlmodel.acc2)/ 2
                 if(mlmodel.evaluator3 != -1):
-                    acc = np.mean(acc, mlmodel.acc3)
+                    acc = (acc + mlmodel.acc3)/2
                 contrib = - config.fl.honesty_beta * abs(acc - mlmodel.accuracy)
         self.node.honesty = self.node.honesty + config.fl.honesty_alpha * contrib
         return self.node.honesty            
@@ -249,8 +249,11 @@ class Node(object):
     def get_last_model(self):
         return self.reports[-1].model  
     
-    def get_net(self, id):    
-        return self.get_report(id).net
+    def get_net(self, id):  
+        r = self.get_report(id)
+        if r:  
+            return r.net
+        
 
     def resetModel(self,id, model):
         report = self.get_report(id)

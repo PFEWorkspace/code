@@ -12,6 +12,8 @@
 #include <string>
 #include <mutex>
 #include <list>
+#include <iostream>
+#include <random>
 
 namespace ns3 {
 
@@ -61,6 +63,7 @@ class Blockchain {
         actualFLround = 0 ;
         firstagg = true;
         lastagg = false;
+        interagg = 0 ;
         
     }
 
@@ -69,7 +72,7 @@ class Blockchain {
     void SaveBlockchainToFile();
     void AddTransactionToBlockchain(const rapidjson::Value& transaction);
     std::string GetTimestamp();
-    
+    int interagg;
     // Object's inherited methods
     virtual void DoDispose();
 
@@ -88,7 +91,7 @@ public:
    
     bool firstagg;
     bool lastagg;
-
+    bool evaluate();
     void WriteTransaction(std::string blockId, int nodeId, const rapidjson::Document& message);
     void PrintBlockchain() const;
     Ipv4Address getFLAddress(int nodeId);
