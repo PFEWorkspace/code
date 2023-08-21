@@ -11,6 +11,7 @@ AUTHORS
 .editorconfig
 .clang-tidy
 .clang-format
+.xml
 /utils
 
 /doc  
@@ -19,10 +20,11 @@ AUTHORS
 /build
 /bindings
 /.vscode
-/scratch/ss
 /src/buildings
 
 doc*
 scratch/.gitattributes
 !document.h
 __pycache__/
+.gitignore
+SAC/

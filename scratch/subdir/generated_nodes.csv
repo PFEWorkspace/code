@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 nodeId,availability,honesty,datasetSize,freq,transRate,task,dropout,malicious
 0,true,0.0,680,220,290,0,false,false
 1,false,0.0,740,250,280,1,true,false
@@ -999,3 +1000,11 @@ nodeId,availability,honesty,datasetSize,freq,transRate,task,dropout,malicious
 997,true,0.0,420,100,770,0,false,false
 998,true,0.0,830,110,950,0,false,false
 999,true,0.0,260,170,840,0,false,false
+=======
+ID,Availability,Honesty,Dataset Size,Frequency,Transmission Rate,Task,Dropout
+0,True,0.0,171,566,672,0.0,True
+1,False,0.0,800,314,399,0.0,False
+2,True,0.0,120,430,963,0.0,False
+3,True,0.0,714,558,430,0.0,False
+4,True,0.0,221,187,961,0.0,False
+>>>>>>> bc_fl
