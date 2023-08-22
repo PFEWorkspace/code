@@ -407,7 +407,7 @@ BCNode::TreatModel(MLModel model, Ipv4Address source, bool reschedule){
                                 models =bc->getxModelsToAgg(bc->GetModelsToAggAtOnce());
                                 NS_LOG_INFO("AGGREGATION GLOBAL ");
                                 Aggregation(models,aggId,GLOBAL);
-                        }else if(bc->getModelsToAggSize()+ bc->getNumAggTasksAwaiting()>0 && !bc->lastagg){
+                        }else if(bc->getModelsToAggSize()+ bc->getNumAggTasksAwaiting()>0 && !bc->lastagg && !bc->MaxDelayPassed()){
                              NS_LOG_INFO("reschedule local");
                             Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(bc->GetStillDelay()),[this, model,source](){TreatModel(model,source, true);});
                         }

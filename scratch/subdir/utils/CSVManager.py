@@ -25,7 +25,11 @@ class CSVFileManager:
         for field_name, field_type in self.structure_fields:
             value = getattr(instance, field_name)
             if field_type is ctypes.c_bool:
-                converted_instance[field_name] = str(value).lower()
+                
+                if field_name in ["dropout","malicious","availability"]:
+                    converted_instance[field_name] = 1 if value==True else 0
+                else : 
+                    converted_instance[field_name] = str(value).lower()
             else:
                 converted_instance[field_name] = str(value)
 
@@ -69,7 +73,10 @@ class CSVFileManager:
 
         for field_name, field_type in self.structure_fields:
             if field_type is ctypes.c_bool:
-                setattr(instance, field_name, row[field_name].lower() == 'true')
+                if field_name in ["dropout","malicious","availability"]:
+                    setattr(instance, field_name, int(row[field_name])==1)
+                else:    
+                    setattr(instance, field_name, row[field_name].lower() == 'true')
             elif field_type in (ctypes.c_int, ctypes.c_long, ctypes.c_longlong):
                 setattr(instance, field_name, int(row[field_name]))
             elif field_type in (ctypes.c_float, ctypes.c_double):

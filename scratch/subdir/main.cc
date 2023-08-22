@@ -345,7 +345,7 @@ FLNodeStruct* GetNodesFromFile(const std::string& filename,  int& numNodes){
         node.nodeId = std::stoi(field);
 
         std::getline(ss, field, ','); // Read the Availability field
-        node.availability = (field == "true");
+        node.availability = (std::stoi(field) == 1);
 
         std::getline(ss, field, ','); // Read the Honesty field
         node.honesty = std::stod(field);
@@ -363,10 +363,10 @@ FLNodeStruct* GetNodesFromFile(const std::string& filename,  int& numNodes){
         node.task = std::stoi(field);
 
         std::getline(ss, field); // Read the Dropout field
-        node.dropout = (field == "true");
+        node.dropout = (std::stoi(field) == 1);
 
         std::getline(ss, field); // Read the malicious field
-        node.malicious = (field == "true");
+        node.malicious = (std::stoi(field) == 1);
 
         // Resize the array for each new node
         nodeList = (FLNodeStruct*)realloc(nodeList, (count + 1) * sizeof(FLNodeStruct));

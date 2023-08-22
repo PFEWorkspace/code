@@ -99,7 +99,10 @@ class FLManager(object):
         #     partition_size = random.randint(start, stop)   
         
         data = self.loader.get_partition(node.node.datasetSize)
-        node.set_data(data, self.config)
+        testset = self.loader.get_test_partition(self.config.nodes.test_partition * node.node.datasetSize)
+        evaluationset = self.loader.get_test_partition(node.node.datasetSize)
+        node.set_data(data, testset, evaluationset,self.config)
+        
 
     def start_round(self, selectedTrainers, numSelectedTrainers):
         rounds = self.config.fl.rounds
@@ -134,7 +137,7 @@ class FLManager(object):
             print("accuracy {} evaluator accuracy {}".format(model.accuracy,acc))
             #get the evaluation
             evaluation = False
-            if (abs(model.accuracy - acc) < self.config.fl.local_validation_threshold):
+            if (acc - model.accuracy > self.config.fl.local_validation_threshold):
                 evaluation = True
 
             #update the model and nodes
@@ -178,22 +181,22 @@ class FLManager(object):
                 if evaluation:
                     model.positiveVote += 1
                     self.modelsFileManager.modify_instance_field(model.modelId,"positiveVote",model.positiveVote)
-                    if abs(model.acc1 - model.accuracy)< self.config.fl.local_validation_threshold : #the first eval gave a positiveVote
+                    if  model.acc1 - model.accuracy > self.config.fl.local_validation_threshold : #the first eval gave a positiveVote
                         self.nodes[nodeId].add_true_evaluation()
                         self.nodes[model.evaluator1].add_true_evaluation()
                         self.nodes[model.evaluator2].add_false_evaluation()
-                    elif abs(model.acc2 - model.accuracy) < self.config.fl.local_validation_threshold : #second one who gate the positivevote
+                    elif model.acc2 - model.accuracy > self.config.fl.local_validation_threshold : #second one who gate the positivevote
                         self.nodes[nodeId].add_true_evaluation()
                         self.nodes[model.evaluator2].add_true_evaluation()
                         self.nodes[model.evaluator1].add_false_evaluation()
                 else :
                     model.negativeVote += 1
                     self.modelsFileManager.modify_instance_field(model.modelId,"negativeVote",model.negativeVote)
-                    if abs(model.acc1 - model.accuracy)>= self.config.fl.local_validation_threshold : #the first eval gave a negativeVote
+                    if model.acc1 - model.accuracy  <= self.config.fl.local_validation_threshold : #the first eval gave a negativeVote
                         self.nodes[nodeId].add_true_evaluation()
                         self.nodes[model.evaluator1].add_true_evaluation()
                         self.nodes[model.evaluator2].add_false_evaluation()
-                    elif abs(model.acc2 - model.accuracy)>= self.config.fl.local_validation_threshold : #second one who gate the positivevote
+                    elif model.acc2- model.accuracy <= self.config.fl.local_validation_threshold : #second one who gate the positivevote
                         self.nodes[nodeId].add_true_evaluation()
                         self.nodes[model.evaluator2].add_true_evaluation()
                         self.nodes[model.evaluator1].add_false_evaluation()  
@@ -290,10 +293,11 @@ class FLManager(object):
             self.nodesFileManager.modify_instance_field(index,"task",0)
             print("node {} honesty {}".format(index,round(honesty,3)))
 
-            # dropout = random.choices(["true", "false"], weights=[0.1, 0.9])[0]
-            # malicious = random.choices(["true", "false"],weights=[0.05, 0.95])[0]
-            # self.nodesFileManager.modify_instance_field(index,"dropout",dropout)
-            # self.nodesFileManager.modify_instance_field(index,"malicious",malicious)
+            dropout = random.choices(["true", "false"], weights=[0.2, 0.8])[0]
+            malicious = random.choices(["true", "false"],weights=[0.2, 0.8])[0]
+            availability = random.choices
+            self.nodesFileManager.modify_instance_field(index,"dropout",dropout)
+            self.nodesFileManager.modify_instance_field(index,"malicious",malicious)
 
         numEvals = sum(self.nodes[index].numEvaluations for index in aggregators)
         numAggs= sum(self.nodes[index].numAggregations for index in aggregators) 

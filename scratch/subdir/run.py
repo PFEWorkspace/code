@@ -79,8 +79,7 @@ class FLNodeStruct(ctypes.Structure):
         return m / transRate  
         
 
-    def get_cost(self,datasetSize,freq,transRate, w):
-        
+    def get_cost(self,datasetSize,freq,transRate, w):        
         return self.learning_cost(datasetSize,freq) + self.communication_cost(w,transRate)
 
 class BCNodeStruct(ctypes.Structure):
@@ -130,11 +129,11 @@ class AiHelperContainer:
     def exactSelection(self, act,config):
         alpha = config.fl.alpha 
         nodes_scores = []
-        
+        D = 0
+        D = sum(node.datasetSize for node in self.nodes)
         for node in self.nodes:
-
             if node.availability: 
-                score = alpha * node.honesty - (1 - alpha) * node.get_cost(node.datasetSize, node.freq, node.transRate, config.model.size)
+                score = node.datasetSize/D *(alpha * node.honesty - (1 - alpha) * node.get_cost(node.datasetSize, node.freq, node.transRate, config.model.size))
                 nodes_scores.append({"nodeId":node.nodeId , "score": score})
         sorted_indexes =sorted(nodes_scores, key=lambda x: x["score"], reverse=True) # np.argsort([score for _, score in node_scores])[::-1]
         # print(str(sorted_indexes))
@@ -186,7 +185,12 @@ class AiHelperContainer:
             [self.selectedTrainers.append(act.selectedTrainers[index]) for index in range(0, act.numTrainers)]
         if env.type == 0x03 : #training
             print('local training')
-            lm = self.FL_manager.start_round(self.selectedTrainers, config.nodes.participants_per_round)
+            #excluding the dropouts training
+            actualTrainers = []
+            for node in self.nodes:
+                if not node.dropout and node.nodeId in self.selectedTrainers:
+                    actualTrainers.append(node.nodeId)
+            lm = self.FL_manager.start_round(actualTrainers, len(actualTrainers))
             act.numLocalModels = len(lm)
             for i in range(0,len(lm)) :
                 act.localModels[i] =  MLModel(modelId=lm[i].modelId,nodeId=lm[i].nodeId,taskId=lm[i].taskId,round=lm[i].round,type=lm[i].type, positiveVote=lm[i].positiveVote, negativeVote=lm[i].negativeVote,evaluator1=lm[i].evaluator1, evaluator2=lm[i].evaluator2,evaluator3=lm[i].evaluator3,aggregated=lm[i].aggregated, aggModelId=lm[i].aggModelId, accuracy=lm[i].accuracy, acc1=lm[i].acc1, acc2=lm[i].acc2, acc3=lm[i].acc3)

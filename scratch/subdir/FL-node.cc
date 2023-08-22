@@ -302,8 +302,8 @@ void FLNode::Candidater() {
   d.AddMember("availability", value, d.GetAllocator());
   value = honesty ;
   d.AddMember("honesty", value, d.GetAllocator());
-  // value = dropout ; 
-  // d.AddMember("dropout", value, d.GetAllocator());
+  value = dropout ; 
+  d.AddMember("dropout", value, d.GetAllocator());
   
   Send(adr, d);
 }
