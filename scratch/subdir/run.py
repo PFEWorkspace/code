@@ -7,7 +7,7 @@ import numpy as np
 import config
 import copy
 from typing import List
-from drl_utils import get_observation,flatten_nodes,flatten_observation
+import drl_utils as dr
 from DRL.environment import node_selection_env as nds
 from DRL.agent import node_selection_agent as ag
 
@@ -16,8 +16,12 @@ numMaxTrainers = 150
 numMaxAggregators = 150
 numMaxBCNodes = 100
 numMaxModelsToAgg= 20
+episode_numbers = []
+total_rewards = []
+actor_losses = []
+critic_losses = []
 
-
+np.set_printoptions(precision=2, suppress=True)
 # Set up parser
 parser = argparse.ArgumentParser()
 parser.add_argument('-c', '--config', type=str, default='../../config.json',
@@ -120,7 +124,23 @@ class AiHelperAct(ctypes.Structure):
         ("numFLNodes", ctypes.c_int),
         ("FLNodesInfo", FLNodeStruct * numMaxNodes)
     ]
-
+class DRLHelper :
+    def __init__(self,config:config.Config) :
+        print("init DRLHelper")
+        self.envNodeSelect = nds.FLNodeSelectionEnv(total_nodes= config.nodes.total, num_selected=config.nodes.participants_per_round + config.nodes.aggregators_per_round, num_features=7, target=config.fl.target_accuracy, max_rounds=config.fl.rounds)
+        self.observationDict, _= self.envNodeSelect.reset()
+        self.observationDict_ = None
+        self.observation = self.observationDict["current_state"]
+        self.observation_ = None
+        obs_shape = self.observation.shape
+        print("observation in init container", self.observation)
+        self.agent = ag.Agent(input_shape=obs_shape ,n_actions=self.envNodeSelect.action_space.high.shape[0], env=self.envNodeSelect) 
+        self.done = False
+        self.score = 0
+        self.load_checkpoint = False
+        self.score_history=[]
+        self.best_score=0
+        print("finished init drlhelper")
 class AiHelperContainer:
     use_ns3ai = True
     nodes: List[FLNodeStruct]= []
@@ -128,13 +148,7 @@ class AiHelperContainer:
     def __init__(self, config:config.Config, uid: int = 2333) -> None:
         self.rl = Ns3AIRL(uid, AiHelperEnv, AiHelperAct)
         self.FL_manager = fl.FLManager(config)
-        self.envNodeSelect = nds.FLNodeSelectionEnv(total_nodes= config.nodes.total, num_selected=config.nodes.participants_per_round + config.nodes.aggregators_per_round, num_features=7, target=config.fl.target_accuracy, max_rounds=config.fl.rounds)
-        self.observation, _= self.envNodeSelect.reset()
-        obs_shape = self.observation["current_state"].shape
-        print("obs_shape in init aicontainer", obs_shape)
-        self.agent = ag.Agent(input_shape=obs_shape ,n_actions=self.envNodeSelect.action_space.high.shape[0], env=self.envNodeSelect) 
-        self.done = False
-        self.cumulatedReward = 0
+        self.DRLmanager = DRLHelper(config)
         
         pass
 
@@ -159,23 +173,32 @@ class AiHelperContainer:
         act.numTrainers = config.nodes.participants_per_round
         
     def DRLSelection(self, act, config):
-        load_checkpoint = False
-        if (load_checkpoint):
-            self.agent.load_models()
+        num_aggregators = config.nodes.aggregators_per_round
+        num_trainers = config.nodes.participants_per_round
+        if (self.DRLmanager.load_checkpoint):
+            self.DRLmanager.agent.load_models()
         # print("nodes in DRL selection", self.nodes)
-        flat_obs= get_observation(self.nodes)
-        # print("flat_obs in DRLselection", flat_obs)
-        flat = flatten_nodes(flat_obs)
-        print ("flat in DRL selection shape", flat.shape)
-        action = self.agent.choose_action(flat)
+
+        
+
+        
+        self.DRLmanager.observation= dr.get_observation(self.nodes,config.nodes.total)
+        self.DRLmanager.observation = dr.adjust_observation_with_nodes(self.DRLmanager.observation,self.nodes)
+        
+        # print("flat_obs in DRLselection", self.DRLmanager.observation)
+
+        
+        flat = dr.flatten_nodes(self.DRLmanager.observation)
+        # print ("flat in DRL selection shape", flat.shape)
+        action = self.DRLmanager.agent.choose_action(flat)
         print ("action in DRL selection", action)
         
-        num_aggregators = config.nodes.aggregators_per_round
+        
         selected_aggregators = action[:num_aggregators]
-        selected_trainers = action[num_aggregators:]
+        selected_trainers = action[num_aggregators: num_aggregators+num_trainers]
 
-        print("Selected Aggregators:", selected_aggregators)
-        print("Selected Trainers:", selected_trainers)
+        # print("Selected Aggregators:", selected_aggregators)
+        # print("Selected Trainers:", selected_trainers)
         for i in range (len(selected_aggregators)) :
             act.selectedAggregators[i] = selected_aggregators[i]
         for i in range(len(selected_trainers)):
@@ -243,8 +266,8 @@ class AiHelperContainer:
             model = self.FL_manager.aggregate(nodeId, models,aggType)
             act.model = MLModel(modelId=model.modelId,nodeId=model.nodeId,taskId=model.taskId,round=model.round,type=model.type, positiveVote=model.positiveVote, negativeVote=model.negativeVote,evaluator1=model.evaluator1, evaluator2=model.evaluator2,evaluator3=model.evaluator3,aggregated=model.aggregated, aggModelId=model.aggModelId, accuracy=model.accuracy, acc1=model.acc1, acc2=model.acc2, acc3=model.acc3)
         if env.type == 0x06: #restround
-            print("***********  NEW ROUND ***************")   
-            n = self.FL_manager.resetRound(self.selectedTrainers,self.selectedAggregators)
+            print("***********  NEW ROUND ***************") 
+            n , self.observation  = self.FL_manager.resetRound(self.selectedTrainers,aggregators=self.selectedAggregators,manager=self.DRLmanager)
             act.numFLNodes = config.nodes.total
             # act.FLNodesInfo = []
             # print("updating all nodes")
@@ -260,7 +283,7 @@ class AiHelperContainer:
                     dropout = n[i].dropout,
                     malicious = n[i].malicious
                 ) 
-       
+            
         return act
 
 if __name__ == '__main__':

@@ -5,6 +5,7 @@ import numpy as np
 from .custom_observation_space import CustomObservationSpace
 from .custom_action_space import CustomActionSpace
 from numpy.random import default_rng
+import drl_utils as dr
 
 
 class FLNodeSelectionEnv(gym.Env):
@@ -39,7 +40,8 @@ class FLNodeSelectionEnv(gym.Env):
     def reset(self): #CALLED TO INITIATE NEW EPISODE
         #should return the observation of the initial state
         # We need the following line to seed self.np_random
-        csv_filename = "/home/rima/new/ns-allinone-3.38/ns-3.38/scratch/subdir/DRL/environment/observations.csv"  # Replace with your CSV file name
+        print("in reset env")
+        csv_filename = "generated_nodes.csv"  # Replace with your CSV file name
         with open(csv_filename, "r") as csv_file:
             csv_reader = csv.reader(csv_file)
             rows = list(csv_reader)
@@ -50,9 +52,9 @@ class FLNodeSelectionEnv(gym.Env):
         for row in current_state_rows:
             preprocessed_row = []
             for value in row[:self.num_features]:
-                if value == "True":
+                if value == "true":
                     preprocessed_row.append(1)
-                elif value == "False":
+                elif value == "false":
                     preprocessed_row.append(0)
                 else:
                     preprocessed_row.append(value)  # Keep other values unchanged
@@ -62,36 +64,38 @@ class FLNodeSelectionEnv(gym.Env):
         new_column = np.zeros((new_current_state.shape[0], 1))
         # Append the new column to the existing array
         current_state = np.append(new_current_state, new_column, axis=1) #added the accuracy of local model column
-        # print("current state : ",current_state.shape)
-        # print("selfcurrent : ", self.current_state.shape)
+        
+        print("current state : ",current_state.shape)
+        print("selfcurrent : ", self.current_state.shape)
         self.current_state[:self.total_nodes] = current_state
         # Create initial values for other parts of the observation
         current_observation = {
             "current_state": current_state,
             "FL_accuracy": 0.0
         }
+        print("shape in reset envDRL" ,current_state.shape )
         self._observation = current_observation
         info = {"msg" : "success"}
         return current_observation , info
 
-    def step(self, action, act):
+    def step(self, action, accuracies, nodes, losses, fl_accuracy):
+        #nodes are FL struct
         # Access the current_state attribute
         # print("in step function checking action" , action)
-        current_observation = self._get_obs()
-        self.current_state = current_observation["current_state"]  # Access the current_state attribute
-        self.current_fl_accuracy = current_observation["FL_accuracy"]
+        # current_observation = self._get_obs()
+        # self.current_state = current_observation["current_state"]  # Access the current_state attribute
+        # self.current_fl_accuracy = current_observation["FL_accuracy"]
         # getting updates from the network
-        updated_accuracies =act.accuracies
-        updated_nodes =act.nodes
-        updated_losses =act.losses
-        updated_fl_accuracy =act.fl_accuracy
+        print ("in step")
+        updated_nodes =dr.get_nodes_withaccuracy(nodes, self.total_nodes,accuracies)
+        updated_fl_accuracy =fl_accuracy
         # print ("in step function checking nodes from act", updated_nodes)
 
         # Update the state of the environment with received updates
-        next_observation = self.update_environment_state_with_network_updates(updated_nodes, updated_accuracies, updated_fl_accuracy)
-
+        next_observation = self.update_environment_state_with_network_updates(updated_nodes, fl_accuracy)
+        self.current_observation = next_observation
         # Simulate FL round and get rewards
-        node_rewards = self.calculate_reward(action,updated_losses)
+        node_rewards = self.calculate_reward(action,losses)
         agent_reward = sum(node_rewards)# or agent_reward = self.agent_reward(node_rewards) in case we change the way we calcultae the agent reward
         # Update the state of the environment
         self.current_round += 1
@@ -101,21 +105,15 @@ class FLNodeSelectionEnv(gym.Env):
         return next_observation, agent_reward,done, node_rewards 
 
    
-    def update_environment_state_with_network_updates(self,nodes,accuracies,FL_accuracy):
+    def update_environment_state_with_network_updates(self,nodes,FL_accuracy):
         # Update the state of the environment with received updates
         #check the shape of nodes if it includes accuracy
         nodes= nodes.astype(np.float32) # cast the array to accept npfloat
-        # print("in update env from step function printin accuracies",accuracies)
-        if nodes.shape[1] == self.num_features+1:
-            #no room for accuracy case nodes lines  and accuracies length the same
-            nodes_with_accuracies = np.hstack((nodes, accuracies.reshape(-1, 1)))
-        else:
-            #there is room for accuracy put accuracies in the last column
-            nodes[:, -1] = accuracies
         obs= {
             "current_state": nodes,
             "FL_accuracy": FL_accuracy
         }
+        self.current_observation = obs 
         return obs
     
     

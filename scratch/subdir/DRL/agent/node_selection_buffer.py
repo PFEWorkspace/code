@@ -28,7 +28,8 @@ class ReplayBuffer():
         # print ("im in store_transition")
         index = self.mem_cntr % self.mem_size
         # print("lest see index", index)
-        # print ("lets see state of store transition", state)
+        print ("lets see state of store transition", state)
+        print("self.statemem shape", self.state_memory.shape)
         self.state_memory[index] = state
         self.new_state_memory[index] = state_
         self.action_memory[index] = action

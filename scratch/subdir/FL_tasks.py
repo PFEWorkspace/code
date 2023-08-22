@@ -1,13 +1,16 @@
 import logging
 import random
+from gym.core import RewardWrapper
 import torch
 import copy
 import numpy as np
+from DRL.agent.node_selection_agent import Agent
+from DRL.environment.node_selection_env import FLNodeSelectionEnv
 from utils.CSVManager import CSVFileManager
-from run import MLModel, FLNodeStruct
+from run import DRLHelper, MLModel, FLNodeStruct
 from FL_model import Generator, Loader, Net, extract_weights
 from FL_node import Node, Report
-
+import drl_utils as dr
 import utils.dists as dists
 
 
@@ -278,7 +281,7 @@ class FLManager(object):
 
         return mlmodel
     
-    def resetRound(self, trainers:list, aggregators:list):
+    def resetRound(self, trainers:list, aggregators:list, manager : DRLHelper):
         self.round += 1
         print("round number: ",self.round)
         #calculate honesty
@@ -311,8 +314,46 @@ class FLManager(object):
 
         instances = self.nodesFileManager.retrieve_instances()  
         for i in range(0,self.config.nodes.total):
-            self.nodes[i].node = instances[i]    
-        return instances[0:self.config.nodes.total]
+            self.nodes[i].node = instances[i]   
+        
+        #update the agent
+        print ("update agent")
+        # print("instances",len(instances))
+        print(self.config.nodes.total)
+        new_observation = dr.get_observation(instances[0:self.config.nodes.total],self.config.nodes.total) # to add accuracies
+        new_accuracies = []
+        new_losses=[]
+        # print("new ibservtaion",new_observation)
+        for i in range(0, len(self.nodes)):
+            if i in trainers : 
+                new_accuracies.append(self.nodes[i].get_report(self.nodes[i].get_last_model().modelId).accuracy)
+                new_losses.append(self.nodes[i].get_report(self.nodes[i].get_last_model().modelId).loss)
+            else :
+                new_accuracies.append(0.0)
+                new_losses.append(0.0)
+        print("new accuracies" ,new_accuracies)
+        action= aggregators + trainers
+        updated_fl_accuracy =self.globalModel.accuracy
+        # remember state action 
+        next_observation , agent_reward,done, node_rewards =manager.envNodeSelect.step(action,new_accuracies,new_observation,new_losses,updated_fl_accuracy)
+        # print("reward", agent_reward)
+        manager.score += agent_reward
+        # print("score" , manager.score)
+        # obs = dr.flatten_observation(manager.observation)
+        # obs_ = dr.flatten_observation(next_observation)
+        
+        manager.agent.remember(manager.observation, action, agent_reward, manager.observation_, done)
+        manager.observation = manager.observation_
+        if not manager.load_checkpoint:
+            manager.agent.learn()
+        manager.score_history.append(manager.score)
+        print("history score", manager.score_history)
+        avg_score = np.mean(manager.score_history[-100:])
+        if avg_score > manager.best_score:
+            manager.best_score = avg_score
+            if not manager.load_checkpoint:
+                manager.agent.save_models()
+        return instances[0:self.config.nodes.total] , next_observation
 
     @staticmethod
     def flatten_weights(weights):

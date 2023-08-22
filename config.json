@@ -1,8 +1,8 @@
 {
     "nodes": {
-        "total":20,
-        "participants_per_round": 5,
-        "aggregators_per_round":5,
+        "total":100,
+        "participants_per_round": 30,
+        "aggregators_per_round":20,
         "bc":20,
         "test_partition": 0.2,
         "selection": "DRL",
@@ -24,7 +24,7 @@
         "target_accuracy": 99.9,
         "epochs": 5,
         "batch_size": 64,
-        "x" : 3,
+        "x" : 7,
         "alpha":0.5,
         "honesty_alpha":1,
         "honesty_beta":5,

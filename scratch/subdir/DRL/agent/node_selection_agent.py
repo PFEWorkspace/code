@@ -43,7 +43,7 @@ class Agent ():
         return actions
 
     def remember(self,state,action,reward,next_state,done):
-        # print("in remember checking state" , state)
+        print("in remember checking state" , state)
         self.memory.store_transition(state,action,reward,next_state,done)
 
     def update_network_parameters(self, tau=None):
