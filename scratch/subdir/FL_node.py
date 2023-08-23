@@ -207,7 +207,8 @@ class Node(object):
             weights[key] = 3 * weights[key]
 
     def updateHonestyTrainer(self,globalModel, globalAcc,config:Config):
-        print("previous honesty ", self.node.honesty)
+        # print("previous honesty ", self.node.honesty)
+        self.node.task = 0
         if self.node.dropout: 
             contrib = - config.fl.malus
         else:
@@ -220,7 +221,7 @@ class Node(object):
                 if(mlmodel.evaluator3 != -1):
                     acc = (acc + mlmodel.acc3)/2
                 contrib = - config.fl.honesty_beta * abs(acc - mlmodel.accuracy)
-        self.node.honesty = self.node.honesty + config.fl.honesty_alpha * contrib
+        self.node.honesty = round(self.node.honesty + config.fl.honesty_alpha * contrib, 3)
         return self.node.honesty            
 
     def contribution(self, local, globalModel):
@@ -240,16 +241,16 @@ class Node(object):
         # print("node {} contribution {}".format(self.node.nodeId, contribution))
         return contribution.item()
 
-    def updateHonestyAggregator(self, numEvals, numAgg, config:Config):
-        print(" true eval ", self.trueEvaluation," true agg ", self.trueAggregation, " false eval ", self.falseEvaluation, "false agg ", self.falseAggregation, " previous honesty ",self.node.honesty)
+    def updateHonestyAggregator(self, config:Config):
+        # print(" true eval ", self.trueEvaluation," true agg ", self.trueAggregation, " false eval ", self.falseEvaluation, "false agg ", self.falseAggregation, " previous honesty ",self.node.honesty)
+        self.node.task = 1
         if self.node.dropout:
-            print("i'm a dropout")
             contrib = - config.fl.malus
             self.node.honesty = self.node.honesty + config.fl.honesty_alpha * contrib
         else:
-            
+
             contrib = 0 if (self.numAggregations+self.numEvaluations)==0 else (config.fl.honesty_phi * self.trueEvaluation + self.trueAggregation - config.fl.honesty_gamma*(self.falseEvaluation+self.falseAggregation))/(self.numEvaluations+self.numAggregations) #(numEvals+numAgg)
-            self.node.honesty = self.node.honesty + config.fl.honesty_alpha * contrib
+            self.node.honesty = round(self.node.honesty + config.fl.honesty_alpha * contrib,3)
         return self.node.honesty 
     
 

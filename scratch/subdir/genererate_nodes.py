@@ -9,8 +9,8 @@ def generate_random_instance(instance_id):
     frequency = random.randint(5, 30) * 10
     transmission_rate = random.randint(15, 100) * 10
     task = random.choices([0, 1], weights=[0.7, 0.3])[0]
-    dropout = random.choices([1, 0], weights=[0.1, 0.9])[0]
-    malicious = random.choices([1, 0],weights=[0.1, 0.9])[0]
+    dropout = random.choices([1, 0], weights=[0,1])[0]
+    malicious = random.choices([1, 0],weights=[0,1])[0]
     return [instance_id, availability, honesty, dataset_size, frequency, transmission_rate, task, dropout, malicious]
 
 # Number of instances to generate

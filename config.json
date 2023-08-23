@@ -6,7 +6,10 @@
         "bc":40,
         "test_partition": 0.2,
         "selection": "score",
-        "source": "generated_nodes.csv" 
+        "source": "generated_nodes.csv",
+        "availability_percent": 0.8,
+        "dropout_percent":0.1,
+        "malicious_percent":0.1 
     },
     "data": {
         "loading": "static",

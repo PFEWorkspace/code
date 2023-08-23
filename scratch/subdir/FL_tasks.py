@@ -1,5 +1,6 @@
 import logging
 import random
+import csv
 import torch
 import copy
 import numpy as np
@@ -289,23 +290,17 @@ class FLManager(object):
         for index in trainers:
             # print("calculating honesty of node ",index)
             honesty = self.nodes[index].updateHonestyTrainer(self.model, self.globalModel.accuracy, self.config)
-            self.nodesFileManager.modify_instance_field(index,"honesty",round(honesty,3))
-            self.nodesFileManager.modify_instance_field(index,"task",0)
+            # self.nodesFileManager.modify_instance_field(index,"honesty",round(honesty,3))
+            # self.nodesFileManager.modify_instance_field(index,"task",0)
             print("node {} honesty {}".format(index,round(honesty,3)))
 
-            dropout = random.choices(["true", "false"], weights=[0.2, 0.8])[0]
-            malicious = random.choices(["true", "false"],weights=[0.2, 0.8])[0]
-            availability = random.choices
-            self.nodesFileManager.modify_instance_field(index,"dropout",dropout)
-            self.nodesFileManager.modify_instance_field(index,"malicious",malicious)
-
-        numEvals = sum(self.nodes[index].numEvaluations for index in aggregators)
-        numAggs= sum(self.nodes[index].numAggregations for index in aggregators) 
+        # numEvals = sum(self.nodes[index].numEvaluations for index in aggregators)
+        # numAggs= sum(self.nodes[index].numAggregations for index in aggregators) 
 
         for index in aggregators:
-            honesty = self.nodes[index].updateHonestyAggregator(numEvals, numAggs, self.config)
-            self.nodesFileManager.modify_instance_field(index,"honesty",round(honesty,3))
-            self.nodesFileManager.modify_instance_field(index,"task",1)
+            honesty = self.nodes[index].updateHonestyAggregator( self.config)
+            # self.nodesFileManager.modify_instance_field(index,"honesty",round(honesty,3))
+            # self.nodesFileManager.modify_instance_field(index,"task",1)
             print("node {} honesty {}".format(index,round(honesty,3)))
 
             self.nodes[index].numEvaluations = 0
@@ -314,15 +309,38 @@ class FLManager(object):
             self.nodes[index].falseEvaluation = 0
             self.nodes[index].trueAggregation = 0
             self.nodes[index].falseAggregation = 0
-            # dropout = random.choices(["true", "false"], weights=[0.1, 0.9])[0]
-            # malicious = random.choices(["true", "false"],weights=[0.05, 0.95])[0]
-            # self.nodesFileManager.modify_instance_field(index,"dropout",dropout)
-            # self.nodesFileManager.modify_instance_field(index,"malicious",malicious)
 
+        for node in self.nodes :
+            if node.node.nodeId not in trainers+aggregators:
+                node.node.task = -1
+
+        self.update_nodes_state_file()  
+        
         instances = self.nodesFileManager.retrieve_instances()  
         for i in range(0,self.config.nodes.total):
             self.nodes[i].node = instances[i]    
         return instances[0:self.config.nodes.total]
+
+    def update_nodes_state_file(self):
+        with open(self.config.nodes.source,"w",newline="") as file:
+            writer = csv.writer(file)
+
+            # Writing header row
+            header = ["nodeId", "availability", "honesty", "datasetSize", "freq", "transRate", "task", "dropout", "malicious"]
+            writer.writerow(header)
+
+            for node in self.nodes:
+                availability = random.choices([1, 0], weights=[self.config.nodes.availability_percent, 1-self.config.nodes.availability_percent])[0]        
+
+                if node.node.nodeId  < (self.config.nodes.dropout_percent + self.config.nodes.malicious_percent)* len(self.nodes):
+                    dropout = random.choices([1, 0], weights=[0.5,0.5])[0]
+                    malicious = random.choices([1, 0],weights=[0.5,0.5])[0]
+                else:
+                    dropout = 1 if node.node.dropout==True else 0
+                    malicious = 1 if node.node.malicious==True else 0
+                row = [node.node.nodeId, availability, node.node.honesty, node.node.datasetSize, node.node.freq, node.node.transRate, node.node.task, dropout, malicious]
+                writer.writerow(row)
+
 
     @staticmethod
     def flatten_weights(weights):
