@@ -1,11 +1,13 @@
+from collections import OrderedDict
 import os
 import select
 import torch as T
 import torch.nn.functional as F
 import torch.nn as nn
 import torch.optim as optim
-from torch.distributions.normal import Normal
+from torch.distributions import Normal, Categorical
 import numpy as np
+import drl_utils as dr
 
 class CriticNetwork(nn.Module):
     #beta learning rate, number of input dimensions from the environment 
@@ -99,10 +101,10 @@ class ValueNetwork(nn.Module):
 class ActorNetwork(nn.Module):
     def __init__(self,alpha,input_shape,max_actions,fc1_dims=256,fc2_dims=256,n_actions=2,name='actor',chkpt_dir='tmp/sac'):
         super(ActorNetwork,self).__init__()
-        print("started init actor")
+        print("started init actor n_actions",  n_actions, "max axctiosn", max_actions)
         self.input_dims = np.prod(input_shape)
         self.input_shape = input_shape
-        self.max_actions = max_actions
+        self.max_actions = max_actions # number of selected nodes
         self.fc1_dims = fc1_dims
         self.fc2_dims = fc2_dims
         self.n_actions = n_actions
@@ -132,20 +134,83 @@ class ActorNetwork(nn.Module):
         #normal distribution
         # self.distribution = Normal
     
-    def forward(self,state):
-        #layer 1
+    def sample_normal(self, state, num_selected_nodes, exploration_noise=0.025):
+        action_probs, action_mean, action_log_std = self.forward(state)
+        action_std = action_log_std.exp()
+
+        # Add exploration noise to logits
+        noisy_logits = action_mean + exploration_noise * action_std * T.randn_like(action_mean)
+        print("noisy shit", noisy_logits)
+        # Create a Categorical distribution using the noisy logits
+        action_dist = Categorical(action_probs)
+        print("actiondist", action_dist)
+        # Sample actions from the Categorical distribution
+        sampled_actions = action_dist.sample()
+        print("sampledddd",sampled_actions)
+        selected_indices = sampled_actions.nonzero().squeeze()
+        print("indices",len(selected_indices),"num_selected", num_selected_nodes)
+        count=1
+        while (len(selected_indices) < num_selected_nodes) or count <10:
+            count+=1
+            print("len", len(selected_indices), "num", num_selected_nodes)
+            print("pas assez de noeuds")
+            new_samples = action_dist.sample()
+            new_indices = new_samples.nonzero().squeeze()
+            print("new indices", new_indices)
+
+            # Convert the selected_indices list back to a tensor
+            selected_indices_tensor = T.tensor(selected_indices)
+
+            # Combine the selected indices and new indices while removing duplicates
+            combined_indices = T.cat((selected_indices_tensor, new_indices))
+            unique_combined_indices = T.unique(combined_indices)
+
+            # Convert the unique indices back to a Python list
+            selected_indices = unique_combined_indices
+            print("indices", selected_indices)
+
+        return selected_indices
+
+
+    def forward(self, state):
+        # Layer 1
         prob = self.fc1(state)
         prob = F.relu(prob)
         prob = self.fc2(prob)
         prob = F.relu(prob)
-        #layer 3
+
+        # Layer 3
         mu = self.mu(prob)
-        print("mu befor clamp",mu)
-        #layer 4
         sigma = self.sigma(prob)
-        sigma = T.clamp(sigma,min=self.reparam_noise,max=1)
-        print("mu and sigma in forward",mu,sigma)
-        return prob,mu,sigma
+
+        # Apply availability mask
+        state = dr.array_to_state(state, 8)
+        availability_mask = state[:, 1] != 0
+        availability_mask = availability_mask.float()
+
+        # Apply ReLU activation to mu to ensure non-negative values
+        mu = F.relu(mu)
+
+        # Scale the mu values to the range [0, 1]
+        scaled_actions = mu / self.input_shape[0]
+
+        # Calculate the probability of not selecting the node
+        prob_not_selected = 1 - scaled_actions
+
+        # Normalize the probabilities
+        total_probabilities = prob_not_selected + scaled_actions
+        selection_probabilities = T.stack(((prob_not_selected / total_probabilities), scaled_actions / total_probabilities), dim=1)
+        selection_probabilities = T.clamp(selection_probabilities, min=0)
+
+        # print("probabilities", selection_probabilities)
+
+        return selection_probabilities, mu, sigma
+
+
+
+
+
+
     
     # def sample_normal(self,state,reparameterize=True):
     #     mu,sigma = self.forward(state)
@@ -201,7 +266,10 @@ class ActorNetwork(nn.Module):
     def sample_Relu(self, state, num_selected_nodes,reparameterize=True):
         action_probs ,action_mean, action_log_std = self.forward(state)  # Output of the actor network
         action_std = action_log_std.exp()
-
+        
+        print("action_probs:", action_probs)
+        print("action_mean:", action_mean)
+        print("action_log_std:", action_log_std)
         # Sample actions from the Gaussian distribution
         normal_distribution = Normal(action_mean, action_std)
         if reparameterize:
@@ -241,52 +309,94 @@ class ActorNetwork(nn.Module):
 
         return selected_indices
 
-    def sample_normal(self, state, num_selected_nodes,reparameterize=True, exploration_noise=0.8):
-        print("debut of sample normal")
-        action_probs,action_mean, action_log_std = self.forward(state)  # Output of the actor network
+    def sample_normal1(self, state, num_selected_nodes, reparameterize=True, exploration_noise=0.8):
+        action_probs, action_mean, action_log_std = self.forward(state)
         action_std = action_log_std.exp()
-        print ("in sample normal got action probs",action_probs)
+
+        print("Action mean:", action_mean)
+        print("Action log std:", action_log_std)
+
+        # Sample actions from the Gaussian distribution
+        if reparameterize:
+            sampled_actions = action_mean + action_std * T.randn_like(action_mean)  # Reparameterization trick
+        else:
+            sampled_actions = action_mean
+
+        print("Sampled actions before threshold:", sampled_actions)
+
+        # Clip actions to ensure they are within the desired range
+        sampled_actions = T.clamp(sampled_actions, -1.0, 1.0)
+
+        print("Sampled actions after clamp:", sampled_actions)
+
+        # Apply the threshold to convert actions into 0s and 1s
+        threshold = 0.5  # Adjust this threshold as needed
+        selected_nodes = (sampled_actions > threshold).type(T.int64)
+
+        print("Selected nodes after threshold:", selected_nodes)
+
+        # Ensure the selected nodes are within the valid range of available nodes
+        state = dr.array_to_state(state,8)
+        availability_mask = state[:, 1] != 0
+        availability_mask = availability_mask.long()
+
+        selected_nodes *= availability_mask.view(-1, 1)
+
+        print("Selected nodes after availability mask:", selected_nodes)
+
+        # Count the number of selected nodes for each sample in the batch
+        num_selected = selected_nodes.sum(dim=1)
+
+        print("Number of selected nodes:", num_selected)
+
+        # If the number of selected nodes is less than the desired number, select additional nodes
+        remaining_nodes = num_selected_nodes - num_selected
+        additional_indices = T.randint(0, availability_mask.sum(), (selected_nodes.shape[0], remaining_nodes.max()))
+        available_indices = T.nonzero(availability_mask)[:, 0]
+        selected_indices = available_indices[additional_indices]
+        for i in range(selected_nodes.shape[0]):
+            selected_nodes[i, selected_indices[i]] = 1
+
+        print("Additional selected indices:", selected_indices)
+
+        return selected_nodes
+    
+    def sample_normal2(self, state, num_selected_nodes, reparameterize=True, exploration_noise=0.8):
+        action_probs, action_mean, action_log_std = self.forward(state)  # Output of the actor network
+        action_std = action_log_std.exp()
+        print('zction prob s from forward',action_probs)
         # Sample actions from the Gaussian distribution
         normal_distribution = Normal(action_mean, action_std)
         if reparameterize:
             sampled_actions = normal_distribution.rsample()  # sample with additional noise
         else:
             sampled_actions = normal_distribution.sample()
-        total_nodes = self.input_shape[0]
-        sampled_actions += T.tensor(exploration_noise).to(self.device) * T.randn_like(sampled_actions)
+        print("sampled before tensore", sampled_actions)
 
+        # Apply exploration noise
+        sampled_actions += T.tensor(exploration_noise).to(self.device) * T.randn_like(sampled_actions)
+        print("sampled", sampled_actions)
         # Apply tanh activation to actions to ensure they are between -1 and 1
         transformed_actions = T.tanh(sampled_actions)
-        print("transformed_actions sample normal", transformed_actions)
+        print("transformened",transformed_actions)
+        # Scale the transformed actions to the range [0, 1] for node selection
+        scaled_actions = (transformed_actions + 1.0) / 2.0
+        print(scaled_actions)
+        # Apply availability mask
+        state = dr.array_to_state(state,8)
+        availability_mask = state[:, 1] != 0
+        availability_mask = availability_mask.float()
+        scaled_actions *= availability_mask.view(-1, 1)
 
-        # Scale the transformed actions to the range [0, total_nodes) for node selection
-        scaled_actions = (transformed_actions + 1.0) * (total_nodes - 1) / 2.0
-        print("scaled_actions sample normal", scaled_actions)
-
-        # Convert scaled actions to integer indices
-        selected_indices = scaled_actions.type(T.int64)
-        # print("selected indices before unique", selected_indices)
-
-        # Ensure no repetition in selected indices
-        selected_indices = np.unique(selected_indices.cpu().numpy())
-        # print("selected indices after unique", selected_indices)
-
-        # Find the indices that are most closely aligned with the transformed actions
-        additional_indices = np.argsort(np.abs(scaled_actions.detach().cpu().numpy() - selected_indices[:, None]), axis=1)
-
-        # Select additional indices that are unique and not already selected
-        additional_indices = additional_indices.flatten()
-        additional_indices = additional_indices[np.isin(additional_indices, selected_indices, invert=True)]
-        additional_indices = additional_indices[:num_selected_nodes - len(selected_indices)]
-
-        # Add the additional indices to the selected indices
-        selected_indices = np.concatenate((selected_indices, additional_indices))
-
-        # Truncate selected indices if exceeded the total number of nodes
-        selected_indices = selected_indices[:total_nodes]
-        # print("selected indices after adding additional indices", selected_indices)
+        # Select the top `num_selected_nodes` indices with the highest scaled action values
+        selected_indices = scaled_actions.argsort(descending=True)[:, :num_selected_nodes]
 
         return selected_indices
+    
+
+
+
+
 
     def save_checkpoint(self):
         print('...saving checkpoint...')

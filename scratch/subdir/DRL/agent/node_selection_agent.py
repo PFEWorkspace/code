@@ -10,7 +10,7 @@ DISCOUNT_RATE = 0.99
 LEARNING_RATE = 10 ** -4
 SOFT_UPDATE_INTERPOLATION_FACTOR = 0.01  
 class Agent ():
-    def __init__(self,env,alpha=ALPHA_INITIAL,beta=LEARNING_RATE,input_shape=[8],gamma = DISCOUNT_RATE,n_actions=2,max_size=1000000,tau=SOFT_UPDATE_INTERPOLATION_FACTOR,
+    def __init__(self,env,alpha=ALPHA_INITIAL,beta=LEARNING_RATE,input_shape=[8],gamma = DISCOUNT_RATE,n_actions=2,max_actions=1,max_size=1000000,tau=SOFT_UPDATE_INTERPOLATION_FACTOR,
     layer1_size=256,layer2_size=256,batch_size=256,reward_scale=2):
         os.makedirs('tmp/sac', exist_ok=True)
         self.gamma = gamma
@@ -19,10 +19,11 @@ class Agent ():
         # print ("replay buffer passed")
         self.batch_size = batch_size
         self.n_actions = n_actions
+        self.max_actions= max_actions
         self.scale = reward_scale
         # self.actor = ActorNetwork(alpha,input_shape,n_actions=n_actions,name='actor',max_actions=env.action_space.high) #type: ignore
         
-        self.actor = ActorNetwork(alpha, input_shape,  n_actions=n_actions, name='actor', max_actions=env.action_space.high.shape[0])
+        self.actor = ActorNetwork(alpha, input_shape,  n_actions=n_actions, name='actor', max_actions=self.max_actions)
         # print ("actor passed")
         self.critic_1 = CriticNetwork(beta, input_shape , n_actions=n_actions, name='critic_1')
         # print ("critic 1 passed")
@@ -34,12 +35,13 @@ class Agent ():
         # print ("target value passed")
         self.update_network_parameters(tau=1)
 
-    def choose_action(self,observation):
-        # print("in choose action printing observation",observation)
-        state = T.tensor(observation,dtype=T.float).to(self.actor.device)
-        print("state in choose action", state.shape)
-        actions = self.actor.sample_normal(state,self.n_actions)
-        print("got the action passe sample_normal :",actions)
+    def choose_action(self, observation):
+        state = T.tensor(observation, dtype=T.float).to(self.actor.device)
+        actions = self.actor.sample_normal(state, self.max_actions)
+
+        # Apply the availability mask
+        availability_mask = state[:, 1] != 0
+        actions = actions * availability_mask.unsqueeze(1).float()
 
         return actions
 
@@ -84,7 +86,8 @@ class Agent ():
             return
         
         state,action,reward,new_state,done = self.memory.sample_buffer(self.batch_size)
-
+        availability_mask = state[:, 1] != 0
+        action = action * availability_mask.unsqueeze(1).float()
         reward = T.tensor(reward,dtype=T.float).to(self.actor.device)
         done = T.tensor(done).to(self.actor.device)
         state_ = T.tensor(new_state,dtype=T.float).to(self.actor.device)
@@ -95,8 +98,12 @@ class Agent ():
         value_ = self.target_value(state_).view(-1)
         value_[done] = 0.0
 
-        actions, log_probs = self.actor.sample_normal(state,self.n_actions)
+        actions, log_probs = self.actor.sample_normal(state,self.max_actions)
         log_probs = log_probs.view(-1)
+        availability_mask = state[:, 1] != 0
+        state = state * availability_mask.unsqueeze(1).float()
+        action = action * availability_mask.unsqueeze(1).float()
+
         q1_new_policy = self.critic_1.forward(state,actions)
         q2_new_policy = self.critic_2.forward(state,actions)
         critic_value = T.min(q1_new_policy,q2_new_policy) # to set more stability and get rid of over-estimating bias
@@ -108,8 +115,11 @@ class Agent ():
         value_loss.backward (retain_graph=True)
         self.value_optimizer.step() # type: ignore 
 
-        actions ,log_probs = self.actor.sample_normal (state,self.n_actions)
+        actions ,log_probs = self.actor.sample_normal (state,self.max_actions)
         log_probs = log_probs.view(-1)
+        availability_mask = state[:, 1] != 0
+        state = state * availability_mask.unsqueeze(1).float()
+        action = action * availability_mask.unsqueeze(1).float()
         q1_new_policy = self.critic_1.forward(state,actions)
         q2_new_policy = self.critic_2.forward(state,actions)
         critic_value = T.min(q1_new_policy,q2_new_policy)

@@ -10,18 +10,21 @@ class CustomActionSpace(spaces.Space):
 
     @property
     def shape(self):
-        return (self.num_selected,)
+        return (self.total_nodes,)
 
     def sample(self):
         action = np.random.choice(self.total_nodes, size=self.num_selected, replace=False)
-        return action
+        result = np.zeros(self.total_nodes)
+        for i in action : 
+            result[i] = 1
+        return result, action
 
 # Create the custom action space
-total_nodes = 15
-num_selected = 5
-custom_action_space = CustomActionSpace(total_nodes, num_selected)
-print("action space high",custom_action_space.high.shape[0])
-print("sample",custom_action_space.sample() )
+# total_nodes = 15
+# num_selected = 5
+# custom_action_space = CustomActionSpace(20, 12)
+# print("action space high",custom_action_space.high.shape)
+# print("sample",custom_action_space.sample() )
 
 # # Initialize self.current_state with zeros for the availability column and specific values for the rest of the columns
 # current_state = np.zeros((total_nodes, num_selected + 1))

@@ -73,3 +73,8 @@ def array_to_dict(tab, features):
         "FL_accuracy" : tab[-1]
     }
     return dict_obs
+def array_to_state(tab, features):
+    state_rows = np.int16((len(tab))/features)
+    state = tab[0:(len(tab))].reshape(state_rows,features)
+    # print("here si ur state", state)
+    return state
