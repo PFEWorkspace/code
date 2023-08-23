@@ -129,11 +129,10 @@ class AiHelperContainer:
     def exactSelection(self, act,config):
         alpha = config.fl.alpha 
         nodes_scores = []
-        D = 0
-        D = sum(node.datasetSize for node in self.nodes)
+       
         for node in self.nodes:
             if node.availability: 
-                score = node.datasetSize/D *(alpha * node.honesty - (1 - alpha) * node.get_cost(node.datasetSize, node.freq, node.transRate, config.model.size))
+                score = alpha * node.honesty - (1 - alpha) * node.get_cost(node.datasetSize, node.freq, node.transRate, config.model.size)
                 nodes_scores.append({"nodeId":node.nodeId , "score": score})
         sorted_indexes =sorted(nodes_scores, key=lambda x: x["score"], reverse=True) # np.argsort([score for _, score in node_scores])[::-1]
         # print(str(sorted_indexes))
