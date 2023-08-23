@@ -1,9 +1,9 @@
 {
     "nodes": {
-        "total":100,
-        "participants_per_round": 30,
-        "aggregators_per_round":20,
-        "bc":40,
+        "total":50,
+        "participants_per_round": 10,
+        "aggregators_per_round":7,
+        "bc":20,
         "test_partition": 0.2,
         "selection": "score",
         "source": "generated_nodes.csv",
@@ -23,12 +23,12 @@
         }
     },
     "federated_learning": {
-        "rounds": 20,
+        "rounds": 30,
         "target_accuracy": 99.9,
         "epochs": 5,
         "batch_size": 64,
-        "x" : 10,
-        "alpha":0.5,
+        "x" : 3,
+        "alpha":0.2,
         "honesty_alpha":1,
         "honesty_beta":3,
         "honesty_gamma":10,
