@@ -134,22 +134,18 @@ class ActorNetwork(nn.Module):
     
     def forward(self,state):
         #layer 1
-        print("in forward printing state", state.shape)
         prob = self.fc1(state)
-        print ("passef actor forward fc1", prob)
-
         prob = F.relu(prob)
-        #layer 2
-        print ("passef actor forward RELU")
         prob = self.fc2(prob)
         prob = F.relu(prob)
         #layer 3
         mu = self.mu(prob)
+        print("mu befor clamp",mu)
         #layer 4
         sigma = self.sigma(prob)
         sigma = T.clamp(sigma,min=self.reparam_noise,max=1)
         print("mu and sigma in forward",mu,sigma)
-        return mu,sigma
+        return prob,mu,sigma
     
     # def sample_normal(self,state,reparameterize=True):
     #     mu,sigma = self.forward(state)
@@ -202,13 +198,17 @@ class ActorNetwork(nn.Module):
         # selected_indices = selected_indices[:total_nodes]
 
         # return selected_indices
-    def sample_Relu(self, state, num_selected_nodes):
-        action_mean, action_log_std = self.forward(state)  # Output of the actor network
+    def sample_Relu(self, state, num_selected_nodes,reparameterize=True):
+        action_probs ,action_mean, action_log_std = self.forward(state)  # Output of the actor network
         action_std = action_log_std.exp()
 
         # Sample actions from the Gaussian distribution
         normal_distribution = Normal(action_mean, action_std)
-        sampled_actions = normal_distribution.rsample()
+        if reparameterize:
+            sampled_actions = normal_distribution.rsample()  # sample with additional noise
+        else:
+            sampled_actions = normal_distribution.sample()
+        
         total_nodes = self.input_shape[0]
 
         # Apply ReLU activation to actions to increase the range
@@ -241,15 +241,19 @@ class ActorNetwork(nn.Module):
 
         return selected_indices
 
-    def sample_normal(self, state, num_selected_nodes):
+    def sample_normal(self, state, num_selected_nodes,reparameterize=True, exploration_noise=0.8):
         print("debut of sample normal")
-        action_mean, action_log_std = self.forward(state)  # Output of the actor network
+        action_probs,action_mean, action_log_std = self.forward(state)  # Output of the actor network
         action_std = action_log_std.exp()
-        print ("in sample normal got mean",action_mean)
+        print ("in sample normal got action probs",action_probs)
         # Sample actions from the Gaussian distribution
         normal_distribution = Normal(action_mean, action_std)
-        sampled_actions = normal_distribution.rsample()
+        if reparameterize:
+            sampled_actions = normal_distribution.rsample()  # sample with additional noise
+        else:
+            sampled_actions = normal_distribution.sample()
         total_nodes = self.input_shape[0]
+        sampled_actions += T.tensor(exploration_noise).to(self.device) * T.randn_like(sampled_actions)
 
         # Apply tanh activation to actions to ensure they are between -1 and 1
         transformed_actions = T.tanh(sampled_actions)

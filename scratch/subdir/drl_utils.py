@@ -65,3 +65,11 @@ def adjust_observation_with_nodes(observation, nodes):
             row[1] = 0.0
             
     return observation
+def array_to_dict(tab, features):
+    state_rows = np.int16((len(tab)-1)/features)
+    state = tab[0:(len(tab)-1)].reshape(state_rows,features)
+    dict_obs={
+        "current_state" : state,
+        "FL_accuracy" : tab[-1]
+    }
+    return dict_obs

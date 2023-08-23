@@ -5,8 +5,12 @@ import numpy as np
 from .node_selection_buffer import ReplayBuffer
 from .node_selection_networks import ActorNetwork, CriticNetwork, ValueNetwork
 
+ALPHA_INITIAL = 1.            
+DISCOUNT_RATE = 0.99
+LEARNING_RATE = 10 ** -4
+SOFT_UPDATE_INTERPOLATION_FACTOR = 0.01  
 class Agent ():
-    def __init__(self,env,alpha=0.003,beta=0.0003,input_shape=[8],gamma = 0.99,n_actions=2,max_size=1000000,tau=0.005,
+    def __init__(self,env,alpha=ALPHA_INITIAL,beta=LEARNING_RATE,input_shape=[8],gamma = DISCOUNT_RATE,n_actions=2,max_size=1000000,tau=SOFT_UPDATE_INTERPOLATION_FACTOR,
     layer1_size=256,layer2_size=256,batch_size=256,reward_scale=2):
         os.makedirs('tmp/sac', exist_ok=True)
         self.gamma = gamma
@@ -30,9 +34,6 @@ class Agent ():
         # print ("target value passed")
         self.update_network_parameters(tau=1)
 
-    def get_selected(self ,input_list):
-        indices_of_ones = [index for index, value in enumerate(input_list) if value == 1.0]
-        return indices_of_ones
     def choose_action(self,observation):
         # print("in choose action printing observation",observation)
         state = T.tensor(observation,dtype=T.float).to(self.actor.device)

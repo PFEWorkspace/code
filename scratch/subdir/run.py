@@ -16,10 +16,7 @@ numMaxTrainers = 150
 numMaxAggregators = 150
 numMaxBCNodes = 100
 numMaxModelsToAgg= 20
-episode_numbers = []
-total_rewards = []
-actor_losses = []
-critic_losses = []
+actions =[]
 
 np.set_printoptions(precision=2, suppress=True)
 # Set up parser
@@ -193,7 +190,8 @@ class AiHelperContainer:
         action = self.DRLmanager.agent.choose_action(flat)
         print ("action in DRL selection", action)
         
-        
+        actions.append(action)
+        print("actions thru epidsodes",actions)
         selected_aggregators = action[:num_aggregators]
         selected_trainers = action[num_aggregators: num_aggregators+num_trainers]
 
