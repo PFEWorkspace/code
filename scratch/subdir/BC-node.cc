@@ -228,9 +228,43 @@ BCNode::Selection(){
     NS_LOG_INFO("received " << bc->GetReceivedCandidatures() << " on " << bc->getNumFLNodes() << " ,starting the selection");
     AiHelper* ai = AiHelper::getInstance();
     ai->Selection(); //the selected nodes are set in the bc
+    
+    //save the selection results on the blockchain
+    // Create RapidJSON objects
+    rapidjson::Document document;
+    document.SetObject();
+    rapidjson::Value value;
+    value = SELECTION;
+    document.AddMember("message_type",value, document.GetAllocator());
+    // Create RapidJSON arrays to store the integer lists
+    rapidjson::Value trainersArray(rapidjson::kArrayType);
+    int numSelectedTrainers = bc->getNumTrainers();
+    int id;
+    for(int i=0; i < numSelectedTrainers; i++){
+        id =bc->getTrainer(i);
+        trainersArray.PushBack(id, document.GetAllocator());
+    }
+
+    rapidjson::Value aggregatorsArray(rapidjson::kArrayType);
+    int numSelectedAgg = bc->getNumAggregators();
+    for(int i=0; i < numSelectedAgg; i++){
+        id =bc->getAggregator(i);
+        aggregatorsArray.PushBack(id, document.GetAllocator());
+    }
+
+    // Add arrays to the main object
+    document.AddMember("trainers", trainersArray, document.GetAllocator());
+    document.AddMember("aggregators", aggregatorsArray, document.GetAllocator());
+
+    // Serialize to JSON string
+    rapidjson::StringBuffer buffer;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+    document.Accept(writer);
+    bc->WriteTransaction(bc->getCurrentBlockId(),GetNode()->GetId(),document);
+
     // write the selection message 
     rapidjson::Document d;
-    rapidjson::Value value;
+    
     d.SetObject(); 
     value = SELECTION;
     d.AddMember("message_type", value, d.GetAllocator());
@@ -238,8 +272,8 @@ BCNode::Selection(){
     d.AddMember("task", value, d.GetAllocator());
     // get selected nodes addresses
     std::vector<Ipv4Address> adrs;
-    int numSelectedTrainers = bc->getNumTrainers();
-    int id;
+    numSelectedTrainers = bc->getNumTrainers();
+   
     for(int i=0; i < numSelectedTrainers; i++){
         id =bc->getTrainer(i);
         adrs.push_back(bc->getFLAddress(id));
