@@ -167,12 +167,14 @@ class ActorNetwork(nn.Module):
 
             # Convert the unique indices back to a Python list
             selected_indices = unique_combined_indices
-
+        print(selected_indices)
         selected_indices = np.array(selected_indices)
+        print(selected_indices)
         if len(selected_indices) < num_selected_nodes:
             additional_indices = np.random.choice(availability_mask.nonzero().squeeze(), size=num_selected_nodes - len(selected_indices), replace=False)
+            print(additional_indices)
             selected_indices = np.concatenate((selected_indices, additional_indices))
-
+            print("finished sample_normal")
         return selected_indices
 
 

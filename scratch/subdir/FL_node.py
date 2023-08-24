@@ -56,7 +56,7 @@ class Node(object):
             return argv
 
 
-    def set_data(self, data, config):
+    def set_data(self, data, testset,evaluationset, config):
         # Extract from config
         test_partition = self.test_partition = config.nodes.test_partition
 
@@ -65,8 +65,9 @@ class Node(object):
 
         # Extract trainset, testset (if applicable)
         self.trainset = data[:int(len(self.data) * (1 - test_partition))]
-        self.testset = data[int(len(self.data) * (1 - test_partition)):]
-       
+        self.testset = testset
+        self.evaluationSet = evaluationset
+
     def configure(self, config):
         # configure the node before a training, getting the last global model
         model_path = config.paths.model
@@ -96,6 +97,15 @@ class Node(object):
         testloader = FL_model.get_testloader(self.testset, self.batch_size)
         # Generate report for server
         self.loss, accuracy = FL_model.test(self.model, testloader)
+
+        if self.node.malicious:
+            self.loss = 0.5*self.loss 
+            if accuracy < 60:
+                accuracy = 1.5 * accuracy
+            elif accuracy < 83 :
+                accuracy = 1.2 * accuracy 
+            else:
+                accuracy = 99
         #creating the MLModel       
         report_id = fileManager.get_instance_id('modelId') + 1
         mlmodel = MLModel(
@@ -121,15 +131,20 @@ class Node(object):
         return self.reports[-1]
     
     def evaluate(self, model):
-        testloader = FL_model.get_testloader(self.testset, self.batch_size)
+        testloader = FL_model.get_testloader(self.evaluationSet, self.batch_size)
         loss, accuracy = FL_model.test(model, testloader)
+        if self.node.malicious:
+            loss = 1.5* loss
+            accuracy = 0.7 * accuracy if accuracy > 83 else 1.2*accuracy 
         return loss, accuracy
 
     
     def aggregate(self, reports, aggType, numRound, fileManager:CSVFileManager, evaluation=False):
 
         updated_weights = self.federated_averaging(reports)
-        
+        if self.node.malicious:
+            self.alter_weights(updated_weights)  
+
         if evaluation :
             aggModel = copy.deepcopy(self.model)
             FL_model.load_weights(aggModel,updated_weights)
@@ -139,7 +154,7 @@ class Node(object):
             FL_model.load_weights(self.model, updated_weights) #putting the new weights in the model for this node
             # Test global model accuracy
             
-            testloader = FL_model.get_testloader(self.testset, self.batch_size)
+            testloader = FL_model.get_testloader(self.evaluationSet, self.batch_size)
             self.loss, accuracy = FL_model.test(self.model, testloader)
         
             #creating the MLModel       
@@ -187,21 +202,26 @@ class Node(object):
 
         return weights_avg
     
-    def updateHonestyTrainer(self,globalModel, globalAcc,config:Config):
-        if self.node.dropout: 
-            contrib = config.fl.malus
-        else:
+    def alter_weights(self, weights):
+        for key in weights.keys():
+            weights[key] = 3 * weights[key]
 
+    def updateHonestyTrainer(self,globalModel, globalAcc,config:Config):
+        # print("previous honesty ", self.node.honesty)
+        self.node.task = 0
+        if self.node.dropout: 
+            contrib = - config.fl.malus
+        else:
             mlmodel = self.get_last_model()
             net = self.get_net(mlmodel.modelId)           
             if mlmodel.positiveVote > mlmodel.negativeVote: #the model was valid 
                 contrib = self.contribution(net, globalModel)
             else:
-                acc = (mlmodel.acc1+ mlmodel.acc2)/ 2
+                acc = (mlmodel.acc1 + mlmodel.acc2)/ 2
                 if(mlmodel.evaluator3 != -1):
                     acc = (acc + mlmodel.acc3)/2
                 contrib = - config.fl.honesty_beta * abs(acc - mlmodel.accuracy)
-        self.node.honesty = self.node.honesty + config.fl.honesty_alpha * contrib
+        self.node.honesty = round(self.node.honesty + config.fl.honesty_alpha * contrib, 3)
         return self.node.honesty            
 
     def contribution(self, local, globalModel):
@@ -221,10 +241,16 @@ class Node(object):
         # print("node {} contribution {}".format(self.node.nodeId, contribution))
         return contribution.item()
 
-    def updateHonestyAggregator(self, numEvals, numAgg, config:Config):
-        print(" true eval ", self.trueEvaluation," true agg ", self.trueAggregation, " fasle eval ", self.falseEvaluation, "false agg ", self.falseAggregation, " total eval ", numEvals," total agg", numAgg)
-        contrib = (config.fl.honesty_phi * self.trueEvaluation + self.trueAggregation - config.fl.honesty_gamma*(self.falseEvaluation+self.falseAggregation))/(numEvals+numAgg)
-        self.node.honesty = self.node.honesty + 3 * config.fl.honesty_alpha * contrib
+    def updateHonestyAggregator(self, config:Config):
+        # print(" true eval ", self.trueEvaluation," true agg ", self.trueAggregation, " false eval ", self.falseEvaluation, "false agg ", self.falseAggregation, " previous honesty ",self.node.honesty)
+        self.node.task = 1
+        if self.node.dropout:
+            contrib = - config.fl.malus
+            self.node.honesty = self.node.honesty + config.fl.honesty_alpha * contrib
+        else:
+
+            contrib = 0 if (self.numAggregations+self.numEvaluations)==0 else (config.fl.honesty_phi * self.trueEvaluation + self.trueAggregation - config.fl.honesty_gamma*(self.falseEvaluation+self.falseAggregation))/(self.numEvaluations+self.numAggregations) #(numEvals+numAgg)
+            self.node.honesty = round(self.node.honesty + config.fl.honesty_alpha * contrib,3)
         return self.node.honesty 
     
 

@@ -228,9 +228,43 @@ BCNode::Selection(){
     NS_LOG_INFO("received " << bc->GetReceivedCandidatures() << " on " << bc->getNumFLNodes() << " ,starting the selection");
     AiHelper* ai = AiHelper::getInstance();
     ai->Selection(); //the selected nodes are set in the bc
+    
+    //save the selection results on the blockchain
+    // Create RapidJSON objects
+    rapidjson::Document document;
+    document.SetObject();
+    rapidjson::Value value;
+    value = SELECTION;
+    document.AddMember("message_type",value, document.GetAllocator());
+    // Create RapidJSON arrays to store the integer lists
+    rapidjson::Value trainersArray(rapidjson::kArrayType);
+    int numSelectedTrainers = bc->getNumTrainers();
+    int id;
+    for(int i=0; i < numSelectedTrainers; i++){
+        id =bc->getTrainer(i);
+        trainersArray.PushBack(id, document.GetAllocator());
+    }
+
+    rapidjson::Value aggregatorsArray(rapidjson::kArrayType);
+    int numSelectedAgg = bc->getNumAggregators();
+    for(int i=0; i < numSelectedAgg; i++){
+        id =bc->getAggregator(i);
+        aggregatorsArray.PushBack(id, document.GetAllocator());
+    }
+
+    // Add arrays to the main object
+    document.AddMember("trainers", trainersArray, document.GetAllocator());
+    document.AddMember("aggregators", aggregatorsArray, document.GetAllocator());
+
+    // Serialize to JSON string
+    rapidjson::StringBuffer buffer;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+    document.Accept(writer);
+    bc->WriteTransaction(bc->getCurrentBlockId(),GetNode()->GetId(),document);
+
     // write the selection message 
     rapidjson::Document d;
-    rapidjson::Value value;
+    
     d.SetObject(); 
     value = SELECTION;
     d.AddMember("message_type", value, d.GetAllocator());
@@ -238,8 +272,8 @@ BCNode::Selection(){
     d.AddMember("task", value, d.GetAllocator());
     // get selected nodes addresses
     std::vector<Ipv4Address> adrs;
-    int numSelectedTrainers = bc->getNumTrainers();
-    int id;
+    numSelectedTrainers = bc->getNumTrainers();
+   
     for(int i=0; i < numSelectedTrainers; i++){
         id =bc->getTrainer(i);
         adrs.push_back(bc->getFLAddress(id));
@@ -357,7 +391,7 @@ BCNode::TreatModel(MLModel model, Ipv4Address source, bool reschedule){
         bc->RemoveTask(sourceId);
         // NS_LOG_INFO("task removed");
     }
-    NS_LOG_INFO("model type "<< model.type << " positive vote "<< model.positiveVote<< " negative vote "<< model.negativeVote);
+    // NS_LOG_INFO("model type "<< model.type << " positive vote "<< model.positiveVote<< " negative vote "<< model.negativeVote);
     
     switch(model.type){
     case LOCAL:
@@ -407,7 +441,7 @@ BCNode::TreatModel(MLModel model, Ipv4Address source, bool reschedule){
                                 models =bc->getxModelsToAgg(bc->GetModelsToAggAtOnce());
                                 NS_LOG_INFO("AGGREGATION GLOBAL ");
                                 Aggregation(models,aggId,GLOBAL);
-                        }else if(bc->getModelsToAggSize()+ bc->getNumAggTasksAwaiting()>0 && !bc->lastagg){
+                        }else if(bc->getModelsToAggSize()+ bc->getNumAggTasksAwaiting()>0 && !bc->lastagg && !bc->MaxDelayPassed()){
                              NS_LOG_INFO("reschedule local");
                             Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(bc->GetStillDelay()),[this, model,source](){TreatModel(model,source, true);});
                         }
@@ -432,14 +466,14 @@ BCNode::TreatModel(MLModel model, Ipv4Address source, bool reschedule){
                         NS_LOG_INFO("AGGREGATION INTERMEDIAIRE");
                         Aggregation(models,aggId,INTERMEDIAIRE);
                 }else {
-                    NS_LOG_INFO("models size " <<bc->getModelsToAggSize() << " tasks awaiting "<< bc->getNumAggTasksAwaiting() <<" "<< bc->MaxDelayPassed() << bc->lastagg);
+                    // NS_LOG_INFO("models size " <<bc->getModelsToAggSize() << " tasks awaiting "<< bc->getNumAggTasksAwaiting() <<" "<< bc->MaxDelayPassed() << bc->lastagg);
 
                     if(bc->getModelsToAggSize()>0 && bc->GetModelsToAggAtOnce()>= bc->getModelsToAggSize() && bc->getNumAggTasksAwaiting()==0 && bc->MaxDelayPassed() && !bc->lastagg){
                         models =bc->getxModelsToAgg(bc->GetModelsToAggAtOnce());
                         NS_LOG_INFO("AGGREGATION GLOBAL");
                         Aggregation(models,aggId,GLOBAL);
                     }else {
-                        if(bc->getModelsToAggSize()+ bc->getNumAggTasksAwaiting()>0 && !bc->lastagg){
+                        if(bc->getModelsToAggSize()+ bc->getNumAggTasksAwaiting()>0 && !bc->lastagg ){
                         NS_LOG_INFO("reschedule inter");
                         Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(bc->GetStillDelay()+10),[this, model,source](){TreatModel(model,source, true);});
                         }
@@ -458,7 +492,7 @@ BCNode::TreatModel(MLModel model, Ipv4Address source, bool reschedule){
             }
 
         }else{
-         if(model.negativeVote == 1){ //evaluated once and they found it was wrong, evaluated again 
+         if(model.negativeVote == 1 && model.positiveVote == 0){ //evaluated once and they found it was wrong, evaluated again 
             aggId = bc->GetAggregatorNotBusy(model.evaluator1,model.evaluator2);
 
             if(aggId == -1){ //no available nodes
@@ -633,6 +667,10 @@ void BCNode::NewRound(MLModel globalModel){
         Simulator::ScheduleWithContext(GetNode()->GetId(), Seconds(120/150 + 2),[this](){ Selection();});
     }else{
         NS_LOG_INFO("******** FL Task done**************");
+        Time end_sim = Simulator::Now();
+        NS_LOG_INFO("start: "<< bc->simulation_start_time);
+        NS_LOG_INFO("end: "<< end_sim);
+        NS_LOG_INFO("time spent: "<< end_sim-bc->simulation_start_time);
     }
 
     

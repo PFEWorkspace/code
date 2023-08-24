@@ -48,7 +48,7 @@ Blockchain::ResetRound(MLModel globalModel){
 }
 bool
 Blockchain::evaluate(){
-    if(interagg < numTrainers/modelsToAggAtOnce*2){
+    if(interagg < numTrainers/(modelsToAggAtOnce*3)){
         std::random_device rd;
         std::mt19937 gen(rd());
         std::uniform_real_distribution<> dis(0.0, 1.0); // Range [0.0, 1.0)
@@ -56,7 +56,7 @@ Blockchain::evaluate(){
         // Generate a random number between 0.0 and 1.0
         double randomValue = dis(gen);
 
-        if (randomValue < 0.3) { // Adjust this threshold as needed
+        if (randomValue < 0.2) { // Adjust this threshold as needed
             interagg++;
             return true;
         } else {

@@ -1,16 +1,17 @@
 import logging
 import random
-from gym.core import RewardWrapper
+import csv
 import torch
 import copy
 import numpy as np
-from DRL.agent.node_selection_agent import Agent
-from DRL.environment.node_selection_env import FLNodeSelectionEnv
 from utils.CSVManager import CSVFileManager
 from run import DRLHelper, MLModel, FLNodeStruct
 from FL_model import Generator, Loader, Net, extract_weights
 from FL_node import Node, Report
 import drl_utils as dr
+from DRL.agent.node_selection_agent import Agent
+from DRL.environment.node_selection_env import FLNodeSelectionEnv
+
 import utils.dists as dists
 
 
@@ -102,7 +103,10 @@ class FLManager(object):
         #     partition_size = random.randint(start, stop)   
         
         data = self.loader.get_partition(node.node.datasetSize)
-        node.set_data(data, self.config)
+        testset = self.loader.get_test_partition(self.config.nodes.test_partition * node.node.datasetSize)
+        evaluationset = self.loader.get_test_partition(node.node.datasetSize)
+        node.set_data(data, testset, evaluationset,self.config)
+        
 
     def start_round(self, selectedTrainers, numSelectedTrainers):
         rounds = self.config.fl.rounds
@@ -137,7 +141,7 @@ class FLManager(object):
             print("accuracy {} evaluator accuracy {}".format(model.accuracy,acc))
             #get the evaluation
             evaluation = False
-            if (abs(model.accuracy - acc) < self.config.fl.local_validation_threshold):
+            if (acc - model.accuracy > self.config.fl.local_validation_threshold):
                 evaluation = True
 
             #update the model and nodes
@@ -181,22 +185,22 @@ class FLManager(object):
                 if evaluation:
                     model.positiveVote += 1
                     self.modelsFileManager.modify_instance_field(model.modelId,"positiveVote",model.positiveVote)
-                    if abs(model.acc1 - model.accuracy)< self.config.fl.local_validation_threshold : #the first eval gave a positiveVote
+                    if  model.acc1 - model.accuracy > self.config.fl.local_validation_threshold : #the first eval gave a positiveVote
                         self.nodes[nodeId].add_true_evaluation()
                         self.nodes[model.evaluator1].add_true_evaluation()
                         self.nodes[model.evaluator2].add_false_evaluation()
-                    elif abs(model.acc2 - model.accuracy) < self.config.fl.local_validation_threshold : #second one who gate the positivevote
+                    elif model.acc2 - model.accuracy > self.config.fl.local_validation_threshold : #second one who gate the positivevote
                         self.nodes[nodeId].add_true_evaluation()
                         self.nodes[model.evaluator2].add_true_evaluation()
                         self.nodes[model.evaluator1].add_false_evaluation()
                 else :
                     model.negativeVote += 1
                     self.modelsFileManager.modify_instance_field(model.modelId,"negativeVote",model.negativeVote)
-                    if abs(model.acc1 - model.accuracy)>= self.config.fl.local_validation_threshold : #the first eval gave a negativeVote
+                    if model.acc1 - model.accuracy  <= self.config.fl.local_validation_threshold : #the first eval gave a negativeVote
                         self.nodes[nodeId].add_true_evaluation()
                         self.nodes[model.evaluator1].add_true_evaluation()
                         self.nodes[model.evaluator2].add_false_evaluation()
-                    elif abs(model.acc2 - model.accuracy)>= self.config.fl.local_validation_threshold : #second one who gate the positivevote
+                    elif model.acc2- model.accuracy <= self.config.fl.local_validation_threshold : #second one who gate the positivevote
                         self.nodes[nodeId].add_true_evaluation()
                         self.nodes[model.evaluator2].add_true_evaluation()
                         self.nodes[model.evaluator1].add_false_evaluation()  
@@ -289,33 +293,36 @@ class FLManager(object):
         for index in trainers:
             # print("calculating honesty of node ",index)
             honesty = self.nodes[index].updateHonestyTrainer(self.model, self.globalModel.accuracy, self.config)
-            self.nodesFileManager.modify_instance_field(index,"honesty",round(honesty,3))
-            self.nodesFileManager.modify_instance_field(index,"task",0)
+            # self.nodesFileManager.modify_instance_field(index,"honesty",round(honesty,3))
+            # self.nodesFileManager.modify_instance_field(index,"task",0)
             print("node {} honesty {}".format(index,round(honesty,3)))
 
-            # dropout = random.choices(["true", "false"], weights=[0.1, 0.9])[0]
-            # malicious = random.choices(["true", "false"],weights=[0.05, 0.95])[0]
-            # self.nodesFileManager.modify_instance_field(index,"dropout",dropout)
-            # self.nodesFileManager.modify_instance_field(index,"malicious",malicious)
-
-        numEvals = sum(self.nodes[index].numEvaluations for index in aggregators)
-        numAggs= sum(self.nodes[index].numAggregations for index in aggregators) 
+        # numEvals = sum(self.nodes[index].numEvaluations for index in aggregators)
+        # numAggs= sum(self.nodes[index].numAggregations for index in aggregators) 
 
         for index in aggregators:
-            honesty = self.nodes[index].updateHonestyAggregator(numEvals, numAggs, self.config)
-            self.nodesFileManager.modify_instance_field(index,"honesty",round(honesty,3))
-            self.nodesFileManager.modify_instance_field(index,"task",1)
+            honesty = self.nodes[index].updateHonestyAggregator( self.config)
+            # self.nodesFileManager.modify_instance_field(index,"honesty",round(honesty,3))
+            # self.nodesFileManager.modify_instance_field(index,"task",1)
             print("node {} honesty {}".format(index,round(honesty,3)))
-            
-            # dropout = random.choices(["true", "false"], weights=[0.1, 0.9])[0]
-            # malicious = random.choices(["true", "false"],weights=[0.05, 0.95])[0]
-            # self.nodesFileManager.modify_instance_field(index,"dropout",dropout)
-            # self.nodesFileManager.modify_instance_field(index,"malicious",malicious)
 
+            self.nodes[index].numEvaluations = 0
+            self.nodes[index].numAggregations = 0
+            self.nodes[index].trueEvaluation = 0
+            self.nodes[index].falseEvaluation = 0
+            self.nodes[index].trueAggregation = 0
+            self.nodes[index].falseAggregation = 0
+
+        for node in self.nodes :
+            if node.node.nodeId not in trainers+aggregators:
+                node.node.task = -1
+
+        self.update_nodes_state_file()  
+        
         instances = self.nodesFileManager.retrieve_instances()  
         for i in range(0,self.config.nodes.total):
-            self.nodes[i].node = instances[i]   
-        
+            self.nodes[i].node = instances[i] 
+            
         #update the agent
         # print("instances",len(instances))
         new_observation = dr.get_observation(instances[0:self.config.nodes.total],self.config.nodes.total) # to add accuracies
@@ -351,6 +358,27 @@ class FLManager(object):
             if not manager.load_checkpoint:
                 manager.agent.save_models()
         return instances[0:self.config.nodes.total] , next_observation
+
+    def update_nodes_state_file(self):
+        with open(self.config.nodes.source,"w",newline="") as file:
+            writer = csv.writer(file)
+
+            # Writing header row
+            header = ["nodeId", "availability", "honesty", "datasetSize", "freq", "transRate", "task", "dropout", "malicious"]
+            writer.writerow(header)
+
+            for node in self.nodes:
+                availability = random.choices([1, 0], weights=[self.config.nodes.availability_percent, 1-self.config.nodes.availability_percent])[0]        
+
+                if node.node.nodeId  < (self.config.nodes.dropout_percent + self.config.nodes.malicious_percent)* len(self.nodes):
+                    dropout = random.choices([1, 0], weights=[0.5,0.5])[0]
+                    malicious = random.choices([1, 0],weights=[0.5,0.5])[0]
+                else:
+                    dropout = 1 if node.node.dropout==True else 0
+                    malicious = 1 if node.node.malicious==True else 0
+                row = [node.node.nodeId, availability, node.node.honesty, node.node.datasetSize, node.node.freq, node.node.transRate, node.node.task, dropout, malicious]
+                writer.writerow(row)
+
 
     @staticmethod
     def flatten_weights(weights):

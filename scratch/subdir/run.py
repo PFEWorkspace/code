@@ -121,6 +121,7 @@ class AiHelperAct(ctypes.Structure):
         ("numFLNodes", ctypes.c_int),
         ("FLNodesInfo", FLNodeStruct * numMaxNodes)
     ]
+
 class DRLHelper :
     def __init__(self,config:config.Config) :
         self.envNodeSelect = nds.FLNodeSelectionEnv(total_nodes= config.nodes.total, num_selected=config.nodes.participants_per_round + config.nodes.aggregators_per_round, num_features=7, target=config.fl.target_accuracy, max_rounds=config.fl.rounds)
@@ -171,27 +172,25 @@ class AiHelperContainer:
         num_trainers = config.nodes.participants_per_round
         if (self.DRLmanager.load_checkpoint):
             self.DRLmanager.agent.load_models()
-        # print("nodes in DRL selection", self.nodes)
-
-        
-
-        
+        print("nodes in DRL selection", self.nodes)
+ 
         self.DRLmanager.observation= dr.get_observation(self.nodes,config.nodes.total)
         self.DRLmanager.observation = dr.adjust_observation_with_nodes(self.DRLmanager.observation,self.nodes)
         
-        # print("flat_obs in DRLselection", self.DRLmanager.observation)
+        print("flat_obs in DRLselection", self.DRLmanager.observation)
 
         
         flat = dr.flatten_nodes(self.DRLmanager.observation)
-        # print ("flat in DRL selection shape", flat.shape)
+        print ("flat in DRL selection shape", flat.shape)
+        
         action = self.DRLmanager.agent.choose_action(flat)
         
         actions.append(action)
         selected_aggregators = action[:num_aggregators]
         selected_trainers = action[num_aggregators: num_aggregators+num_trainers]
 
-        # print("Selected Aggregators:", selected_aggregators)
-        # print("Selected Trainers:", selected_trainers)
+        print("Selected Aggregators:", selected_aggregators)
+        print("Selected Trainers:", selected_trainers)
         for i in range (len(selected_aggregators)) :
             act.selectedAggregators[i] = selected_aggregators[i]
         for i in range(len(selected_trainers)):
@@ -234,7 +233,12 @@ class AiHelperContainer:
             [self.selectedTrainers.append(act.selectedTrainers[index]) for index in range(0, act.numTrainers)]
         if env.type == 0x03 : #training
             print('local training')
-            lm = self.FL_manager.start_round(self.selectedTrainers, config.nodes.participants_per_round)
+            #excluding the dropouts training
+            actualTrainers = []
+            for node in self.nodes:
+                if not node.dropout and node.nodeId in self.selectedTrainers:
+                    actualTrainers.append(node.nodeId)
+            lm = self.FL_manager.start_round(actualTrainers, len(actualTrainers))
             act.numLocalModels = len(lm)
             for i in range(0,len(lm)) :
                 act.localModels[i] =  MLModel(modelId=lm[i].modelId,nodeId=lm[i].nodeId,taskId=lm[i].taskId,round=lm[i].round,type=lm[i].type, positiveVote=lm[i].positiveVote, negativeVote=lm[i].negativeVote,evaluator1=lm[i].evaluator1, evaluator2=lm[i].evaluator2,evaluator3=lm[i].evaluator3,aggregated=lm[i].aggregated, aggModelId=lm[i].aggModelId, accuracy=lm[i].accuracy, acc1=lm[i].acc1, acc2=lm[i].acc2, acc3=lm[i].acc3)

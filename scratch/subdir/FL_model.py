@@ -120,7 +120,7 @@ class Loader(object):
     def get_partition(self, partition_size):
         # Get an partition uniform across all labels
 
-        # Use uniform distribution
+      
         dist = dists.normal(partition_size, len(self.labels))
         # print(dist)
 
@@ -132,6 +132,10 @@ class Loader(object):
         random.shuffle(partition)
 
         return partition
+
+    def get_test_partition(self, partitionsize):
+        size = int(partitionsize)
+        return torch.utils.data.random_split(self.testset, [size, len(self.testset)-size])[0]
 
     def get_testset(self):
         # Return the entire testset
