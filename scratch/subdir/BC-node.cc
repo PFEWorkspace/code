@@ -473,7 +473,7 @@ BCNode::TreatModel(MLModel model, Ipv4Address source, bool reschedule){
                         NS_LOG_INFO("AGGREGATION GLOBAL");
                         Aggregation(models,aggId,GLOBAL);
                     }else {
-                        if(bc->getModelsToAggSize()+ bc->getNumAggTasksAwaiting()>0 && !bc->lastagg && !bc->MaxDelayPassed()){
+                        if(bc->getModelsToAggSize()+ bc->getNumAggTasksAwaiting()>0 && !bc->lastagg ){
                         NS_LOG_INFO("reschedule inter");
                         Simulator::ScheduleWithContext(GetNode()->GetId(),Seconds(bc->GetStillDelay()+10),[this, model,source](){TreatModel(model,source, true);});
                         }
