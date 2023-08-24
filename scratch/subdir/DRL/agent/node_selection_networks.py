@@ -2,6 +2,7 @@ from collections import OrderedDict
 import os
 import select
 import torch as T
+from torch.distributions.utils import logits_to_probs
 import torch.nn.functional as F
 import torch.nn as nn
 import torch.optim as optim
@@ -132,18 +133,20 @@ class ActorNetwork(nn.Module):
         # self.distribution = Normal
     
     def sample_normal(self, state, num_selected_nodes, exploration_noise=0.025):
+        print("in sample_normal")
         action_probs, action_mean, action_log_std = self.forward(state)
         action_std = action_log_std.exp()
         state = dr.array_to_state(state, 8)
+        print("after array of array ",state)
         availability_mask = state[:, 1] != 0
         availability_mask = availability_mask.long()
-
+        print("availability mask", availability_mask)
         # Add exploration noise to logits
         noisy_logits = action_mean + exploration_noise * action_std * T.randn_like(action_mean)
 
         # Create a Categorical distribution using the noisy logits
         action_dist = Categorical(action_probs)
-
+        
         # Sample actions from the Categorical distribution
         sampled_actions = action_dist.sample()
 
@@ -175,7 +178,10 @@ class ActorNetwork(nn.Module):
             print(additional_indices)
             selected_indices = np.concatenate((selected_indices, additional_indices))
             print("finished sample_normal")
-        return selected_indices
+        # Calculate log probabilities for the new sampled actions
+        log_probs = action_dist.log_prob(new_samples)
+        print("log probs", log_probs)
+        return selected_indices, log_probs
 
 
 

@@ -17,7 +17,7 @@ def generate_random_instance(instance_id):
 num_instances = 1000
 
 # CSV file name
-csv_file = "generated_nodes.csv"
+csv_file = "./generated_nodes.csv"
 
 # Generating data and writing to CSV
 with open(csv_file, "w", newline="") as file:

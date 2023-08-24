@@ -1,4 +1,5 @@
 import csv
+from turtle import update
 import gym
 from gym.spaces import Box, Dict
 import numpy as np
@@ -83,6 +84,7 @@ class FLNodeSelectionEnv(gym.Env):
         # self.current_fl_accuracy = current_observation["FL_accuracy"]
         # getting updates from the network
         updated_nodes =dr.get_nodes_withaccuracy(nodes, self.total_nodes,accuracies)
+        print("updated",updated_nodes)
         updated_fl_accuracy =fl_accuracy
         # print ("in step function checking nodes from act", updated_nodes)
 

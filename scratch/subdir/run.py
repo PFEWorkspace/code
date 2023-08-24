@@ -264,7 +264,7 @@ class AiHelperContainer:
             act.model = MLModel(modelId=model.modelId,nodeId=model.nodeId,taskId=model.taskId,round=model.round,type=model.type, positiveVote=model.positiveVote, negativeVote=model.negativeVote,evaluator1=model.evaluator1, evaluator2=model.evaluator2,evaluator3=model.evaluator3,aggregated=model.aggregated, aggModelId=model.aggModelId, accuracy=model.accuracy, acc1=model.acc1, acc2=model.acc2, acc3=model.acc3)
         if env.type == 0x06: #restround
             print("***********  NEW ROUND ***************") 
-            n , self.observation  = self.FL_manager.resetRound(self.selectedTrainers,aggregators=self.selectedAggregators,manager=self.DRLmanager)
+            n , self.DRLmanager.observation , self.DRLmanager = self.FL_manager.resetRound(self.selectedTrainers,aggregators=self.selectedAggregators,manager=self.DRLmanager)
             act.numFLNodes = config.nodes.total
             # act.FLNodesInfo = []
             # print("updating all nodes")

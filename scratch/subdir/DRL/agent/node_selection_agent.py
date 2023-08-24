@@ -39,7 +39,7 @@ class Agent ():
         state = T.tensor(observation, dtype=T.float).to(self.actor.device)
         # state = np.array(state)
         print("state: ", state)
-        actions = self.actor.sample_normal(state, self.max_actions)
+        actions, log_probs = self.actor.sample_normal(state, self.max_actions)
         return actions
 
     def remember(self,state,action,reward,next_state,done):
@@ -111,7 +111,7 @@ class Agent ():
         value_loss.backward (retain_graph=True)
         self.value_optimizer.step() # type: ignore 
 
-        actions = self.actor.sample_normal(state,self.max_actions)
+        actions, log_probs = self.actor.sample_normal(state,self.max_actions)
         log_probs = log_probs.view(-1)
         availability_mask = state[:, 1] != 0
         state = state * availability_mask.unsqueeze(1).float()
