@@ -492,7 +492,7 @@ BCNode::TreatModel(MLModel model, Ipv4Address source, bool reschedule){
             }
 
         }else{
-         if(model.negativeVote == 1){ //evaluated once and they found it was wrong, evaluated again 
+         if(model.negativeVote == 1 && model.positiveVote == 0){ //evaluated once and they found it was wrong, evaluated again 
             aggId = bc->GetAggregatorNotBusy(model.evaluator1,model.evaluator2);
 
             if(aggId == -1){ //no available nodes
@@ -667,6 +667,10 @@ void BCNode::NewRound(MLModel globalModel){
         Simulator::ScheduleWithContext(GetNode()->GetId(), Seconds(120/150 + 2),[this](){ Selection();});
     }else{
         NS_LOG_INFO("******** FL Task done**************");
+        Time end_sim = Simulator::Now();
+        NS_LOG_INFO("start: "<< bc->simulation_start_time);
+        NS_LOG_INFO("end: "<< end_sim);
+        NS_LOG_INFO("time spent: "<< end_sim-bc->simulation_start_time);
     }
 
     

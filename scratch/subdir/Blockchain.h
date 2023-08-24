@@ -91,6 +91,7 @@ public:
    
     bool firstagg;
     bool lastagg;
+    Time simulation_start_time;
     bool evaluate();
     void WriteTransaction(std::string blockId, int nodeId, const rapidjson::Document& message);
     void PrintBlockchain() const;

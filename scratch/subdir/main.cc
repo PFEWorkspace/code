@@ -36,6 +36,7 @@ main(int argc, char* argv[])
   LogComponentEnable("BCNodeApp", LOG_LEVEL_INFO);
   Time::SetResolution(Time::NS);
 
+  Time starting_sim = Simulator::Now();
   
   
     int numFlNodes= 100;
@@ -222,6 +223,7 @@ main(int argc, char* argv[])
     blockchain->SetModelsToAggAtOnce(x);
     blockchain->SetRandomBCStream();
     blockchain->SetModelSize(modelSize);
+    blockchain->simulation_start_time = starting_sim ;
   
     for(uint i =0; i< numFlNodes; i++){
       blockchain->AddNodeInfo(nodesInfo[i]);
