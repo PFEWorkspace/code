@@ -15,7 +15,7 @@ class Agent ():
         os.makedirs('tmp/sac', exist_ok=True)
         self.gamma = gamma
         self.tau = tau
-        self.memory = ReplayBuffer(max_size, input_shape=input_shape, n_actions=n_actions)
+        self.memory = ReplayBuffer(max_size, input_shape=input_shape, n_actions=n_actions,max_action=max_actions)
         # print ("replay buffer passed")
         self.batch_size = batch_size
         self.n_actions = n_actions
@@ -38,15 +38,9 @@ class Agent ():
     def choose_action(self, observation):
         state = T.tensor(observation, dtype=T.float).to(self.actor.device)
         actions = self.actor.sample_normal(state, self.max_actions)
-
-        # Apply the availability mask
-        availability_mask = state[:, 1] != 0
-        actions = actions * availability_mask.unsqueeze(1).float()
-
         return actions
 
     def remember(self,state,action,reward,next_state,done):
-        print("in remember checking state" , state)
         self.memory.store_transition(state,action,reward,next_state,done)
 
     def update_network_parameters(self, tau=None):

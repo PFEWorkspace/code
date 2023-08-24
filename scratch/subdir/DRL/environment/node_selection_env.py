@@ -40,7 +40,6 @@ class FLNodeSelectionEnv(gym.Env):
     def reset(self): #CALLED TO INITIATE NEW EPISODE
         #should return the observation of the initial state
         # We need the following line to seed self.np_random
-        print("in reset env")
         csv_filename = "generated_nodes.csv"  # Replace with your CSV file name
         with open(csv_filename, "r") as csv_file:
             csv_reader = csv.reader(csv_file)
@@ -65,15 +64,12 @@ class FLNodeSelectionEnv(gym.Env):
         # Append the new column to the existing array
         current_state = np.append(new_current_state, new_column, axis=1) #added the accuracy of local model column
         
-        print("current state : ",current_state.shape)
-        print("selfcurrent : ", self.current_state.shape)
         self.current_state[:self.total_nodes] = current_state
         # Create initial values for other parts of the observation
         current_observation = {
             "current_state": current_state,
             "FL_accuracy": 0.0
         }
-        print("shape in reset envDRL" ,current_state.shape )
         self._observation = current_observation
         info = {"msg" : "success"}
         return current_observation , info
@@ -86,7 +82,6 @@ class FLNodeSelectionEnv(gym.Env):
         # self.current_state = current_observation["current_state"]  # Access the current_state attribute
         # self.current_fl_accuracy = current_observation["FL_accuracy"]
         # getting updates from the network
-        print ("in step")
         updated_nodes =dr.get_nodes_withaccuracy(nodes, self.total_nodes,accuracies)
         updated_fl_accuracy =fl_accuracy
         # print ("in step function checking nodes from act", updated_nodes)
@@ -122,7 +117,6 @@ class FLNodeSelectionEnv(gym.Env):
 
     def calculate_reward(self, selected_nodes, updated_losses):
         node_rewards = np.zeros(self.total_nodes)
-        print ("in calculate reward checking selected nodes ", selected_nodes)
         # print ("updated_losses", updated_losses)
         for node_index in selected_nodes:
             node_rewards[node_index] = updated_losses[node_index]  # Use loss as a simple example because loss is positive

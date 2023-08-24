@@ -8,7 +8,6 @@ class CustomObservationSpace(spaces.Dict):
     def __init__(self, total_nodes):
         self.total_nodes = total_nodes
         # Define the min and max values for each feature
-        #TODO set honesty interval
         low_freq = 50.0 
         high_freq = 300.0
         low_rate = 150.0

@@ -317,9 +317,7 @@ class FLManager(object):
             self.nodes[i].node = instances[i]   
         
         #update the agent
-        print ("update agent")
         # print("instances",len(instances))
-        print(self.config.nodes.total)
         new_observation = dr.get_observation(instances[0:self.config.nodes.total],self.config.nodes.total) # to add accuracies
         new_accuracies = []
         new_losses=[]
@@ -331,7 +329,6 @@ class FLManager(object):
             else :
                 new_accuracies.append(0.0)
                 new_losses.append(0.0)
-        print("new accuracies" ,new_accuracies)
         action= aggregators + trainers
         updated_fl_accuracy =self.globalModel.accuracy
         # remember state action 

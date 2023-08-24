@@ -2,13 +2,13 @@ import numpy as np
 
 class ReplayBuffer():
     #max_size is max memory,n_actions number of actions, input_shape is observation shape
-    def __init__(self,max_size,input_shape,n_actions):
+    def __init__(self,max_size,input_shape,n_actions, max_action):
         self.mem_size = max_size
         self.mem_cntr = 0 # memory counter to keep track
 
         self.state_memory = np.zeros((self.mem_size,*input_shape)) #state memory
         self.new_state_memory = np.zeros((self.mem_size,*input_shape)) #new state memory
-        self.action_memory = np.zeros((self.mem_size,n_actions)) #action memory
+        self.action_memory = np.zeros((self.mem_size,max_action)) #action memory
         self.reward_memory = np.zeros(self.mem_size) #reward memory
         self.terminal_memory = np.zeros(self.mem_size,dtype=bool) #terminal memory we need it to store the done flags
     
@@ -27,15 +27,13 @@ class ReplayBuffer():
     def store_transition(self,state,action,reward,state_,done):
         # print ("im in store_transition")
         index = self.mem_cntr % self.mem_size
-        # print("lest see index", index)
-        print ("lets see state of store transition", state)
-        print("self.statemem shape", self.state_memory.shape)
         self.state_memory[index] = state
         self.new_state_memory[index] = state_
         self.action_memory[index] = action
         self.reward_memory[index] = reward
         self.terminal_memory[index] = done
         self.mem_cntr += 1 
+        print("added the transition", self.mem_cntr)
 
     def sample_buffer(self,batch_size):
         max_mem = min(self.mem_cntr,self.mem_size)
