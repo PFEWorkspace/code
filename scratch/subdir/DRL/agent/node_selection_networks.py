@@ -60,6 +60,7 @@ class ValueNetwork(nn.Module):
     def __init__(self,beta,input_shape,fc1_dims=256,fc2_dims=256,name='value',chkpt_dir='tmp/sac'):
         super(ValueNetwork,self).__init__()
         self.input_dims = np.prod(input_shape)
+
         self.fc1_dims = fc1_dims
         self.fc2_dims = fc2_dims
         self.name = name
@@ -111,6 +112,7 @@ class ActorNetwork(nn.Module):
         self.name = name
         self.checkpoint_dir = chkpt_dir
         self.checkpoint_file = os.path.join(self.checkpoint_dir,self.name+'_sac')
+        print("checpoint file", self.checkpoint_file)
         self.reparam_noise = 1e-6
         #layer 1
         self.fc1 = nn.Linear(self.input_dims, self.fc1_dims) 
@@ -133,14 +135,14 @@ class ActorNetwork(nn.Module):
         # self.distribution = Normal
     
     def sample_normal(self, state, num_selected_nodes, exploration_noise=0.025):
-        print("in sample_normal")
+        # print("in sample_normal")
         action_probs, action_mean, action_log_std = self.forward(state)
         action_std = action_log_std.exp()
         state = dr.array_to_state(state, 8)
-        print("after array of array ",state)
+        # print("after array of array ",state)
         availability_mask = state[:, 1] != 0
         availability_mask = availability_mask.long()
-        print("availability mask", availability_mask)
+        # print("availability mask", availability_mask)
         # Add exploration noise to logits
         noisy_logits = action_mean + exploration_noise * action_std * T.randn_like(action_mean)
 
@@ -260,79 +262,6 @@ class ActorNetwork(nn.Module):
         
 
         return selected_indices
-
-    def sample_normal1(self, state, num_selected_nodes, reparameterize=True, exploration_noise=0.8):
-        action_probs, action_mean, action_log_std = self.forward(state)
-        action_std = action_log_std.exp()
-
-        
-
-        # Sample actions from the Gaussian distribution
-        if reparameterize:
-            sampled_actions = action_mean + action_std * T.randn_like(action_mean)  # Reparameterization trick
-        else:
-            sampled_actions = action_mean
-
-
-        # Clip actions to ensure they are within the desired range
-        sampled_actions = T.clamp(sampled_actions, -1.0, 1.0)
-
-
-        # Apply the threshold to convert actions into 0s and 1s
-        threshold = 0.5  # Adjust this threshold as needed
-        selected_nodes = (sampled_actions > threshold).type(T.int64)
-
-
-        # Ensure the selected nodes are within the valid range of available nodes
-        state = dr.array_to_state(state,8)
-        availability_mask = state[:, 1] != 0
-        availability_mask = availability_mask.long()
-
-        selected_nodes *= availability_mask.view(-1, 1)
-
-
-        # Count the number of selected nodes for each sample in the batch
-        num_selected = selected_nodes.sum(dim=1)
-
-
-        # If the number of selected nodes is less than the desired number, select additional nodes
-        remaining_nodes = num_selected_nodes - num_selected
-        additional_indices = T.randint(0, availability_mask.sum(), (selected_nodes.shape[0], remaining_nodes.max()))
-        available_indices = T.nonzero(availability_mask)[:, 0]
-        selected_indices = available_indices[additional_indices]
-        for i in range(selected_nodes.shape[0]):
-            selected_nodes[i, selected_indices[i]] = 1
-
-
-        return selected_nodes
-    
-    def sample_normal2(self, state, num_selected_nodes, reparameterize=True, exploration_noise=0.8):
-        action_probs, action_mean, action_log_std = self.forward(state)  # Output of the actor network
-        action_std = action_log_std.exp()
-        # Sample actions from the Gaussian distribution
-        normal_distribution = Normal(action_mean, action_std)
-        if reparameterize:
-            sampled_actions = normal_distribution.rsample()  # sample with additional noise
-        else:
-            sampled_actions = normal_distribution.sample()
-
-        # Apply exploration noise
-        sampled_actions += T.tensor(exploration_noise).to(self.device) * T.randn_like(sampled_actions)
-        # Apply tanh activation to actions to ensure they are between -1 and 1
-        transformed_actions = T.tanh(sampled_actions)
-        # Scale the transformed actions to the range [0, 1] for node selection
-        scaled_actions = (transformed_actions + 1.0) / 2.0
-        # Apply availability mask
-        state = dr.array_to_state(state,8)
-        availability_mask = state[:, 1] != 0
-        availability_mask = availability_mask.float()
-        scaled_actions *= availability_mask.view(-1, 1)
-
-        # Select the top `num_selected_nodes` indices with the highest scaled action values
-        selected_indices = scaled_actions.argsort(descending=True)[:, :num_selected_nodes]
-
-        return selected_indices
-    
 
 
 

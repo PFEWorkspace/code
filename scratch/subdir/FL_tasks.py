@@ -316,7 +316,16 @@ class FLManager(object):
         for node in self.nodes :
             if node.node.nodeId not in trainers+aggregators:
                 node.node.task = -1
-
+        new_accuracies = []
+        new_losses=[]
+        
+        for i in range(0, len(self.nodes)):
+            if i in trainers and not self.nodes[i].node.dropout: 
+                new_accuracies.append(self.nodes[i].get_report(self.nodes[i].get_last_model().modelId).accuracy)
+                new_losses.append(self.nodes[i].get_report(self.nodes[i].get_last_model().modelId).loss)
+            else :
+                new_accuracies.append(0.0)
+                new_losses.append(0.0)
         self.update_nodes_state_file()  
         print("done update node from file")
         instances = self.nodesFileManager.retrieve_instances()  
@@ -325,17 +334,9 @@ class FLManager(object):
             
         #update the agent
         print("instances",len(instances))
-        new_observation = dr.get_observation(instances[0:self.config.nodes.total],self.config.nodes.total) # to add accuracies
-        new_accuracies = []
-        new_losses=[]
-        # print("new ibservtaion",new_observation)
-        for i in range(0, len(self.nodes)):
-            if i in trainers : 
-                new_accuracies.append(self.nodes[i].get_report(self.nodes[i].get_last_model().modelId).accuracy)
-                new_losses.append(self.nodes[i].get_report(self.nodes[i].get_last_model().modelId).loss)
-            else :
-                new_accuracies.append(0.0)
-                new_losses.append(0.0)
+        new_observation = dr.get_obs(instances[0:self.config.nodes.total]) # to add accuracies
+        
+        print("got the updates accuracies and losses", new_accuracies)
         action= aggregators + trainers
         updated_fl_accuracy =self.globalModel.accuracy
         # remember state action 
@@ -350,6 +351,7 @@ class FLManager(object):
         manager.agent.remember(manager.observation, action, agent_reward, manager.observation_, done)
         manager.observation = manager.observation_
         if not manager.load_checkpoint:
+            print("learning agent")
             manager.agent.learn()
         manager.score_history.append(manager.score)
         print("history score", manager.score_history)

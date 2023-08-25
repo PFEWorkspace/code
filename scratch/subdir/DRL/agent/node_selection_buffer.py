@@ -37,12 +37,15 @@ class ReplayBuffer():
 
     def sample_buffer(self,batch_size):
         max_mem = min(self.mem_cntr,self.mem_size)
+        print("maxmeme in sample buffer", max_mem)
         batch = np.random.choice(max_mem,batch_size) #randomly choose the batch size from the memory
-
-        states = self.preprocess_observation(self.state_memory[batch]) #get the states
-        states_ = self.preprocess_observation(self.new_state_memory[batch]) #get the new states
+        print("the batch in sample ?", batch)
+        states = self.state_memory[batch]#get the states
+        states_ = self.new_state_memory[batch]#get the new states
         actions = self.action_memory[batch] #get the actions
         rewards = self.reward_memory[batch] #get the rewards
         dones = self.terminal_memory[batch] #get the done flags
-
-        return states, actions, rewards, states_, dones
+        print("action from batch", actions)
+        print("rewards from batch", rewards)
+        print("dones from batch", dones)
+        return states[0], actions[0], rewards[0], states_[0], dones[0]

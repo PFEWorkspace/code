@@ -1,7 +1,6 @@
 import csv
-from turtle import update
+
 import gym
-from gym.spaces import Box, Dict
 import numpy as np
 from .custom_observation_space import CustomObservationSpace
 from .custom_action_space import CustomActionSpace
@@ -76,23 +75,17 @@ class FLNodeSelectionEnv(gym.Env):
         return current_observation , info
 
     def step(self, action, accuracies, nodes, losses, fl_accuracy):
-        #nodes are FL struct
-        # Access the current_state attribute
-        # print("in step function checking action" , action)
-        # current_observation = self._get_obs()
-        # self.current_state = current_observation["current_state"]  # Access the current_state attribute
-        # self.current_fl_accuracy = current_observation["FL_accuracy"]
-        # getting updates from the network
         updated_nodes =dr.get_nodes_withaccuracy(nodes, self.total_nodes,accuracies)
-        print("updated",updated_nodes)
+        # print("updated",updated_nodes)
         updated_fl_accuracy =fl_accuracy
         # print ("in step function checking nodes from act", updated_nodes)
 
         # Update the state of the environment with received updates
         next_observation = self.update_environment_state_with_network_updates(updated_nodes, fl_accuracy)
+    
         self.current_observation = next_observation
         # Simulate FL round and get rewards
-        node_rewards = self.calculate_reward(action,losses)
+        node_rewards = self.calculate_reward(action,accuracies)
         agent_reward = sum(node_rewards)# or agent_reward = self.agent_reward(node_rewards) in case we change the way we calcultae the agent reward
         # Update the state of the environment
         self.current_round += 1
@@ -117,11 +110,18 @@ class FLNodeSelectionEnv(gym.Env):
     def agent_reward(self, node_rewards):
         return sum(node_rewards)
 
-    def calculate_reward(self, selected_nodes, updated_losses):
+    def calculate_reward(self, selected_nodes, updated_accuracies):
+        #todo to change to accuracy
+        # print("nodes in reward", self.current_observation)
+        print("selected nodes",  selected_nodes)
+        state = self.current_observation["current_state"]
         node_rewards = np.zeros(self.total_nodes)
         # print ("updated_losses", updated_losses)
         for node_index in selected_nodes:
-            node_rewards[node_index] = updated_losses[node_index]  # Use loss as a simple example because loss is positive
+            node_rewards[node_index] = state[node_index][2]
+            if (updated_accuracies[node_index] != 0) :
+                node_rewards[node_index] *= updated_accuracies[node_index]  # Use loss as a simple example because loss is positive
+            print("node reward", node_rewards[node_index])
         return node_rewards
     def target_accuracy_achieved(self, updated_accuracy):
         return updated_accuracy >= self.target_accuracy
@@ -140,27 +140,3 @@ class FLNodeSelectionEnv(gym.Env):
 
     def _get_obs(self):
         return self.current_observation
-# # Create a sample environment instance
-# total_nodes = 15
-# num_selected = 5
-# num_features = 6
-# env = FLNodeSelectionEnv(total_nodes, num_selected, num_features)
-
-# # Define the availability for each node (replace this with your data)
-# availability = np.array([1, 0, 1, 1, 0, 1, 0, 1, 1, 1, 0, 0, 1, 1, 0])
-
-# # Test actions with different availability constraints
-# for _ in range(5):
-#     action = env.action_space.sample()
-#     print("Selected nodes:", np.where(action)[0])
-    
-#     # Set availability to the current state's availability
-#     # Pass the availability and action to the environment step function
-#     next_state, reward, done, info = env.step(action)
-    
-#     print("Next state:", next_state)
-#     print("Reward:", reward)
-#     print("Done:", done)
-#     print()
-
-

@@ -33,7 +33,7 @@
         "honesty_beta":3,
         "honesty_gamma":10,
         "honesty_phi":2,
-        "local_validation_threshold":-7,
+        "local_validation_threshold":-10,
         "intermediaire_validation_threshold": 0.05,
         "malus": 10
     },
