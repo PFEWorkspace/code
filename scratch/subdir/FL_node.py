@@ -99,6 +99,7 @@ class Node(object):
         self.loss, accuracy = FL_model.test(self.model, testloader)
 
         if self.node.malicious:
+            print("i'm node ", self.node.nodeId, " and i'm malicious")
             self.loss = 0.5*self.loss 
             if accuracy < 60:
                 accuracy = 1.5 * accuracy
@@ -106,6 +107,7 @@ class Node(object):
                 accuracy = 1.2 * accuracy 
             else:
                 accuracy = 99
+
         #creating the MLModel       
         report_id = fileManager.get_instance_id('modelId') + 1
         mlmodel = MLModel(
@@ -134,6 +136,7 @@ class Node(object):
         testloader = FL_model.get_testloader(self.evaluationSet, self.batch_size)
         loss, accuracy = FL_model.test(model, testloader)
         if self.node.malicious:
+            print("i'm node ", self.node.nodeId, " and i'm malicious")
             loss = 1.5* loss
             accuracy = 0.7 * accuracy if accuracy > 83 else 1.2*accuracy 
         return loss, accuracy
@@ -143,6 +146,7 @@ class Node(object):
 
         updated_weights = self.federated_averaging(reports)
         if self.node.malicious:
+            print("i'm node ", self.node.nodeId, " and i'm malicious")
             self.alter_weights(updated_weights)  
 
         if evaluation :

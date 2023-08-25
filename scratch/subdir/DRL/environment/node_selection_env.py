@@ -84,7 +84,7 @@ class FLNodeSelectionEnv(gym.Env):
         # self.current_fl_accuracy = current_observation["FL_accuracy"]
         # getting updates from the network
         updated_nodes =dr.get_nodes_withaccuracy(nodes, self.total_nodes,accuracies)
-        print("updated",updated_nodes)
+        # print("updated",updated_nodes)
         updated_fl_accuracy =fl_accuracy
         # print ("in step function checking nodes from act", updated_nodes)
 
@@ -92,7 +92,7 @@ class FLNodeSelectionEnv(gym.Env):
         next_observation = self.update_environment_state_with_network_updates(updated_nodes, fl_accuracy)
         self.current_observation = next_observation
         # Simulate FL round and get rewards
-        node_rewards = self.calculate_reward(action,losses)
+        node_rewards = self.calculate_reward(action,accuracies)
         agent_reward = sum(node_rewards)# or agent_reward = self.agent_reward(node_rewards) in case we change the way we calcultae the agent reward
         # Update the state of the environment
         self.current_round += 1
@@ -117,12 +117,19 @@ class FLNodeSelectionEnv(gym.Env):
     def agent_reward(self, node_rewards):
         return sum(node_rewards)
 
-    def calculate_reward(self, selected_nodes, updated_losses):
+    def calculate_reward(self, selected_nodes, updated_accuracies):
+        #todo to change to accuracy
+        # print("nodes in reward", self.current_observation)
+        state = self.current_observation["current_state"]
         node_rewards = np.zeros(self.total_nodes)
         # print ("updated_losses", updated_losses)
         for node_index in selected_nodes:
-            node_rewards[node_index] = updated_losses[node_index]  # Use loss as a simple example because loss is positive
+            node_rewards[node_index] = state[node_index][2]
+            node_rewards[node_index] *= updated_accuracies[node_index]  # Use loss as a simple example because loss is positive
+            # print("node reward", node_rewards[node_index])
         return node_rewards
+    
+
     def target_accuracy_achieved(self, updated_accuracy):
         return updated_accuracy >= self.target_accuracy
 

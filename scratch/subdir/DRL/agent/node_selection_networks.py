@@ -49,11 +49,11 @@ class CriticNetwork(nn.Module):
         return q
     
     def save_checkpoint(self):
-        print('...saving checkpoint...')
+        # print('...saving checkpoint...')
         T.save(self.state_dict(),self.checkpoint_file)
 
     def load_checkpoint(self):  
-        print('...loading checkpoint...')
+        # print('...loading checkpoint...')
         self.load_state_dict(T.load(self.checkpoint_file))
     
 class ValueNetwork(nn.Module):
@@ -91,11 +91,11 @@ class ValueNetwork(nn.Module):
         return v
     
     def save_checkpoint(self):
-        print('...saving checkpoint...')
+        # print('...saving checkpoint...')
         T.save(self.state_dict(),self.checkpoint_file)
     
     def load_checkpoint(self):
-        print('...loading checkpoint...')
+        # print('...loading checkpoint...')
         self.load_state_dict(T.load(self.checkpoint_file))
 
 
@@ -133,14 +133,14 @@ class ActorNetwork(nn.Module):
         # self.distribution = Normal
     
     def sample_normal(self, state, num_selected_nodes, exploration_noise=0.025):
-        print("in sample_normal")
+        # print("in sample_normal")
         action_probs, action_mean, action_log_std = self.forward(state)
         action_std = action_log_std.exp()
         state = dr.array_to_state(state, 8)
-        print("after array of array ",state)
+        # print("after array of array ",state)
         availability_mask = state[:, 1] != 0
         availability_mask = availability_mask.long()
-        print("availability mask", availability_mask)
+        # print("availability mask", availability_mask)
         # Add exploration noise to logits
         noisy_logits = action_mean + exploration_noise * action_std * T.randn_like(action_mean)
 
@@ -170,17 +170,17 @@ class ActorNetwork(nn.Module):
 
             # Convert the unique indices back to a Python list
             selected_indices = unique_combined_indices
-        print(selected_indices)
+        # print(selected_indices)
         selected_indices = np.array(selected_indices)
-        print(selected_indices)
+        # print(selected_indices)
         if len(selected_indices) < num_selected_nodes:
             additional_indices = np.random.choice(availability_mask.nonzero().squeeze(), size=num_selected_nodes - len(selected_indices), replace=False)
-            print(additional_indices)
+            # print(additional_indices)
             selected_indices = np.concatenate((selected_indices, additional_indices))
-            print("finished sample_normal")
+            # print("finished sample_normal")
         # Calculate log probabilities for the new sampled actions
         log_probs = action_dist.log_prob(new_samples)
-        print("log probs", log_probs)
+        # print("log probs", log_probs)
         return selected_indices, log_probs
 
 
@@ -334,16 +334,12 @@ class ActorNetwork(nn.Module):
         return selected_indices
     
 
-
-
-
-
     def save_checkpoint(self):
-        print('...saving checkpoint...')
+        # print('...saving checkpoint...')
         T.save(self.state_dict(),self.checkpoint_file)
     
     def load_checkpoint(self):
-        print('...loading checkpoint...')
+        # print('...loading checkpoint...')
         self.load_state_dict(T.load(self.checkpoint_file))
    
 

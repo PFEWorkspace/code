@@ -172,16 +172,16 @@ class AiHelperContainer:
         num_trainers = config.nodes.participants_per_round
         if (self.DRLmanager.load_checkpoint):
             self.DRLmanager.agent.load_models()
-        print("nodes in DRL selection", self.nodes)
+        # print("nodes in DRL selection", self.nodes)
  
         self.DRLmanager.observation= dr.get_observation(self.nodes,config.nodes.total)
         self.DRLmanager.observation = dr.adjust_observation_with_nodes(self.DRLmanager.observation,self.nodes)
         
-        print("flat_obs in DRLselection", self.DRLmanager.observation)
+        # print("flat_obs in DRLselection", self.DRLmanager.observation)
 
         
         flat = dr.flatten_nodes(self.DRLmanager.observation)
-        print ("flat in DRL selection shape", flat.shape)
+        # print ("flat in DRL selection shape", flat.shape)
         
         action = self.DRLmanager.agent.choose_action(flat)
         
@@ -189,8 +189,8 @@ class AiHelperContainer:
         selected_aggregators = action[:num_aggregators]
         selected_trainers = action[num_aggregators: num_aggregators+num_trainers]
 
-        print("Selected Aggregators:", selected_aggregators)
-        print("Selected Trainers:", selected_trainers)
+        # print("Selected Aggregators:", selected_aggregators)
+        # print("Selected Trainers:", selected_trainers)
         for i in range (len(selected_aggregators)) :
             act.selectedAggregators[i] = selected_aggregators[i]
         for i in range(len(selected_trainers)):
@@ -300,8 +300,8 @@ if __name__ == '__main__':
         'x' : fl_config.fl.x
     };
 
-    mempool_key = 1001
-    mem_size = 1024 * 2 * 2 * 2 * 2 * 2 * 2 * 2
+    mempool_key = 1000
+    mem_size = 1024 * 2 * 2 * 2 * 2 * 2 * 2 * 2 
     exp = Experiment(mempool_key, mem_size, 'main', '../../', using_waf=False)
     exp.reset()
     try:

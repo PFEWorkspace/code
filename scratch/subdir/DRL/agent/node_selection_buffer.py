@@ -33,7 +33,7 @@ class ReplayBuffer():
         self.reward_memory[index] = reward
         self.terminal_memory[index] = done
         self.mem_cntr += 1 
-        print("added the transition", self.mem_cntr)
+        # print("added the transition", self.mem_cntr)
 
     def sample_buffer(self,batch_size):
         max_mem = min(self.mem_cntr,self.mem_size)

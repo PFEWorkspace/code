@@ -10,7 +10,7 @@ DISCOUNT_RATE = 0.99
 LEARNING_RATE = 10 ** -4
 SOFT_UPDATE_INTERPOLATION_FACTOR = 0.01  
 class Agent ():
-    def __init__(self,env,alpha=ALPHA_INITIAL,beta=LEARNING_RATE,input_shape=[8],gamma = DISCOUNT_RATE,n_actions=2,max_actions=1,max_size=1000000,tau=SOFT_UPDATE_INTERPOLATION_FACTOR,
+    def __init__(self,env,alpha=ALPHA_INITIAL,beta=LEARNING_RATE,input_shape=[8],gamma = DISCOUNT_RATE,n_actions=2,max_actions=1,max_size=35,tau=SOFT_UPDATE_INTERPOLATION_FACTOR,
     layer1_size=256,layer2_size=256,batch_size=256,reward_scale=2):
         os.makedirs('tmp/sac', exist_ok=True)
         self.gamma = gamma
@@ -38,7 +38,7 @@ class Agent ():
     def choose_action(self, observation):
         state = T.tensor(observation, dtype=T.float).to(self.actor.device)
         # state = np.array(state)
-        print("state: ", state)
+        # print("state: ", state)
         actions, log_probs = self.actor.sample_normal(state, self.max_actions)
         return actions
 
@@ -61,7 +61,7 @@ class Agent ():
         self.target_value.load_state_dict(value_state_dict)
 
     def save_models(self):
-        print('.... saving models ....')
+        # print('.... saving models ....')
         self.actor.save_checkpoint()
         self.value.save_checkpoint()
         self.target_value.save_checkpoint()
@@ -70,7 +70,7 @@ class Agent ():
 
 
     def load_models(self):
-        print('.... loading models ....')
+        # print('.... loading models ....')
         self.actor.load_checkpoint()
         self.value.load_checkpoint()
         self.target_value.load_checkpoint()
