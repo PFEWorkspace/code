@@ -33,9 +33,10 @@ class Agent ():
 
         self.target_value = ValueNetwork(beta, input_shape, name='target_value')
 
-        self.update_network_parameters(tau=0.6)
+        self.update_network_parameters(tau=1)
 
     def choose_action(self, observation):
+        
         state = T.tensor(observation, dtype=T.float).to(self.actor.device)
         actions, log_probs = self.actor.sample_normal(state, self.max_actions)
         return actions
@@ -60,7 +61,7 @@ class Agent ():
         self.target_value.load_state_dict(value_state_dict)
 
     def save_models(self):
-        print('.... saving models ....')
+        # # print('.... saving models ....')
         self.actor.save_checkpoint()
         self.value.save_checkpoint()
         self.target_value.save_checkpoint()
@@ -69,24 +70,28 @@ class Agent ():
 
 
     def load_models(self):
-        print('.... loading models ....')
+        # # print('.... loading models ....')
         self.actor.load_checkpoint()
         self.value.load_checkpoint()
         self.target_value.load_checkpoint()
         self.critic_1.load_checkpoint()
         self.critic_2.load_checkpoint()
+        # # print('.... finished loading models ....')
 
     def learn(self):
         if self.memory.mem_cntr < self.batch_size:
-            print('not enough memories to learn from!')
+            # # print('not enough memories to learn from!')
             return
-        print("in learn")
-        state, action, reward, new_state, done = self.memory.sample_buffer(self.batch_size)
+        # # print("in learn")
+        state, action, reward, state_, done = self.memory.sample_buffer(self.batch_size)
+        # # print("got sample")
         reward = T.tensor(reward, dtype=T.float).to(self.actor.device)
-        done = T.tensor(done).to(self.actor.device)
-        state_ = T.tensor(new_state, dtype=T.float).to(self.actor.device)
+        done = T.tensor(1 if done else 0).to(self.actor.device)
+        # # # print(done)
+        state_ = T.tensor(state_, dtype=T.float).to(self.actor.device)
         state = T.tensor(state, dtype=T.float).to(self.actor.device)
         action = T.tensor(action, dtype=T.float).to(self.actor.device)
+        # # print("finished")
         flat_state = dr.flatten_nodes(state)
         flat_state_= dr.flatten_nodes(state_)
 
@@ -94,14 +99,14 @@ class Agent ():
         value = self.value(flat_state).view(-1)
         value_ = self.target_value(flat_state_).view(-1)
         value_[done] = 0.0
-        print("going into sample normal in learn")
+        # # print("going into sample normal in learn")
         actions, log_probs = self.actor.sample_normal(state, self.max_actions)
-        # actions = actions[:self.max_actions]
-        actions = T.tensor(actions)
-        print("going into forward critic")
+        actions = actions[:self.max_actions]
+        actions = T.tensor(actions,dtype=T.float)
+        # # print("going into forward critic")
         q1_new_policy = self.critic_1.forward(flat_state, actions)
         q2_new_policy = self.critic_2.forward(flat_state, actions)
-        print("problem with critic forward")
+        # # print("problem with critic forward")
         critic_value = T.min(q1_new_policy, q2_new_policy)
         critic_value = critic_value.view(-1)
         self.value.optimizer.zero_grad()
@@ -136,4 +141,4 @@ class Agent ():
 
         self.update_network_parameters()
         self.save_models()
-        print('updated the networks')
+        # # print('updated the networks')

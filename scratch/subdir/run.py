@@ -125,17 +125,18 @@ class AiHelperAct(ctypes.Structure):
 class DRLHelper :
     def __init__(self,config:config.Config) :
         self.envNodeSelect = nds.FLNodeSelectionEnv(total_nodes= config.nodes.total, num_selected_trainer=config.nodes.participants_per_round,num_selected_agg= config.nodes.aggregators_per_round, num_features=8, target=config.fl.target_accuracy, max_rounds=config.fl.rounds)
-        self.observationDict, _= self.envNodeSelect.reset()
+        self.observationDict, _= self.envNodeSelect.reset(config.nodes.source)
         self.observationDict_ = None
-        self.observation = self.observationDict["current_state"]
+        self.observation = None #self.observationDict["current_state"]
         self.observation_ = None
-        obs_shape = self.observation.shape
+        obs_shape = self.envNodeSelect.observation_space.sample()["current_state"].shape
         self.agent = ag.Agent(input_shape=obs_shape ,n_actions=obs_shape[0],max_actions=config.nodes.participants_per_round + config.nodes.aggregators_per_round, env=self.envNodeSelect) 
         self.done = False
         self.score = 0
         self.load_checkpoint = False
         self.score_history=[]
         self.best_score=0
+
 class AiHelperContainer:
     use_ns3ai = True
     nodes: List[FLNodeStruct]= []
@@ -174,7 +175,8 @@ class AiHelperContainer:
             self.DRLmanager.agent.load_models()
         # print("nodes in DRL selection", self.nodes)
  
-        self.DRLmanager.observation= dr.get_observation(self.nodes,config.nodes.total)
+        self.DRLmanager.observation = dr.get_observation(self.nodes,config.nodes.total)
+        print("finished get obs")
         self.DRLmanager.observation = dr.adjust_observation_with_nodes(self.DRLmanager.observation,self.nodes)
         
         # print("flat_obs in DRLselection", self.DRLmanager.observation)

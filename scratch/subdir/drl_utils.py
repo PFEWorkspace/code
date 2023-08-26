@@ -12,18 +12,19 @@ def flatten_observation(observation):
 
 def get_obs(nodes):
     obs = []
-    print("in get obs")
+  # print("in get obs")
     for node in nodes:
         availability = 1.0 if node.availability ==True else 0.0
         dropout = 1.0 if node.dropout == True else 0.0 
         obs.append(np.array([node.nodeId, availability, node.honesty, node.datasetSize, node.freq, node.transRate, dropout,0.0]))
 
     obs_array = np.array(obs)
-    print("array of oibs in get ibs", obs_array)
+    # print("array of oibs in get ibs", obs_array)
     return obs_array
+
 def get_observation(nodes, target_size):
     obs=[]
-    print("in get observation dr utils")
+  # print("in get observation dr utils")
     for i, node in enumerate(nodes):
         availability = 1.0 if node.availability ==True else 0.0
         dropout = 1.0 if node.dropout == True else 0.0 

@@ -1,3 +1,0 @@
-modelId,nodeId,taskId,round,type,positiveVote,negativeVote,evaluator1,evaluator2,evaluator3,aggregated,aggModelId,accuracy,acc1,acc2,acc3
-1,-1,1,0,2,0,0,-1,-1,-1,true,0,0.0,0.0,0.0,0.0
-2,-1,2,0,2,0,0,-1,-1,-1,true,0,0.0,0.0,0.0,0.0

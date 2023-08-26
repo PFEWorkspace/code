@@ -327,7 +327,7 @@ class FLManager(object):
                 new_accuracies.append(0.0)
                 new_losses.append(0.0)
         self.update_nodes_state_file()  
-        print("done update node from file")
+        # print("done update node from file")
         instances = self.nodesFileManager.retrieve_instances()  
         for i in range(0,self.config.nodes.total):
             self.nodes[i].node = instances[i] 
@@ -340,21 +340,22 @@ class FLManager(object):
         action= aggregators + trainers
         updated_fl_accuracy =self.globalModel.accuracy
         # remember state action 
-        next_observation , agent_reward,done, node_rewards =manager.envNodeSelect.step(action,new_accuracies,new_observation,new_losses,updated_fl_accuracy)
+        next_observation , agent_reward,done =manager.envNodeSelect.step(action,new_accuracies,new_observation,new_losses,updated_fl_accuracy)
+        
         # print("reward", agent_reward)
         manager.score += agent_reward
-        # print('next observation from step', next_observation)
+        # print('next observation from step', next_observation["current_state"])
         # print("score" , manager.score)
         # obs = dr.flatten_observation(manager.observation)
         # obs_ = dr.flatten_observation(next_observation)
         
-        manager.agent.remember(manager.observation, action, agent_reward, manager.observation_, done)
-        manager.observation = manager.observation_
+        manager.agent.remember(manager.observation, action, agent_reward, next_observation["current_state"], done)
+        manager.observation = next_observation['current_state']
         if not manager.load_checkpoint:
-            print("learning agent")
+            # print("learning agent")
             manager.agent.learn()
         manager.score_history.append(manager.score)
-        print("history score", manager.score_history)
+        # print("history score", manager.score_history)
         avg_score = np.mean(manager.score_history[-100:])
         if avg_score > manager.best_score:
             manager.best_score = avg_score

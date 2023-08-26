@@ -35,10 +35,10 @@ class FLNodeSelectionEnv(gym.Env):
 
     def set_act(self, act):
         self.act = act
-    def reset(self): #CALLED TO INITIATE NEW EPISODE
+    def reset(self, filename): #CALLED TO INITIATE NEW EPISODE
         #should return the observation of the initial state
         # We need the following line to seed self.np_random
-        csv_filename = "generated_nodes.csv"  # Replace with your CSV file name
+        csv_filename = filename  # Replace with your CSV file name
         with open(csv_filename, "r") as csv_file:
             csv_reader = csv.reader(csv_file)
             rows = list(csv_reader)
@@ -79,7 +79,7 @@ class FLNodeSelectionEnv(gym.Env):
         # Update the state of the environment with received updates
         next_observation = self.update_environment_state_with_network_updates(updated_nodes, fl_accuracy)
 
-        self.current_observation = next_observation
+        
         # Simulate FL round and get rewards
         node_rewards = self.calculate_reward(action,accuracies)
         agent_reward = sum(node_rewards)# or agent_reward = self.agent_reward(node_rewards) in case we change the way we calcultae the agent reward
@@ -88,7 +88,7 @@ class FLNodeSelectionEnv(gym.Env):
         # Check if the maximum number of rounds is reached or the target accuracy is achieved
         done = self.current_round >= self.max_rounds or self.target_accuracy_achieved(updated_fl_accuracy)
 
-        return next_observation, agent_reward,done, node_rewards
+        return next_observation, agent_reward,done
 
 
     def update_environment_state_with_network_updates(self,nodes,FL_accuracy):
