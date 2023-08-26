@@ -80,7 +80,7 @@ class Agent ():
         if self.memory.mem_cntr < self.batch_size:
             print('not enough memories to learn from!')
             return
-
+        print("in learn")
         state, action, reward, new_state, done = self.memory.sample_buffer(self.batch_size)
         reward = T.tensor(reward, dtype=T.float).to(self.actor.device)
         done = T.tensor(done).to(self.actor.device)
@@ -94,11 +94,14 @@ class Agent ():
         value = self.value(flat_state).view(-1)
         value_ = self.target_value(flat_state_).view(-1)
         value_[done] = 0.0
+        print("going into sample normal in learn")
         actions, log_probs = self.actor.sample_normal(state, self.max_actions)
-        actions = actions[:self.max_actions]
+        # actions = actions[:self.max_actions]
         actions = T.tensor(actions)
+        print("going into forward critic")
         q1_new_policy = self.critic_1.forward(flat_state, actions)
         q2_new_policy = self.critic_2.forward(flat_state, actions)
+        print("problem with critic forward")
         critic_value = T.min(q1_new_policy, q2_new_policy)
         critic_value = critic_value.view(-1)
         self.value.optimizer.zero_grad()
