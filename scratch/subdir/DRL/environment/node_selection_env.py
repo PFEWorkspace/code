@@ -8,22 +8,22 @@ from numpy.random import default_rng
 import drl_utils as dr
 
 class FLNodeSelectionEnv(gym.Env):
-    def __init__(self,total_nodes,num_selected , num_features,target,max_rounds,aggregator_ratio=0.3):
+    def __init__(self,total_nodes,num_selected_agg, num_selected_trainer , num_features,target,max_rounds,aggregator_ratio=0.3):
         super().__init__()
         self.total_nodes = total_nodes
-        self.num_selected = num_selected
+        self.num_selected = num_selected_agg + num_selected_trainer
         self.num_features = num_features
         self.aggregator_ratio = aggregator_ratio
         self.target_accuracy = target
         # Calculate the number of aggregators and trainers based on the ratio
-        num_aggregators = int(num_selected * aggregator_ratio)
-        num_trainers = num_selected - num_aggregators
+        num_aggregators = num_selected_agg
+        num_trainers = num_selected_trainer
         self.num_aggregators = num_aggregators
         self.num_trainers = num_trainers
         self.current_state =  np.zeros((total_nodes, num_features+1)) # room for id and node accuracy
         self.current_state[:, 0] = np.arange(total_nodes)  # Set node IDs
         self.observation_space = CustomObservationSpace(total_nodes)
-        self.action_space = CustomActionSpace(total_nodes, num_selected)
+        self.action_space = CustomActionSpace(total_nodes, self.num_selected)
         # setting the initial state
         self.fl_accuracy = 0.0
         self.current_observation = {

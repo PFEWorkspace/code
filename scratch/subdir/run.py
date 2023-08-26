@@ -124,7 +124,7 @@ class AiHelperAct(ctypes.Structure):
 
 class DRLHelper :
     def __init__(self,config:config.Config) :
-        self.envNodeSelect = nds.FLNodeSelectionEnv(total_nodes= config.nodes.total, num_selected=config.nodes.participants_per_round + config.nodes.aggregators_per_round, num_features=7, target=config.fl.target_accuracy, max_rounds=config.fl.rounds)
+        self.envNodeSelect = nds.FLNodeSelectionEnv(total_nodes= config.nodes.total, num_selected_trainer=config.nodes.participants_per_round,num_selected_agg= config.nodes.aggregators_per_round, num_features=8, target=config.fl.target_accuracy, max_rounds=config.fl.rounds)
         self.observationDict, _= self.envNodeSelect.reset()
         self.observationDict_ = None
         self.observation = self.observationDict["current_state"]

@@ -11,7 +11,7 @@ class CustomActionSpace(spaces.Space):
 
     @property
     def shape(self):
-        return (self.total_nodes,)
+        return (self.total_nodes)
 
     def sample(self):
         action = np.random.choice(self.total_nodes, size=self.num_selected, replace=False)

@@ -26,7 +26,7 @@ class CustomObservationSpace(spaces.Dict):
         observation_space_dict = spaces.Dict(
             {
                 "current_state":current_state_space, # tableau de noeuds with features
-                "FL_accuracy": spaces.Box(low=0.0, high=1.0, dtype=np.float32),
+                "FL_accuracy": spaces.Box(low=0.0, high=100.0, dtype=np.float32),
             }
         )
         super().__init__(observation_space_dict) # type : ignore

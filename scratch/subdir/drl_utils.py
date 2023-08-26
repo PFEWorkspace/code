@@ -1,8 +1,10 @@
 from typing import List
 import numpy as np
 from torch import dropout_
+
 def flatten_nodes(nodes):
     return nodes.flatten()
+
 def flatten_observation(observation):
     flattened_nodes = flatten_nodes(observation['current_state'])
     flattened_observation = np.concatenate((flattened_nodes, [observation["FL_accuracy"]]))
@@ -26,6 +28,9 @@ def get_observation(nodes, target_size):
         availability = 1.0 if node.availability ==True else 0.0
         dropout = 1.0 if node.dropout == True else 0.0 
         obs.append(np.array([i, availability, node.honesty, node.datasetSize, node.freq, node.transRate, dropout, 0.0]))
+    
+    obs.sort(key=lambda x: x[0])
+    
     obs_array = np.array(obs)
     if len(obs_array) < target_size:
         last_node_id = len(nodes) - 1

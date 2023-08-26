@@ -28,7 +28,8 @@ def main():
     # Create an instance of your custom 
     # Usage 
     total_nodes = 50
-    num_selected = 30
+    num_selected_agg = 7
+    num_selected_trainers = 10
     num_features = 6
     accuracies = np.array([0.85, 0.91, 0.78, 0.92])
     nodes = np.array([[   0.,    1.,    0.,  100.,  300., 1000. ,   0.],
@@ -90,7 +91,7 @@ def main():
 # Combine the existing and additional data
     all_accuracies = np.concatenate([accuracies, additional_accuracies])
     all_losses = np.concatenate([losses, additional_losses])
-    env = FLNodeSelectionEnv(total_nodes= total_nodes, num_selected=num_selected, num_features=num_features, target=0.8, max_rounds=150)
+    env = FLNodeSelectionEnv(total_nodes= total_nodes, num_selected_agg=num_selected_agg, num_selected_trainer=num_selected_trainers, num_features=num_features, target=0.8, max_rounds=150)
     mock_act = MockAct(all_accuracies, nodes, all_losses, fl_accuracy)
     # print("mock_act type : ",type(mock_act))
     # env = gym.make(env_name, total_nodes= total_nodes, num_selected=num_selected, num_features=num_features, target=0.8, max_rounds=150)
