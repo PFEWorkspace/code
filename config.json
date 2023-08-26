@@ -1,15 +1,15 @@
 {
     "nodes": {
-        "total":300,
-        "participants_per_round": 80,
-        "aggregators_per_round":50,
-        "bc":100,
+        "total":150,
+        "participants_per_round": 30,
+        "aggregators_per_round":20,
+        "bc":50,
         "test_partition": 0.2,
         "selection": "DRL",
         "source": "generated_nodes.csv",
         "availability_percent": 0.8,
         "dropout_percent":0.1,
-        "malicious_percent":0.1 
+        "malicious_percent":0.6 
     },
     "data": {
         "loading": "static",
@@ -27,7 +27,7 @@
         "target_accuracy": 99.9,
         "epochs": 5,
         "batch_size": 64,
-        "x" : 12,
+        "x" : 6,
         "alpha":0.5,
         "honesty_alpha":1,
         "honesty_beta":3,
