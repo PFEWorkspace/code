@@ -333,17 +333,17 @@ class FLManager(object):
             self.nodes[i].node = instances[i] 
             
         #update the agent
-        print("instances",len(instances))
+        # print("instances",len(instances))
         new_observation = dr.get_obs(instances[0:self.config.nodes.total]) # to add accuracies
         
-        print("got the updates accuracies and losses", new_accuracies)
+        # print("got the updates accuracies and losses", new_accuracies)
         action= aggregators + trainers
         updated_fl_accuracy =self.globalModel.accuracy
         # remember state action 
         next_observation , agent_reward,done, node_rewards =manager.envNodeSelect.step(action,new_accuracies,new_observation,new_losses,updated_fl_accuracy)
         # print("reward", agent_reward)
         manager.score += agent_reward
-        print('next observation from step', next_observation)
+        # print('next observation from step', next_observation)
         # print("score" , manager.score)
         # obs = dr.flatten_observation(manager.observation)
         # obs_ = dr.flatten_observation(next_observation)
@@ -360,7 +360,7 @@ class FLManager(object):
             manager.best_score = avg_score
             if not manager.load_checkpoint:
                 manager.agent.save_models()
-        print("observation from resetround", next_observation)
+        # print("observation from resetround", next_observation)
         return instances[0:self.config.nodes.total] , next_observation , manager
 
     def update_nodes_state_file(self):

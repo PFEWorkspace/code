@@ -11,7 +11,7 @@ class ReplayBuffer():
         self.action_memory = np.zeros((self.mem_size,max_action)) #action memory
         self.reward_memory = np.zeros(self.mem_size) #reward memory
         self.terminal_memory = np.zeros(self.mem_size,dtype=bool) #terminal memory we need it to store the done flags
-    
+
     def preprocess_observation(self, observation):
         current_state = observation['current_state']
         fl_accuracy = observation['FL_accuracy']
@@ -25,27 +25,20 @@ class ReplayBuffer():
         return processed_observation
 
     def store_transition(self,state,action,reward,state_,done):
-        # print ("im in store_transition")
         index = self.mem_cntr % self.mem_size
         self.state_memory[index] = state
         self.new_state_memory[index] = state_
         self.action_memory[index] = action
         self.reward_memory[index] = reward
         self.terminal_memory[index] = done
-        self.mem_cntr += 1 
-        print("added the transition", self.mem_cntr)
+        self.mem_cntr += 1
 
     def sample_buffer(self,batch_size):
         max_mem = min(self.mem_cntr,self.mem_size)
-        print("maxmeme in sample buffer", max_mem)
         batch = np.random.choice(max_mem,batch_size) #randomly choose the batch size from the memory
-        print("the batch in sample ?", batch)
         states = self.state_memory[batch]#get the states
         states_ = self.new_state_memory[batch]#get the new states
         actions = self.action_memory[batch] #get the actions
         rewards = self.reward_memory[batch] #get the rewards
         dones = self.terminal_memory[batch] #get the done flags
-        print("action from batch", actions)
-        print("rewards from batch", rewards)
-        print("dones from batch", dones)
         return states[0], actions[0], rewards[0], states_[0], dones[0]

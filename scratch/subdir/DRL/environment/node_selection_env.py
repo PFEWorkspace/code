@@ -7,10 +7,9 @@ from .custom_action_space import CustomActionSpace
 from numpy.random import default_rng
 import drl_utils as dr
 
-
 class FLNodeSelectionEnv(gym.Env):
     def __init__(self,total_nodes,num_selected , num_features,target,max_rounds,aggregator_ratio=0.3):
-        super().__init__() 
+        super().__init__()
         self.total_nodes = total_nodes
         self.num_selected = num_selected
         self.num_features = num_features
@@ -30,8 +29,7 @@ class FLNodeSelectionEnv(gym.Env):
         self.current_observation = {
                 "current_state":self.current_state,
                 "FL_accuracy": self.fl_accuracy}
-        
-        self.rng = default_rng()
+
         self.current_round=0
         self.max_rounds: int =max_rounds
 
@@ -63,7 +61,7 @@ class FLNodeSelectionEnv(gym.Env):
         new_column = np.zeros((new_current_state.shape[0], 1))
         # Append the new column to the existing array
         current_state = np.append(new_current_state, new_column, axis=1) #added the accuracy of local model column
-        
+
         self.current_state[:self.total_nodes] = current_state
         # Create initial values for other parts of the observation
         current_observation = {
@@ -76,13 +74,11 @@ class FLNodeSelectionEnv(gym.Env):
 
     def step(self, action, accuracies, nodes, losses, fl_accuracy):
         updated_nodes =dr.get_nodes_withaccuracy(nodes, self.total_nodes,accuracies)
-        # print("updated",updated_nodes)
         updated_fl_accuracy =fl_accuracy
-        # print ("in step function checking nodes from act", updated_nodes)
 
         # Update the state of the environment with received updates
         next_observation = self.update_environment_state_with_network_updates(updated_nodes, fl_accuracy)
-    
+
         self.current_observation = next_observation
         # Simulate FL round and get rewards
         node_rewards = self.calculate_reward(action,accuracies)
@@ -91,10 +87,10 @@ class FLNodeSelectionEnv(gym.Env):
         self.current_round += 1
         # Check if the maximum number of rounds is reached or the target accuracy is achieved
         done = self.current_round >= self.max_rounds or self.target_accuracy_achieved(updated_fl_accuracy)
-        
-        return next_observation, agent_reward,done, node_rewards 
 
-   
+        return next_observation, agent_reward,done, node_rewards
+
+
     def update_environment_state_with_network_updates(self,nodes,FL_accuracy):
         # Update the state of the environment with received updates
         #check the shape of nodes if it includes accuracy
@@ -103,17 +99,17 @@ class FLNodeSelectionEnv(gym.Env):
             "current_state": nodes,
             "FL_accuracy": FL_accuracy
         }
-        self.current_observation = obs 
+        self.current_observation = obs
         return obs
-    
-    
+
+
     def agent_reward(self, node_rewards):
         return sum(node_rewards)
 
     def calculate_reward(self, selected_nodes, updated_accuracies):
         #todo to change to accuracy
         # print("nodes in reward", self.current_observation)
-        print("selected nodes",  selected_nodes)
+        # print("selected nodes",  selected_nodes)
         state = self.current_observation["current_state"]
         node_rewards = np.zeros(self.total_nodes)
         # print ("updated_losses", updated_losses)
@@ -121,7 +117,7 @@ class FLNodeSelectionEnv(gym.Env):
             node_rewards[node_index] = state[node_index][2]
             if (updated_accuracies[node_index] != 0) :
                 node_rewards[node_index] *= updated_accuracies[node_index]  # Use loss as a simple example because loss is positive
-            print("node reward", node_rewards[node_index])
+            # print("node reward", node_rewards[node_index])
         return node_rewards
     def target_accuracy_achieved(self, updated_accuracy):
         return updated_accuracy >= self.target_accuracy
@@ -133,7 +129,7 @@ class FLNodeSelectionEnv(gym.Env):
     # def __close__(self):
     #     #should close the environment
     #     pass
-    
+
     # def __seed__(self, seed=None):
     #     #should set the seed for this env's random number generator(s)
     #     pass

@@ -172,16 +172,16 @@ class AiHelperContainer:
         num_trainers = config.nodes.participants_per_round
         if (self.DRLmanager.load_checkpoint):
             self.DRLmanager.agent.load_models()
-        print("nodes in DRL selection", self.nodes)
+        # print("nodes in DRL selection", self.nodes)
  
         self.DRLmanager.observation= dr.get_observation(self.nodes,config.nodes.total)
         self.DRLmanager.observation = dr.adjust_observation_with_nodes(self.DRLmanager.observation,self.nodes)
         
-        print("flat_obs in DRLselection", self.DRLmanager.observation)
+        # print("flat_obs in DRLselection", self.DRLmanager.observation)
 
         
         flat = dr.flatten_nodes(self.DRLmanager.observation)
-        print ("flat in DRL selection shape", flat.shape)
+        # print ("flat in DRL selection shape", flat.shape)
         
         action = self.DRLmanager.agent.choose_action(flat)
         

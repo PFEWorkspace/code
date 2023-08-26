@@ -7,10 +7,10 @@ from .node_selection_buffer import ReplayBuffer
 from .node_selection_networks import ActorNetwork, CriticNetwork, ValueNetwork
 import drl_utils as dr
 
-ALPHA_INITIAL = 1.            
+ALPHA_INITIAL = 1.
 DISCOUNT_RATE = 0.99
 LEARNING_RATE = 10 ** -4
-SOFT_UPDATE_INTERPOLATION_FACTOR = 0.01  
+SOFT_UPDATE_INTERPOLATION_FACTOR = 0.01
 class Agent ():
     def __init__(self,env,alpha=ALPHA_INITIAL,beta=LEARNING_RATE,input_shape=[8],gamma = DISCOUNT_RATE,n_actions=2,max_actions=1,max_size=200,tau=SOFT_UPDATE_INTERPOLATION_FACTOR,
     layer1_size=256,layer2_size=256,batch_size=1,reward_scale=2):
@@ -18,30 +18,25 @@ class Agent ():
         self.gamma = gamma
         self.tau = tau
         self.memory = ReplayBuffer(max_size, input_shape=input_shape, n_actions=n_actions,max_action=max_actions)
-        # print ("replay buffer passed")
         self.batch_size = batch_size
         self.n_actions = n_actions
         self.max_actions= max_actions
         self.scale = reward_scale
-        # self.actor = ActorNetwork(alpha,input_shape,n_actions=n_actions,name='actor',max_actions=env.action_space.high) #type: ignore
-        
-        self.actor = ActorNetwork(alpha, input_shape,  n_actions=n_actions, name='actor', max_actions=self.max_actions)
-        # print ("actor passed")
-        self.critic_1 = CriticNetwork(beta, input_shape , n_actions=n_actions, name='critic_1')
-        # print ("critic 1 passed")
-        self.critic_2 = CriticNetwork(beta, input_shape, n_actions=n_actions, name='critic_2')
-        # print ("critic2 passed")
-        self.value = ValueNetwork(beta, input_shape, name='value')
-        # print ("value passed")
-        self.target_value = ValueNetwork(beta, input_shape, name='target_value')
-        # print ("target value passed")
 
-        self.update_network_parameters(tau=1)
+        self.actor = ActorNetwork(alpha, input_shape,  n_actions=n_actions, name='actor', max_actions=self.max_actions)
+
+        self.critic_1 = CriticNetwork(beta, input_shape , n_actions=max_actions, name='critic_1')
+
+        self.critic_2 = CriticNetwork(beta, input_shape, n_actions=max_actions, name='critic_2')
+
+        self.value = ValueNetwork(beta, input_shape, name='value')
+
+        self.target_value = ValueNetwork(beta, input_shape, name='target_value')
+
+        self.update_network_parameters(tau=0.6)
 
     def choose_action(self, observation):
         state = T.tensor(observation, dtype=T.float).to(self.actor.device)
-        # state = np.array(state)
-        print("state: ", state)
         actions, log_probs = self.actor.sample_normal(state, self.max_actions)
         return actions
 
@@ -51,7 +46,7 @@ class Agent ():
     def update_network_parameters(self, tau=None):
         if tau is None:
             tau = self.tau
-        
+
         target_value_params = self.target_value.named_parameters()
         value_params = self.value.named_parameters()
 
@@ -59,8 +54,9 @@ class Agent ():
         value_state_dict = dict(value_params)
 
         for name in value_state_dict:
+
             value_state_dict[name] = tau*value_state_dict[name].clone() + (1-tau)*target_value_state_dict[name].clone()
-        
+
         self.target_value.load_state_dict(value_state_dict)
 
     def save_models(self):
@@ -85,59 +81,49 @@ class Agent ():
             print('not enough memories to learn from!')
             return
 
-        print('learning agent in learn')
-        print("batch_size", self.batch_size)
         state, action, reward, new_state, done = self.memory.sample_buffer(self.batch_size)
-        print('Sampled transitions:', state.shape, action.shape, reward.shape, new_state.shape, done.shape)
-        print("done", done)
-        print("reward", reward)
         reward = T.tensor(reward, dtype=T.float).to(self.actor.device)
         done = T.tensor(done).to(self.actor.device)
         state_ = T.tensor(new_state, dtype=T.float).to(self.actor.device)
         state = T.tensor(state, dtype=T.float).to(self.actor.device)
         action = T.tensor(action, dtype=T.float).to(self.actor.device)
-        print("made them tensors in leanr")
         flat_state = dr.flatten_nodes(state)
         flat_state_= dr.flatten_nodes(state_)
-        print("fakte state",flat_state)
 
-        # value = self.value(flat_state).view(-1)
-        # value_ = self.target_value(flat_state_).view(-1)
-        value = self.value(flat_state)
-        value_ = self.target_value(flat_state_)
+
+        value = self.value(flat_state).view(-1)
+        value_ = self.target_value(flat_state_).view(-1)
         value_[done] = 0.0
-
         actions, log_probs = self.actor.sample_normal(state, self.max_actions)
-        print('Sampled actions:', actions.shape, log_probs.shape)
-
-        q1_new_policy = self.critic_1.forward(state, actions)
-        q2_new_policy = self.critic_2.forward(state, actions)
+        actions = actions[:self.max_actions]
+        actions = T.tensor(actions)
+        q1_new_policy = self.critic_1.forward(flat_state, actions)
+        q2_new_policy = self.critic_2.forward(flat_state, actions)
         critic_value = T.min(q1_new_policy, q2_new_policy)
         critic_value = critic_value.view(-1)
-
-        self.value_optimizer.zero_grad()
+        self.value.optimizer.zero_grad()
         value_target = critic_value - log_probs
         value_loss = 0.5 * F.mse_loss(value, value_target)
         value_loss.backward(retain_graph=True)
-        self.value_optimizer.step()
+        self.value.optimizer.step()
 
         log_probs = log_probs.view(-1)
-        q1_new_policy = self.critic_1.forward(state, actions)
-        q2_new_policy = self.critic_2.forward(state, actions)
+        q1_new_policy = self.critic_1.forward(flat_state, actions)
+        q2_new_policy = self.critic_2.forward(flat_state, actions)
         critic_value = T.min(q1_new_policy, q2_new_policy)
         critic_value = critic_value.view(-1)
 
         actor_loss = log_probs - critic_value
         actor_loss = T.mean(actor_loss)
-        self.actor_optimizer.zero_grad()
+        self.actor.optimizer.zero_grad()
         actor_loss.backward(retain_graph=True)
-        self.actor_optimizer.step()
+        self.actor.optimizer.step()
 
         self.critic_1.optimizer.zero_grad()
         self.critic_2.optimizer.zero_grad()
         q_hat = self.scale * reward + self.gamma * value_
-        q1_old_policy = self.critic_1.forward(state, action).view(-1)
-        q2_old_policy = self.critic_2.forward(state, action).view(-1)
+        q1_old_policy = self.critic_1.forward(flat_state, action).view(-1)
+        q2_old_policy = self.critic_2.forward(flat_state, action).view(-1)
         critic_1_loss = 0.5 * F.mse_loss(q1_old_policy, q_hat)
         critic_2_loss = 0.5 * F.mse_loss(q2_old_policy, q_hat)
         critic_loss = critic_1_loss + critic_2_loss
@@ -148,6 +134,3 @@ class Agent ():
         self.update_network_parameters()
         self.save_models()
         print('updated the networks')
-
-        
-
