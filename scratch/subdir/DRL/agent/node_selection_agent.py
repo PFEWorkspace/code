@@ -38,6 +38,7 @@ class Agent ():
     def choose_action(self, observation):
         
         state = T.tensor(observation, dtype=T.float).to(self.actor.device)
+        # print("state shape in choose action", state.shape)
         actions, log_probs = self.actor.sample_normal(state, self.max_actions)
         return actions
 
@@ -82,16 +83,17 @@ class Agent ():
         if self.memory.mem_cntr < self.batch_size:
             # # print('not enough memories to learn from!')
             return
-        # # print("in learn")
+        # print("in learn")
         state, action, reward, state_, done = self.memory.sample_buffer(self.batch_size)
-        # # print("got sample")
+        # print("got sample")
+        # print("state from replay buffer",state)
         reward = T.tensor(reward, dtype=T.float).to(self.actor.device)
         done = T.tensor(1 if done else 0).to(self.actor.device)
-        # # # print(done)
+        # print(done)
         state_ = T.tensor(state_, dtype=T.float).to(self.actor.device)
         state = T.tensor(state, dtype=T.float).to(self.actor.device)
         action = T.tensor(action, dtype=T.float).to(self.actor.device)
-        # # print("finished")
+        # print("finished")
         flat_state = dr.flatten_nodes(state)
         flat_state_= dr.flatten_nodes(state_)
 
@@ -99,14 +101,15 @@ class Agent ():
         value = self.value(flat_state).view(-1)
         value_ = self.target_value(flat_state_).view(-1)
         value_[done] = 0.0
-        # # print("going into sample normal in learn")
+        # print("printinn state shape")
+        # print(state.shape)
         actions, log_probs = self.actor.sample_normal(state, self.max_actions)
-        actions = actions[:self.max_actions]
+        # actions = actions[:self.max_actions]
         actions = T.tensor(actions,dtype=T.float)
-        # # print("going into forward critic")
+        # print("going into forward critic")
         q1_new_policy = self.critic_1.forward(flat_state, actions)
         q2_new_policy = self.critic_2.forward(flat_state, actions)
-        # # print("problem with critic forward")
+        # print("problem with critic forward")
         critic_value = T.min(q1_new_policy, q2_new_policy)
         critic_value = critic_value.view(-1)
         self.value.optimizer.zero_grad()
@@ -141,4 +144,4 @@ class Agent ():
 
         self.update_network_parameters()
         self.save_models()
-        # # print('updated the networks')
+        print('updated the networks')

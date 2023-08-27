@@ -136,6 +136,7 @@ class DRLHelper :
         self.load_checkpoint = False
         self.score_history=[]
         self.best_score=0
+        dr.create_csv('./reward')
 
 class AiHelperContainer:
     use_ns3ai = True
@@ -183,9 +184,10 @@ class AiHelperContainer:
 
         
         flat = dr.flatten_nodes(self.DRLmanager.observation)
-        # print ("flat in DRL selection shape", flat.shape)
+        state = self.DRLmanager.observation
+        print ("state of choose action in DRL selection", flat.shape)
         
-        action = self.DRLmanager.agent.choose_action(flat)
+        action = self.DRLmanager.agent.choose_action(state)
         
         actions.append(action)
         selected_aggregators = action[:num_aggregators]

@@ -1,6 +1,7 @@
 from typing import List
 import numpy as np
 from torch import dropout_
+import csv
 
 def flatten_nodes(nodes):
     return nodes.flatten()
@@ -79,3 +80,13 @@ def array_to_state(tab, features):
     state = tab[0:(len(tab))].reshape(state_rows,features)
     # print("here si ur state", state)
     return state
+
+def write_to_csv(file_path, data):
+    with open(file_path, mode='w', newline='') as csv_file:
+        writer = csv.writer(csv_file)
+        writer.writerow(['Round', 'Reward', 'Cumulative Reward'])
+        writer.writerow([data["round"], data["reward"], data["cumulative_reward"]])
+def create_csv(file_path):
+    with open(file_path, mode='w', newline='\n') as csv_file:
+        writer = csv.writer(csv_file)
+        writer.writerow(['Round', 'Reward', 'Cumulative Reward'])

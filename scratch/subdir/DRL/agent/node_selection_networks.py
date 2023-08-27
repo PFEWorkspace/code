@@ -1,12 +1,10 @@
-from collections import OrderedDict
 import os
-import select
 import torch as T
 from torch.distributions.utils import logits_to_probs
 import torch.nn.functional as F
 import torch.nn as nn
 import torch.optim as optim
-from torch.distributions import Normal, Categorical
+from torch.distributions import Categorical
 import numpy as np
 import drl_utils as dr
 
@@ -126,9 +124,9 @@ class ActorNetwork(nn.Module):
         #layer 3
 
 
-        self.mu = nn.Linear(self.fc2_dims,self.max_actions)
+        self.mu = nn.Linear(self.fc2_dims,self.n_actions)
         #layer 4
-        self.sigma = nn.Linear(self.fc2_dims,self.max_actions)
+        self.sigma = nn.Linear(self.fc2_dims,self.n_actions)
         #optimizer
         self.optimizer = optim.Adam(self.parameters(),lr=alpha)
         #device
@@ -139,83 +137,65 @@ class ActorNetwork(nn.Module):
         # self.distribution = Normal
     # ... (previous code) ...
 
-    def sample_normal(self, state, num_selected_nodes, exploration_noise= 0.025):
-        state = dr.flatten_nodes(state)
-      # print("after flatten state")
-        action_probs, action_mean, action_log_std = self.forward(state)
-      # print("action probs in sample normal")
-
+    def sample_normal(self, state, num_selected_nodes, exploration_noise= 0.6):
+        action_probs_nn, action_mean, action_log_std = self.forward(state)
         action_std = action_log_std.exp()
-      # print("action std after exp()")
-
-        state = dr.array_to_state(state, 8)
-      # print("state after array_to_state")
-
-        availability_mask = state[:, 1] != 0
+        availability_mask = state[:,1] != 0
         availability_mask = availability_mask.long()
-      # print("availability mask")
-
-        # Add exploration noise to logits
+        #get indices of avialbale nodes
+        available_indices = T.tensor(np.where(availability_mask)[0])
         noisy_logits = action_mean + exploration_noise * action_std * T.randn_like(action_mean)
 
         # Convert action_probs to a clean tensor with NaN replaced by 0
+
         
-
-        # non_nan = np.nan_to_num(T.transpose(action_probs, 0, -1).detach().numpy(), nan=0.0)
-        # action_probs_nn_clean = T.tensor(non_nan)
-        # action_probs_clean *= availability_mask
-        
-        # action_probs_clean = T.tensor(np.nan_to_num(action_probs.T.detach().numpy(), nan=0.0))
-        action_probs_clean = T.tensor(np.nan_to_num(action_probs.detach().numpy(), nan=0.0))
-
-      # print("action_probs_clean after nan_to_num and availability mask")
+        non_nan = np.nan_to_num(T.transpose(action_probs_nn, 0, -1).detach().numpy(), nan=0.0)
+        action_probs_nn_clean = T.tensor(non_nan)
+        action_probs_nn_clean *= availability_mask
 
 
-        action_dist = Categorical(action_probs_clean)
-      # print("action_dist after categorical")
+        action_dist = Categorical(action_probs_nn_clean)
 
         # Sample actions from the Categorical distribution
-        
-        sampled_actions = action_dist.sample()
-      # print("sampled_actions from distribution")
-        # log_probs = action_dist.log_prob(sampled_actions)
-    
-       
-        # print("final selected_indices", sampled_actions)
-        # Get indices of selected nodes
-        selected_indices = sampled_actions.nonzero().squeeze()
-        for i in range(10):
-            new_samples = action_dist.sample()
-            new_samples = new_samples*availability_mask  # Apply availability mask
-            new_indices = new_samples.nonzero().squeeze()
 
-            # Convert the selected_indices list back to a tensor
-            selected_indices_tensor = T.tensor(selected_indices)
+        sampled_actions = action_dist.sample(sample_shape=(num_selected_nodes,))
+        # get rid of duplicate
+        sampled_actions = sampled_actions.unique(sorted = False).flip(dims=[-1,])
+        # print("unique sampled", sampled_actions)
+        sampled_actions = sampled_actions[T.isin(sampled_actions,available_indices)]
+        #check if enough selected indices
+        count = 0
+        while sampled_actions.shape[0] < num_selected_nodes and count < 4:
+            #sample again concatenate and check for duplicates
+            additional_nodes_needed = num_selected_nodes - sampled_actions.shape[0]
+            count +=1
+            sampled_actions_2 = action_dist.sample(sample_shape=(additional_nodes_needed,))
+            sampled_actions_2 = sampled_actions_2.unique(sorted = False).flip(dims=[-1,])
+            sampled_actions_2 = sampled_actions_2[T.isin(sampled_actions_2, available_indices)]
+            #printing 
+            # print("sampled_actions_2 from distribution", sampled_actions_2)
+            sampled_actions = T.cat((sampled_actions, sampled_actions_2.unique(sorted = False).flip(dims=[-1,])), dim=0)
+            sampled_actions= sampled_actions.unique(sorted = False).flip(dims=[-1,])
+            #printing
+            # print("sampled_actions from distribution", sampled_actions)
+            #select a node from available indices 
+        additional_nodes_needed = num_selected_nodes - sampled_actions.shape[0]
+        # Get unique available indices that are not already in sampled actions
+        available_indices = available_indices[~T.isin(T.tensor(available_indices), sampled_actions)]
+        # print("available indices",available_indices)
+        # Sample additional nodes if needed
+        if additional_nodes_needed > 0 and available_indices.shape[0] > 0:
+            additional_nodes = T.randperm(available_indices.shape[0])[:additional_nodes_needed]
+            # print("truc a concat",available_indices[additional_nodes])
+            sampled_actions = T.cat((sampled_actions, available_indices[additional_nodes]))
 
-            # Combine the selected indices and new indices while removing duplicates
-            combined_indices = T.cat((selected_indices_tensor, new_indices))
-            unique_combined_indices = T.unique(combined_indices)
-            # Convert the unique indices back to a Python list
-            selected_indices = unique_combined_indices
-
-        # print(selected_indices)
-        selected_indices = np.array(selected_indices)
-        # print(selected_indices)
-        if len(selected_indices) < num_selected_nodes:
-            additional_indices = np.random.choice(availability_mask.nonzero().squeeze(), size=num_selected_nodes - len(selected_indices), replace=False)
-          # print(additional_indices)
-            selected_indices = np.concatenate((selected_indices, additional_indices))
-            # print("finished sample_normal")
-        # Calculate log probabilities for the new sampled actions
-        log_probs = action_dist.log_prob(new_samples)
-        # print("log probs", log_probs)
-        return selected_indices, log_probs    
-        
-
-
+        selected_indices = np.array(sampled_actions)[:num_selected_nodes]
+        action_probs = action_dist.probs
+        return selected_indices, action_probs
 
     def forward(self, state):
       # Layer 1
+      state = dr.flatten_nodes(state)
       prob = self.fc1(state)
       prob = F.relu(prob)
       prob = self.fc2(prob)
@@ -242,10 +222,18 @@ class ActorNetwork(nn.Module):
       # Normalize the probabilities
       total_probabilities = prob_not_selected + scaled_actions
       selection_probabilities = scaled_actions / total_probabilities  # Only the probability of selecting the node
-
+      # print("finished forward of actor")
       return selection_probabilities, mu, sigma
+# forward not modified
+# prob = self.fc1(state)
+#         prob = F.relu(prob)
+#         prob = self.fc2(prob)
+#         prob = F.relu(prob)
 
+#         mu = self.mu(prob)
+#         sigma = self.sigma(prob)
 
+#         sigma = T.clamp(sigma, min=self.reparam_noise, max=1)
 
 
 

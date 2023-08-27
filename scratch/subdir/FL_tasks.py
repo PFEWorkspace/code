@@ -342,10 +342,12 @@ class FLManager(object):
         # remember state action 
         next_observation , agent_reward,done =manager.envNodeSelect.step(action,new_accuracies,new_observation,new_losses,updated_fl_accuracy)
         
-        # print("reward", agent_reward)
+        print("reward", agent_reward)
         manager.score += agent_reward
         # print('next observation from step', next_observation["current_state"])
-        # print("score" , manager.score)
+        reward_data = {"round" : self.round,"reward":agent_reward, "cumulative_reward":manager.score}
+        print("score" , manager.score)
+        dr.write_to_csv("reward",reward_data)
         # obs = dr.flatten_observation(manager.observation)
         # obs_ = dr.flatten_observation(next_observation)
         
