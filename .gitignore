@@ -21,7 +21,6 @@ AUTHORS
 /bindings
 /.vscode
 /src/buildings
-
 doc*
 scratch/.gitattributes
 !document.h
