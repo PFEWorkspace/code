@@ -141,7 +141,7 @@ class ActorNetwork(nn.Module):
         action_probs_nn, action_mean, action_log_std = self.forward(state)
         action_std = action_log_std.exp()
         availability_mask = state[:,1] != 0
-        availability_mask = availability_mask.long()
+        availability_mask = availability_mask.float()
         #get indices of avialbale nodes
         available_indices = T.tensor(np.where(availability_mask)[0])
         noisy_logits = action_mean + exploration_noise * action_std * T.randn_like(action_mean)

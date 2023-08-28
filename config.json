@@ -8,8 +8,8 @@
         "selection": "DRL",
         "source": "generated_nodes.csv",
         "availability_percent": 0.8,
-        "dropout_percent":0.1,
-        "malicious_percent":0.1 
+        "dropout_percent":0.3,
+        "malicious_percent":0.1
     },
     "data": {
         "loading": "static",
