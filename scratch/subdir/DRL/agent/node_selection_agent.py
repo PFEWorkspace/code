@@ -5,7 +5,7 @@ import torch.nn.functional as F
 import numpy as np
 from .node_selection_buffer import ReplayBuffer
 from .node_selection_networks import ActorNetwork, CriticNetwork, ValueNetwork
-import drl_utils as dr
+from DRL import drl_utils as dr
 
 ALPHA_INITIAL = 1.
 DISCOUNT_RATE = 0.99
@@ -62,7 +62,7 @@ class Agent ():
         self.target_value.load_state_dict(value_state_dict)
 
     def save_models(self):
-        # # print('.... saving models ....')
+        print('.... saving models ....')
         self.actor.save_checkpoint()
         self.value.save_checkpoint()
         self.target_value.save_checkpoint()
@@ -71,13 +71,13 @@ class Agent ():
 
 
     def load_models(self):
-        # # print('.... loading models ....')
+        print('.... loading models ....')
         self.actor.load_checkpoint()
         self.value.load_checkpoint()
         self.target_value.load_checkpoint()
         self.critic_1.load_checkpoint()
         self.critic_2.load_checkpoint()
-        # # print('.... finished loading models ....')
+        print('.... finished loading models ....')
 
     def learn(self):
         if self.memory.mem_cntr < self.batch_size:

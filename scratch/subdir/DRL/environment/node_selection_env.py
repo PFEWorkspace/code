@@ -1,11 +1,11 @@
 import csv
-
+import os
 import gym
 import numpy as np
 from .custom_observation_space import CustomObservationSpace
 from .custom_action_space import CustomActionSpace
 from numpy.random import default_rng
-import drl_utils as dr
+from DRL import drl_utils as dr
 
 class FLNodeSelectionEnv(gym.Env):
     def __init__(self,total_nodes,num_selected_agg, num_selected_trainer , num_features,target,max_rounds,aggregator_ratio=0.3):

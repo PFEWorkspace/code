@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.distributions import Categorical
 import numpy as np
-import drl_utils as dr
+from DRL import drl_utils as dr
 
 class CriticNetwork(nn.Module):
     #beta learning rate, number of input dimensions from the environment
@@ -49,11 +49,11 @@ class CriticNetwork(nn.Module):
         return q
 
     def save_checkpoint(self):
-      # print('...saving checkpoint...')
+        print('...saving checkpoint...')
         T.save(self.state_dict(),self.checkpoint_file)
 
     def load_checkpoint(self):
-      # print('...loading checkpoint...')
+        print('...loading checkpoint...')
         self.load_state_dict(T.load(self.checkpoint_file))
 
 class ValueNetwork(nn.Module):
@@ -94,11 +94,11 @@ class ValueNetwork(nn.Module):
         return v
 
     def save_checkpoint(self):
-      # print('...saving checkpoint...')
+        print('...saving checkpoint...')
         T.save(self.state_dict(),self.checkpoint_file)
 
     def load_checkpoint(self):
-      # print('...loading checkpoint...')
+        print('...loading checkpoint...')
         self.load_state_dict(T.load(self.checkpoint_file))
 
 
@@ -238,10 +238,10 @@ class ActorNetwork(nn.Module):
 
 
     def save_checkpoint(self):
-      # print('...saving checkpoint...')
+        print('...saving checkpoint...')
         T.save(self.state_dict(),self.checkpoint_file)
 
     def load_checkpoint(self):
-      # print('...loading checkpoint...')
+        print('...loading checkpoint...')
         self.load_state_dict(T.load(self.checkpoint_file))
 

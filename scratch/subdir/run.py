@@ -146,6 +146,7 @@ class AiHelperContainer:
         self.rl = Ns3AIRL(uid, AiHelperEnv, AiHelperAct)
         self.FL_manager = fl.FLManager(config)
         self.DRLmanager = DRLHelper(config)
+        self.DRLmanager.agent.load_models()
         
         pass
 
