@@ -133,7 +133,7 @@ class DRLHelper :
         self.agent = ag.Agent(input_shape=obs_shape ,n_actions=obs_shape[0],max_actions=config.nodes.participants_per_round + config.nodes.aggregators_per_round, env=self.envNodeSelect) 
         self.done = False
         self.score = 0
-        self.load_checkpoint = False
+        self.load_checkpoint = True
         self.score_history=[]
         self.best_score=0
         dr.create_csv('./reward')
