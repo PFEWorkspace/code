@@ -286,6 +286,10 @@ class FLManager(object):
         return mlmodel
     
     def resetRound(self, trainers:list, aggregators:list, manager=None):
+        print("in reset round debut")
+        # node = self.nodes[0]
+        # print(node.malicious) 
+        # print(node.dropout)
         self.round += 1
         print("round number: ",self.round)
         #calculate honesty
@@ -293,8 +297,8 @@ class FLManager(object):
         for index in trainers:
             # print("calculating honesty of node ",index)
             honesty = self.nodes[index].updateHonestyTrainer(self.model, self.globalModel.accuracy, self.config)
-            # self.nodesFileManager.modify_instance_field(index,"honesty",round(honesty,3))
-            # self.nodesFileManager.modify_instance_field(index,"task",0)
+            self.nodesFileManager.modify_instance_field(index,"honesty",round(honesty,3))
+            self.nodesFileManager.modify_instance_field(index,"task",0)
             print("node {} honesty {}".format(index,round(honesty,3)))
 
         # numEvals = sum(self.nodes[index].numEvaluations for index in aggregators)
@@ -302,8 +306,8 @@ class FLManager(object):
 
         for index in aggregators:
             honesty = self.nodes[index].updateHonestyAggregator( self.config)
-            # self.nodesFileManager.modify_instance_field(index,"honesty",round(honesty,3))
-            # self.nodesFileManager.modify_instance_field(index,"task",1)
+            self.nodesFileManager.modify_instance_field(index,"honesty",round(honesty,3))
+            self.nodesFileManager.modify_instance_field(index,"task",1)
             print("node {} honesty {}".format(index,round(honesty,3)))
 
             self.nodes[index].numEvaluations = 0
@@ -314,6 +318,10 @@ class FLManager(object):
             self.nodes[index].falseAggregation = 0
 
         for node in self.nodes :
+            availability = random.choices([1, 0], weights=[self.config.nodes.availability_percent, 1-self.config.nodes.availability_percent])[0]
+            self.nodesFileManager.modify_instance_field(node.node.nodeId,"availability", availability)
+            node.node.availability = (availability == 1)
+
             if node.node.nodeId not in trainers+aggregators:
                 node.node.task = -1
 
@@ -328,12 +336,15 @@ class FLManager(object):
             else :
                 new_accuracies.append(0.0)
                 new_losses.append(0.0)
-        self.update_nodes_state_file()  
+        # self.update_nodes_state_file()  
         # print("done update node from file")
         instances = self.nodesFileManager.retrieve_instances()  
         for i in range(0,self.config.nodes.total):
             self.nodes[i].node = instances[i] 
-        
+        print("in reset round milieu")
+        # node = self.nodes[0]
+        # print(node.malicious)
+        # print(node.dropout) 
         if self.config.nodes.selection != "score" :         
             #update the agent
             # print("instances",len(instances))

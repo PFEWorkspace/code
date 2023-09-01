@@ -147,7 +147,8 @@ class AiHelperContainer:
         self.FL_manager = fl.FLManager(config)
         if config.nodes.selection != "score" :
             self.DRLmanager = DRLHelper(config)
-        self.DRLmanager.agent.load_models()
+            if self.DRLmanager.load_checkpoint :
+                self.DRLmanager.agent.load_models()
         
 
     def exactSelection(self, act,config):
@@ -214,7 +215,12 @@ class AiHelperContainer:
             [self.nodes.append(copy.copy(env.nodes[i])) for i in range(env.numNodes)]
             m = self.FL_manager.setUp(self.nodes)
             self.numNodes = env.numNodes
-            act.model = MLModel(modelId=m.modelId,nodeId=m.nodeId,taskId=m.taskId,round=m.round)                      
+            act.model = MLModel(modelId=m.modelId,nodeId=m.nodeId,taskId=m.taskId,round=m.round)  
+            #printing malicious from self.nodes
+            print("in init")
+            node = self.nodes[0]
+            print(node.malicious)
+            print(node.dropout) 
         if env.type == 0x02 : # selection
             #get the candidated nodes
             self.numNodes = env.numNodes
