@@ -133,7 +133,7 @@ class DRLHelper :
         self.agent = ag.Agent(input_shape=obs_shape ,n_actions=obs_shape[0],max_actions=config.nodes.participants_per_round + config.nodes.aggregators_per_round, env=self.envNodeSelect) 
         self.done = False
         self.score = 0
-        self.load_checkpoint = True
+        self.load_checkpoint = False
         self.score_history=[]
         self.best_score=0
         dr.create_csv('./reward')
@@ -145,10 +145,10 @@ class AiHelperContainer:
     def __init__(self, config:config.Config, uid: int = 2333) -> None:
         self.rl = Ns3AIRL(uid, AiHelperEnv, AiHelperAct)
         self.FL_manager = fl.FLManager(config)
-        self.DRLmanager = DRLHelper(config)
+        if config.nodes.selection != "score" :
+            self.DRLmanager = DRLHelper(config)
         self.DRLmanager.agent.load_models()
         
-        pass
 
     def exactSelection(self, act,config):
         alpha = config.fl.alpha 
@@ -269,7 +269,10 @@ class AiHelperContainer:
             act.model = MLModel(modelId=model.modelId,nodeId=model.nodeId,taskId=model.taskId,round=model.round,type=model.type, positiveVote=model.positiveVote, negativeVote=model.negativeVote,evaluator1=model.evaluator1, evaluator2=model.evaluator2,evaluator3=model.evaluator3,aggregated=model.aggregated, aggModelId=model.aggModelId, accuracy=model.accuracy, acc1=model.acc1, acc2=model.acc2, acc3=model.acc3)
         if env.type == 0x06: #restround
             print("***********  NEW ROUND ***************") 
-            n , self.DRLmanager.observation , self.DRLmanager = self.FL_manager.resetRound(self.selectedTrainers,aggregators=self.selectedAggregators,manager=self.DRLmanager)
+            if config.nodes.selection != "score":
+                n , self.DRLmanager.observation , self.DRLmanager = self.FL_manager.resetRound(self.selectedTrainers,aggregators=self.selectedAggregators,manager=self.DRLmanager)
+            else :
+                n = self.FL_manager.resetRound(self.selectedTrainers, self.selectedAggregators)
             act.numFLNodes = config.nodes.total
             # act.FLNodesInfo = []
             # print("updating all nodes")

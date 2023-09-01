@@ -285,7 +285,7 @@ class FLManager(object):
 
         return mlmodel
     
-    def resetRound(self, trainers:list, aggregators:list, manager : DRLHelper):
+    def resetRound(self, trainers:list, aggregators:list, manager=None):
         self.round += 1
         print("round number: ",self.round)
         #calculate honesty
@@ -316,9 +316,11 @@ class FLManager(object):
         for node in self.nodes :
             if node.node.nodeId not in trainers+aggregators:
                 node.node.task = -1
+
+               
         new_accuracies = []
         new_losses=[]
-        
+            
         for i in range(0, len(self.nodes)):
             if i in trainers and not self.nodes[i].node.dropout: 
                 new_accuracies.append(self.nodes[i].get_report(self.nodes[i].get_last_model().modelId).accuracy)
@@ -331,41 +333,44 @@ class FLManager(object):
         instances = self.nodesFileManager.retrieve_instances()  
         for i in range(0,self.config.nodes.total):
             self.nodes[i].node = instances[i] 
+        
+        if self.config.nodes.selection != "score" :         
+            #update the agent
+            # print("instances",len(instances))
+            new_observation = dr.get_obs(instances[0:self.config.nodes.total]) # to add accuracies
             
-        #update the agent
-        # print("instances",len(instances))
-        new_observation = dr.get_obs(instances[0:self.config.nodes.total]) # to add accuracies
-        
-        # print("got the updates accuracies and losses", new_accuracies)
-        action= aggregators + trainers
-        updated_fl_accuracy =self.globalModel.accuracy
-        # remember state action 
-        next_observation , agent_reward,done =manager.envNodeSelect.step(action,new_accuracies,new_observation,new_losses,updated_fl_accuracy)
-        
-        print("reward", agent_reward)
-        manager.score += agent_reward
-        # print('next observation from step', next_observation["current_state"])
-        reward_data = {"round" : self.round,"reward":agent_reward, "cumulative_reward":manager.score}
-        print("score" , manager.score)
-        dr.write_to_csv("reward",reward_data)
-        # obs = dr.flatten_observation(manager.observation)
-        # obs_ = dr.flatten_observation(next_observation)
-        
-        manager.agent.remember(manager.observation, action, agent_reward, next_observation["current_state"], done)
-        manager.observation = next_observation['current_state']
-        if not manager.load_checkpoint:
-            # print("learning agent")
-            manager.agent.learn()
-        manager.score_history.append(manager.score)
-        # print("history score", manager.score_history)
-        avg_score = np.mean(manager.score_history[-100:])
-        if avg_score > manager.best_score:
-            manager.best_score = avg_score
+            # print("got the updates accuracies and losses", new_accuracies)
+            action= aggregators + trainers
+            updated_fl_accuracy =self.globalModel.accuracy
+            # remember state action 
+            next_observation , agent_reward,done =manager.envNodeSelect.step(action,new_accuracies,new_observation,new_losses,updated_fl_accuracy)
+            
+            print("reward", agent_reward)
+            manager.score += agent_reward
+            # print('next observation from step', next_observation["current_state"])
+            reward_data = {"round" : self.round,"reward":agent_reward, "cumulative_reward":manager.score}
+            print("score" , manager.score)
+            dr.write_to_csv("reward",reward_data)
+            # obs = dr.flatten_observation(manager.observation)
+            # obs_ = dr.flatten_observation(next_observation)
+            
+            manager.agent.remember(manager.observation, action, agent_reward, next_observation["current_state"], done)
+            manager.observation = next_observation['current_state']
             if not manager.load_checkpoint:
-                manager.agent.save_models()
-        # print("observation from resetround", next_observation)
-        return instances[0:self.config.nodes.total] , next_observation , manager
-
+                # print("learning agent")
+                manager.agent.learn()
+            manager.score_history.append(manager.score)
+            # print("history score", manager.score_history)
+            avg_score = np.mean(manager.score_history[-100:])
+            if avg_score > manager.best_score:
+                manager.best_score = avg_score
+                if not manager.load_checkpoint:
+                    manager.agent.save_models()
+            # print("observation from resetround", next_observation)
+            return instances[0:self.config.nodes.total] , next_observation , manager
+        else:
+            return instances[0:self.config.nodes.total]
+        
     def update_nodes_state_file(self):
         with open(self.config.nodes.source,"w",newline="") as file:
             writer = csv.writer(file)
@@ -377,12 +382,13 @@ class FLManager(object):
             for node in self.nodes:
                 availability = random.choices([1, 0], weights=[self.config.nodes.availability_percent, 1-self.config.nodes.availability_percent])[0]        
 
-                if node.node.nodeId  < (self.config.nodes.dropout_percent + self.config.nodes.malicious_percent)* len(self.nodes):
-                    dropout = random.choices([1, 0], weights=[0.5,0.5])[0]
-                    malicious = random.choices([1, 0],weights=[0.5,0.5])[0]
-                else:
-                    dropout = 1 if node.node.dropout==True else 0
-                    malicious = 1 if node.node.malicious==True else 0
+                # if node.node.nodeId  < self.config.nodes.dropout_percent * len(self.nodes):
+                #     dropout = random.choices([1, 0], weights=[0.5,0.5])[0]
+                # if node.node.nodeId < self.config.nodes.malicious_percent * len(self.nodes):
+                #     malicious = random.choices([1, 0],weights=[0.5,0.5])[0]
+                # else:
+                dropout = 1 if node.node.dropout==True else 0
+                malicious = 1 if node.node.malicious==True else 0
                 row = [node.node.nodeId, availability, node.node.honesty, node.node.datasetSize, node.node.freq, node.node.transRate, node.node.task, dropout, malicious]
                 writer.writerow(row)
 

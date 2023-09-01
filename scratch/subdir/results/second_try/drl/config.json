@@ -8,8 +8,8 @@
         "selection": "DRL",
         "source": "generated_nodes.csv",
         "availability_percent": 0.9,
-        "dropout_percent":0.3,
-        "malicious_percent":0.5
+        "dropout_percent":0.2,
+        "malicious_percent":0.8
     },
     "data": {
         "loading": "static",
@@ -27,7 +27,7 @@
         "target_accuracy": 99.9,
         "epochs": 5,
         "batch_size": 64,
-        "x" : 5,
+        "x" : 6,
         "alpha":0.5,
         "honesty_alpha":1,
         "honesty_beta":3,
