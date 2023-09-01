@@ -5,11 +5,11 @@
         "aggregators_per_round":10,
         "bc":30,
         "test_partition": 0.2,
-        "selection": "score",
+        "selection": "DRL",
         "source": "generated_nodes.csv",
         "availability_percent": 0.9,
-        "dropout_percent":0.7,
-        "malicious_percent":0.3
+        "dropout_percent":0.3,
+        "malicious_percent":0.1
     },
     "data": {
         "loading": "static",
