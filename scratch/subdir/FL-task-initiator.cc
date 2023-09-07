@@ -93,6 +93,7 @@ Initiator::StartApplication()
     m_socket->SetAllowBroadcast(true);
     m_socket->Bind();
      Ptr<Packet> packet = Create<Packet>(reinterpret_cast<const uint8_t*>(packetInfo.GetString()),packetInfo.GetSize());
+    
     for (Ipv4Address destAddr : m_destAddr) {
         m_socket->SendTo(packet, 0, InetSocketAddress(destAddr, m_destPort));
         

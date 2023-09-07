@@ -1,11 +1,11 @@
 {
     "nodes": {
         "total":50,
-        "participants_per_round": 20,
-        "aggregators_per_round":10,
-        "bc":30,
+        "participants_per_round": 5,
+        "aggregators_per_round":5,
+        "bc":10,
         "test_partition": 0.2,
-        "selection": "score",
+        "selection": "DRL",
         "source": "generated_nodes.csv",
         "availability_percent": 0.9,
         "dropout_percent":0.7,
@@ -23,12 +23,12 @@
         }
     },
     "federated_learning": {
-        "rounds": 30,
+        "rounds": 10,
         "target_accuracy": 99.9,
         "epochs": 5,
         "batch_size": 64,
         "x" : 5,
-        "alpha":0.5,
+        "alpha":0.8,
         "honesty_alpha":1,
         "honesty_beta":3,
         "honesty_gamma":10,
