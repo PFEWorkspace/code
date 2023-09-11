@@ -5,10 +5,10 @@
         "aggregators_per_round":10,
         "bc":30,
         "test_partition": 0.2,
-        "selection": "DRL",
+        "selection": "score",
         "source": "generated_nodes.csv",
         "availability_percent": 0.9,
-        "dropout_percent":0.3,
+        "dropout_percent":0.1,
         "malicious_percent":0.1
     },
     "data": {
@@ -28,7 +28,7 @@
         "epochs": 5,
         "batch_size": 64,
         "x" : 5,
-        "alpha":0.5,
+        "alpha":0.8,
         "honesty_alpha":1,
         "honesty_beta":3,
         "honesty_gamma":10,

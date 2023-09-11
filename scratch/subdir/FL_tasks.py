@@ -367,7 +367,7 @@ class FLManager(object):
             
             manager.agent.remember(manager.observation, action, agent_reward, next_observation["current_state"], done)
             manager.observation = next_observation['current_state']
-            if not manager.load_checkpoint:
+            if manager.load_checkpoint:
                 # print("learning agent")
                 manager.agent.learn()
             manager.score_history.append(manager.score)
@@ -375,7 +375,7 @@ class FLManager(object):
             avg_score = np.mean(manager.score_history[-100:])
             if avg_score > manager.best_score:
                 manager.best_score = avg_score
-                if not manager.load_checkpoint:
+                if manager.load_checkpoint:
                     manager.agent.save_models()
             # print("observation from resetround", next_observation)
             return instances[0:self.config.nodes.total] , next_observation , manager

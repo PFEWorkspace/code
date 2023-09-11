@@ -7,7 +7,7 @@ import random
 file_path = "./generated_nodes.csv"
 manager = CSVFileManager(file_path, FLNodeStruct._fields_)
 instances = manager.retrieve_instances()
-dropout_percent = 0.3
+dropout_percent = 0.1
 malicious_percent = 0.1
 with open(file_path,"w",newline="") as file:
         writer = csv.writer(file)
