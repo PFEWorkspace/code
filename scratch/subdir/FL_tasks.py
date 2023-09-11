@@ -293,6 +293,8 @@ class FLManager(object):
         # print(node.dropout)
         self.round += 1
         print("round number: ",self.round)
+        new_accuracies = []
+        new_losses=[]
         #calculate honesty
         #update the nodes on csv   
         for index in trainers:
@@ -317,8 +319,16 @@ class FLManager(object):
             self.nodes[index].falseEvaluation = 0
             self.nodes[index].trueAggregation = 0
             self.nodes[index].falseAggregation = 0
-
+        
+       
         for node in self.nodes :
+            if node.node.nodeId in trainers and not node.node.dropout: 
+                new_accuracies.append(node.get_report(node.get_last_model().modelId).accuracy)
+                new_losses.append(node.get_report(node.get_last_model().modelId).loss)
+            else :
+                new_accuracies.append(0.0)
+                new_losses.append(0.0)
+
             availability = random.choices([1, 0], weights=[self.config.nodes.availability_percent, 1-self.config.nodes.availability_percent])[0]
             self.nodesFileManager.modify_instance_field(node.node.nodeId,"availability", availability)
             node.node.availability = (availability == 1)
@@ -334,20 +344,9 @@ class FLManager(object):
 
             if node.node.nodeId not in trainers+aggregators:
                 node.node.task = -1
-
                
-        new_accuracies = []
-        new_losses=[]
-            
-        for i in range(0, len(self.nodes)):
-            if i in trainers and not self.nodes[i].node.dropout: 
-                new_accuracies.append(self.nodes[i].get_report(self.nodes[i].get_last_model().modelId).accuracy)
-                new_losses.append(self.nodes[i].get_report(self.nodes[i].get_last_model().modelId).loss)
-            else :
-                new_accuracies.append(0.0)
-                new_losses.append(0.0)
+        
         # self.update_nodes_state_file()  
-        # print("done update node from file")
         instances = self.nodesFileManager.retrieve_instances()  
         for i in range(0,self.config.nodes.total):
             self.nodes[i].node = instances[i] 
