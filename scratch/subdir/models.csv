@@ -1,5 +1,0 @@
-modelId,nodeId,taskId,round,type,positiveVote,negativeVote,evaluator1,evaluator2,evaluator3,aggregated,aggModelId,accuracy,acc1,acc2,acc3
-1,6,0,0,0,2,0,40,38,-1,true,4,44.44,55.6,51.33,0.0
-2,24,0,0,0,2,0,38,29,-1,true,4,44.44,57.33,65.04,0.0
-3,44,0,0,0,2,0,29,34,-1,true,4,30.0,36.24,33.33,0.0
-4,38,0,0,2,0,0,-1,-1,-1,false,0,40.67,0.0,0.0,0.0

@@ -89,9 +89,9 @@ void BCNode::Receive(Ptr<Socket> socket) {
                     switch (d["message_type"].GetInt())
                     {
                         case NEWTASK : //NEWTASK
-                         NS_LOG_INFO("I'm a bc node id: "<< GetNode()->GetId() << " received " << packet->GetSize() << " bytes from "
-                                    << InetSocketAddress::ConvertFrom(from).GetIpv4()
-                                    << " content: "<< packetInfo) ;
+                        //  NS_LOG_INFO("I'm a bc node id: "<< GetNode()->GetId() << " received " << packet->GetSize() << " bytes from "
+                        //             << InetSocketAddress::ConvertFrom(from).GetIpv4()
+                        //             << " content: "<< packetInfo) ;
             
                         if(d.HasMember("task_id") && d["task_id"].IsInt()){
                             bc->setTaskId( d["task_id"].GetInt());
@@ -680,4 +680,6 @@ void BCNode::NewRound(MLModel globalModel){
 void BCNode::DetectDropOut(AggregatorsTasks task){
 
 }
+
+  
 }

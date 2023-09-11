@@ -135,10 +135,6 @@ bool ParseJSON(const std::string& jsonString, rapidjson::Document& document) {
 }
 
 
-
-
-
-
 // ==============================================
 // RECEIVER
 // ==============================================

@@ -63,8 +63,7 @@ class BCNode : public Application
     void Aggregation(std::vector<MLModel> models, int nodeId, int type);
     void DetectDropOut(AggregatorsTasks task);
     void NewRound(MLModel globalModel);
-    
-    
+   
     FLNodeStruct docToFLNodeStruct(rapidjson::Document &d);
 
     Ptr<Socket> m_socket; // Receiving socket

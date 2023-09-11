@@ -23,6 +23,8 @@ using namespace ns3;
 NS_LOG_COMPONENT_DEFINE("FLExperimentSimulation");
 
 FLNodeStruct* GetNodesFromFile(const std::string& filename,  int& numNodes);
+// void ReceivePacketTrace ( Ptr<const Packet> packet, double v, ns3::WifiMode mode, ns3::WifiPreamble preamble);
+// void TransmittedPacketTrace(Ptr<const Packet> packet,  ns3::WifiMode mode, ns3::WifiPreamble preamble, unsigned char c);
 
 int
 main(int argc, char* argv[])
@@ -210,7 +212,9 @@ main(int argc, char* argv[])
     //-- Create a custom traffic source and sink
     //--------------------------------------------
     NS_LOG_INFO("installing apps.");
-    
+
+
+
     Blockchain* blockchain = Blockchain::getInstance();
     blockchain->SetBCAddressContainer(BCnodesIpIfaces);
     blockchain->SetFLAddressContainer(nodesIpIfaces);
@@ -259,7 +263,6 @@ main(int argc, char* argv[])
     Ptr<Initiator> flInitTask = CreateObject<Initiator>();
     initnode->AddApplication(flInitTask);
     flInitTask->SetStartTime(Seconds(1));
-    // flInitTask->SetStopTime(Seconds(10));
 
     flInitTask->setNumNodes(numFlNodes);
     flInitTask->setRounds(flrounds);
@@ -287,20 +290,18 @@ main(int argc, char* argv[])
       
         // AsciiTraceHelper ascii;
         // wifiPhyHelper.EnableAsciiAll(ascii.CreateFileStream("main.tr"));
-      
-        // wifiPhy.EnablePcap("wifi-simple-adhoc-grid",nodes);
-        // Trace routing tables
-        // Ptr<OutputStreamWrapper> routingStream =
-        //     Create<OutputStreamWrapper>("wifi-simple-adhoc-grid.routes", std::ios::out);
-        // Ipv4RoutingHelper::PrintRoutingTableAllEvery(Seconds(2), routingStream);
-        // Ptr<OutputStreamWrapper> neighborStream =
-        //     Create<OutputStreamWrapper>("wifi-simple-adhoc-grid.neighbors", std::ios::out);
-        // Ipv4RoutingHelper::PrintNeighborCacheAllEvery(Seconds(2), neighborStream);
+
 
         // To do-- enable an IP-level trace that shows forwarding events only
     }
-
-
+   
+  //   Config::ConnectWithoutContext(
+  //   "/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Phy/State/RxOk",
+  //   MakeCallback(&ReceivePacketTrace));
+   
+  //  Config::ConnectWithoutContext(
+  //   "/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Phy/State/Tx",
+  //   MakeCallback(&TransmittedPacketTrace));
     //  Create the animation object and configure for specified output
     AnimationInterface anim(animFile);
     for(uint32_t i=0; i<BCnodes.GetN();i++){
@@ -319,8 +320,6 @@ main(int argc, char* argv[])
 
   return 0 ;
 }
-
-
 
 FLNodeStruct* GetNodesFromFile(const std::string& filename,  int& numNodes){
 
@@ -382,3 +381,6 @@ FLNodeStruct* GetNodesFromFile(const std::string& filename,  int& numNodes){
     numNodes = count;
     return nodeList;
 }
+    
+
+   

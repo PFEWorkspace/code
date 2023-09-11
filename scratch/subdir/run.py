@@ -60,6 +60,13 @@ class MLModelRefrence(ctypes.Structure):
         ("taskId", ctypes.c_int),
         ("round", ctypes.c_int)
     ]
+class DRLReward(ctypes.Structure):
+    _pack_ = 1
+    _fields_ = [
+        ("Round", ctypes.c_int),
+        ("Reward", ctypes.c_double),
+        ("Cumulative_Reward", ctypes.c_double)
+    ]
 
 class FLNodeStruct(ctypes.Structure):
     _pack_ = 1
@@ -133,10 +140,13 @@ class DRLHelper :
         self.agent = ag.Agent(input_shape=obs_shape ,n_actions=obs_shape[0],max_actions=config.nodes.participants_per_round + config.nodes.aggregators_per_round, env=self.envNodeSelect) 
         self.done = False
         self.score = 0
-        self.load_checkpoint = False
+        if config.nodes.selection == "DRL":
+            self.load_checkpoint = False
+        if config.nodes.selection == "hybrid":
+            self.load_checkpoint = True    
         self.score_history=[]
         self.best_score=0
-        dr.create_csv('./reward')
+        
 
 class AiHelperContainer:
     use_ns3ai = True
@@ -219,8 +229,7 @@ class AiHelperContainer:
             #printing malicious from self.nodes
             print("in init")
             node = self.nodes[0]
-            print(node.malicious)
-            print(node.dropout) 
+            
         if env.type == 0x02 : # selection
             #get the candidated nodes
             self.numNodes = env.numNodes

@@ -5,7 +5,7 @@ import torch
 import copy
 import numpy as np
 from utils.CSVManager import CSVFileManager
-from run import DRLHelper, MLModel, FLNodeStruct
+from run import DRLHelper, MLModel, FLNodeStruct, DRLReward
 from FL_model import Generator, Loader, Net, extract_weights
 from FL_node import Node, Report
 import drl_utils as dr
@@ -22,6 +22,7 @@ class FLManager(object):
         self.nodesFileManager = CSVFileManager(self.config.nodes.source, FLNodeStruct._fields_)
         models_path = self.config.paths.FLmodels
         self.modelsFileManager = CSVFileManager(models_path, MLModel._fields_)
+        self.rewardFileManager = CSVFileManager("reward.csv", DRLReward._fields_)
 
     def setUp(self, nodesList):
         logging.info('setting up nodes, datasets and initial model for a new FL task')    
@@ -286,7 +287,7 @@ class FLManager(object):
         return mlmodel
     
     def resetRound(self, trainers:list, aggregators:list, manager=None):
-        print("in reset round debut")
+        # print("in reset round debut")
         # node = self.nodes[0]
         # print(node.malicious) 
         # print(node.dropout)
@@ -321,6 +322,15 @@ class FLManager(object):
             availability = random.choices([1, 0], weights=[self.config.nodes.availability_percent, 1-self.config.nodes.availability_percent])[0]
             self.nodesFileManager.modify_instance_field(node.node.nodeId,"availability", availability)
             node.node.availability = (availability == 1)
+            
+            if node.node.nodeId  < (self.config.nodes.dropout_percent+self.config.nodes.malicious_percent) * len(self.nodes):
+                dropout = random.choices([1, 0], weights=[0.5,0.5])[0]
+                self.nodesFileManager.modify_instance_field(node.node.nodeId,"dropout", dropout)
+                node.node.dropout = (dropout == 1)
+            
+                malicious = random.choices([1, 0],weights=[0.5,0.5])[0]
+                self.nodesFileManager.modify_instance_field(node.node.nodeId,"malicious", malicious)
+                node.node.malicious = (malicious == 1)
 
             if node.node.nodeId not in trainers+aggregators:
                 node.node.task = -1
@@ -341,7 +351,7 @@ class FLManager(object):
         instances = self.nodesFileManager.retrieve_instances()  
         for i in range(0,self.config.nodes.total):
             self.nodes[i].node = instances[i] 
-        print("in reset round milieu")
+        
         # node = self.nodes[0]
         # print(node.malicious)
         # print(node.dropout) 
@@ -359,9 +369,11 @@ class FLManager(object):
             print("reward", agent_reward)
             manager.score += agent_reward
             # print('next observation from step', next_observation["current_state"])
-            reward_data = {"round" : self.round,"reward":agent_reward, "cumulative_reward":manager.score}
-            print("score" , manager.score)
-            dr.write_to_csv("reward",reward_data)
+            # reward_data = {"round" : self.round,"reward":agent_reward, "cumulative_reward":manager.score}
+            # print("score" , manager.score)
+            # dr.write_to_csv("reward",reward_data)
+            reward = DRLReward(Round=self.round, Reward=agent_reward, Cumulative_Reward=manager.score)
+            self.rewardFileManager.write_instance(reward)
             # obs = dr.flatten_observation(manager.observation)
             # obs_ = dr.flatten_observation(next_observation)
             

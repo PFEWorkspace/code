@@ -116,7 +116,7 @@ class FLNodeSelectionEnv(gym.Env):
         for node_index in selected_nodes:
             node_rewards[node_index] = state[node_index][2]
             if (updated_accuracies[node_index] != 0) :
-                node_rewards[node_index] *= updated_accuracies[node_index]  # Use loss as a simple example because loss is positive
+                node_rewards[node_index] *= (updated_accuracies[node_index] / 100) # Use loss as a simple example because loss is positive
             # print("node reward", node_rewards[node_index])
         return node_rewards
     def target_accuracy_achieved(self, updated_accuracy):
