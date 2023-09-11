@@ -295,14 +295,6 @@ main(int argc, char* argv[])
         // To do-- enable an IP-level trace that shows forwarding events only
     }
    
-  //   Config::ConnectWithoutContext(
-  //   "/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Phy/State/RxOk",
-  //   MakeCallback(&ReceivePacketTrace));
-   
-  //  Config::ConnectWithoutContext(
-  //   "/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Phy/State/Tx",
-  //   MakeCallback(&TransmittedPacketTrace));
-    //  Create the animation object and configure for specified output
     AnimationInterface anim(animFile);
     for(uint32_t i=0; i<BCnodes.GetN();i++){
       anim.UpdateNodeColor(BCnodes.Get(i),0,0,255);
